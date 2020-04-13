@@ -166,12 +166,12 @@ tar -xzf "$FPPVERSION-$CONFIGNAME.tar.gz" --checkpoint-action='exec=printf "%d/4
 rm "$FPPVERSION-$CONFIGNAME.tar.gz"
 echo ""
 echo "Downloading tarball..."
-curl -LO# "https://github.com/Birdthulu/Ishiiruka/archive/a667c245df18678b5060b3807e1c3238536c0ef1.tar.gz"
+curl -LO# "$GITCLONELINK/archive/$COMMITHASH.tar.gz"
 echo "Extracting tarball..."
-tar -xzf "a667c245df18678b5060b3807e1c3238536c0ef1.tar.gz" --checkpoint-action='exec=printf "%d/12130 records extracted.\r" $TAR_CHECKPOINT' --totals
-rm "a667c245df18678b5060b3807e1c3238536c0ef1.tar.gz"
+tar -xzf "$COMMITHASH.tar.gz" --checkpoint-action='exec=printf "%d/12130 records extracted.\r" $TAR_CHECKPOINT' --totals
+rm "$COMMITHASH.tar.gz"
 echo "" #spacing
-mv "Ishiiruka-a667c245df18678b5060b3807e1c3238536c0ef1" Ishiiruka
+mv "Ishiiruka-$COMMITHASH" Ishiiruka
 cd Ishiiruka
 
 # --- move necessary config files into the build folder
