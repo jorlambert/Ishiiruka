@@ -203,7 +203,7 @@ rm -f ../launch-fpp
 
 # --- create symlink to newly compiled dolphin-emu. if queued, create shortcut.
 echo "Creating shortcuts..."
-ln -s "$FOLDERNAME/bin/dolphin-emu" ../launch-fpp
+ln -s "$FOLDERNAME/bin/ishiiruka" ../launch-fpp
 if [ "$SHORTCUTBOOL" -eq 1 ] && [ -d ~/.local/share/applications ]; then
 	rm -f ~/.local/share/applications/faster-project-plus-$FPPVERSION.desktop # remove old shortcut
 	rm -f ~/Desktop/faster-project-plus-$FPPVERSION.desktop
@@ -215,11 +215,11 @@ Type=Application
 GenericName=Wii/GameCube Emulator
 Comment=Ishiiruka fork for SSBPM
 Categories=Emulator;Game;
-Icon=$EXEPATH/dolphin-emu.png
+Icon=$EXEPATH/ishiiruka.png
 Keywords=ProjectM;Project M;ProjectPlus;Project Plus;Project+
 Version=$FPPVERSION
 Name=$FPPNAME
-Exec=$EXEPATH/dolphin-emu" | tee ~/.local/share/applications/faster-project-plus-$FPPVERSION.desktop > /dev/null
+Exec=$EXEPATH/ishiiruka" | tee ~/.local/share/applications/faster-project-plus-$FPPVERSION.desktop > /dev/null
 	cp ~/.local/share/applications/faster-project-plus-$FPPVERSION.desktop ~/Desktop
 	chmod +x ~/Desktop/faster-project-plus-$FPPVERSION.desktop
 else
