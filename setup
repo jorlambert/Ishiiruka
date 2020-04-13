@@ -7,14 +7,14 @@ set -e
 # --- Based Off of/Ripped from https://github.com/FasterMelee/FasterMelee-installer/ Thank you Faster Melee Team!
 # ---
 
-if [ -f "./setup" ] && [ -z "${IN_NIX_SHELL++}" ]; then
-	echo "You are running a hosted copy of the script. Please *delete the local file 'setup'* and run"
-	echo ""
-	echo "sh -c \"\$(curl -Ls https://github.com/Birdthulu/Ishiiruka/raw/master/setup)"
-	echo ""
-	echo "to ensure you have the latest version!"
-	exit
-fi
+# if [ -f "./setup" ] && [ -z "${IN_NIX_SHELL++}" ]; then
+# 	echo "You are running a hosted copy of the script. Please *delete the local file 'setup'* and run"
+# 	echo ""
+# 	echo "sh -c \"\$(curl -Ls https://github.com/Birdthulu/Ishiiruka/raw/feature/linux-installer/setup)"
+# 	echo ""
+# 	echo "to ensure you have the latest version!"
+# 	exit
+# fi
 
 # --- Attempts to determine the number of cores in the CPU. ---
 # Source: https://gist.github.com/jj1bdx/5746298
@@ -71,9 +71,9 @@ if [ -z "$FPPVERSION" ] || [ -z "$COMMITHASH" ] || [ -z "$GITCLONELINK" ] || [ -
 	if [ "$RESP" -eq 1 ] 1> /dev/null; then
 	 	FPPVERSION="2.0"
 		CONFIGNAME="fppconfig"
-		COMMITHASH="a667c245df18678b5060b3807e1c3238536c0ef1" #TODO Must change once release hits!
-		CONFIGLINK="https://github.com/Birdthulu/Ishiiruka/raw/master/config/$FPPVERSION-$CONFIGNAME.tar.gz"
-		GITCLONELINK="https://github.com/Birdthulu/Ishiiruka"
+		COMMITHASH="29c2fbf20bf04d5788412ab40c86eb5d0625b77f" #TODO Must change once release hits!
+		CONFIGLINK="https://github.com/Birdthulu/Ishiiruka/raw/feature/linux-installer/config/$FPPVERSION-$CONFIGNAME.tar.gz"
+		GITCLONELINK="https://github.com/Birdthulu/Ishiiruka/tree/feature/linux-installer"
 	fi
 
 	echo "Installing version $FPPVERSION!"
