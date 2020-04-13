@@ -178,7 +178,7 @@ cd Ishiiruka
 echo "Adding FPP config files..."
 mkdir build && cd build
 mv ../../Binaries .
-mv ../Data/dolphin-emu.png Binaries/
+mv ../Data/ishiiruka.png Binaries/
 # ---
 
 # --- cmake and compile
