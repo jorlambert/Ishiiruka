@@ -54,7 +54,10 @@ IPCCommandResult USBHost::Open(const OpenRequest& request)
   while (!UpdateDevices())
   {
   }
-  StartThreads();
+  if (!Core::WantsDeterminism())
+  {
+    StartThreads();
+  }
   return GetDefaultReply(IPC_SUCCESS);
 }
 
