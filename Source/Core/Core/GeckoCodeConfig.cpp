@@ -97,6 +97,11 @@ std::vector<GeckoCode> DownloadCodes(std::string gameid, bool* succeeded)
     {
       std::istringstream ssline(line);
       std::string addr, data;
+
+      // Some locales (e.g. fr_FR.UTF-8) don't split the string stream on space
+      // Use the C locale to workaround this behavior
+      ssline.imbue(std::locale::classic());
+
       ssline >> addr >> data;
       ssline.seekg(0);
 
@@ -150,6 +155,10 @@ std::vector<GeckoCode> LoadCodes(const IniFile& globalIni, const IniFile& localI
     for (auto& line : lines)
     {
       std::istringstream ss(line);
+
+      // Some locales (e.g. fr_FR.UTF-8) don't split the string stream on space
+      // Use the C locale to workaround this behavior
+      ss.imbue(std::locale::classic());
 
       switch ((line)[0])
       {

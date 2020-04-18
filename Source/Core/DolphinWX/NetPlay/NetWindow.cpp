@@ -135,6 +135,7 @@ wxSizer* NetPlayDialog::CreateTopGUI(wxWindow* parent)
     m_MD5_choice->Append(_("Current game"));
     m_MD5_choice->Append(_("Other game"));
     m_MD5_choice->Append(_("SD card"));
+    m_MD5_choice->Append(_("Save File"));
     m_MD5_choice->SetSelection(0);
 
     top_szr->Add(m_MD5_choice, 0, wxALIGN_CENTER_VERTICAL);
@@ -215,6 +216,15 @@ wxSizer* NetPlayDialog::CreatePlayerListGUI(wxWindow* parent)
 
     UpdateHostLabel();
 
+    if (TraversalClient::Connected && m_host_label->GetLabelText() != "...")
+    {
+      if (wxTheClipboard->Open())
+      {
+        wxTheClipboard->SetData(new wxTextDataObject(m_host_label->GetLabel()));
+        wxTheClipboard->Close();
+      }
+    }
+
     wxBoxSizer* const host_szr = new wxBoxSizer(wxHORIZONTAL);
     host_szr->Add(m_host_type_choice);
     host_szr->Add(m_host_label, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -269,6 +279,8 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 
     m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Write save/SD data"));
 
+    //m_copy_wii_save = new wxCheckBox(parent, wxID_ANY, _("Load Wii Save"));
+
     bottom_szr->Add(m_start_btn, 0, wxALIGN_CENTER_VERTICAL);
     bottom_szr->Add(minimum_buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     bottom_szr->Add(minimum_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -285,6 +297,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     }
 
     bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+    //bottom_szr->Add(m_copy_wii_save, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
     bottom_szr->AddSpacer(space5);
   }
@@ -379,8 +392,6 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
   settings.m_OCFactor = instance.m_OCFactor;
   settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : ExpansionInterface::EXIDEVICE_NONE;
   settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : ExpansionInterface::EXIDEVICE_NONE;
-  //settings.m_BrawlMusicOff = IsNTSCBrawl() ? m_music_off_chkbox->GetValue() : false;
-  //settings.m_BrawlMusicOff = m_music_off_chkbox->GetValue();
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
@@ -756,6 +767,10 @@ void NetPlayDialog::OnMD5ComputeRequested(wxCommandEvent&)
 
   case MD5Target::SdCard:
     file_identifier = WII_SDCARD;
+    break;
+
+  case MD5Target::SaveFile:
+    file_identifier = BRAWL_SAVE_FILE;
     break;
 
   default:

@@ -762,6 +762,9 @@ void CFrame::StartGame(std::unique_ptr<BootParameters> boot)
     }
 
     wxTheApp->Bind(wxEVT_KEY_DOWN, &CFrame::OnKeyDown, this);
+#ifdef __APPLE__
+    wxTheApp->Bind(wxEVT_CHAR, &CFrame::OnChar, this);
+#endif
     wxTheApp->Bind(wxEVT_RIGHT_DOWN, &CFrame::OnMouse, this);
     wxTheApp->Bind(wxEVT_RIGHT_UP, &CFrame::OnMouse, this);
     wxTheApp->Bind(wxEVT_MIDDLE_DOWN, &CFrame::OnMouse, this);
@@ -945,6 +948,11 @@ void CFrame::OnStopped()
 
   // Keyboard
   wxTheApp->Unbind(wxEVT_KEY_DOWN, &CFrame::OnKeyDown, this);
+
+  // This is necessary on mac so it doesn't beep when you press keys ingame.
+#ifdef __APPLE__
+  wxTheApp->Unbind(wxEVT_CHAR, &CFrame::OnChar, this);
+#endif
 
   // Mouse
   wxTheApp->Unbind(wxEVT_RIGHT_DOWN, &CFrame::OnMouse, this);

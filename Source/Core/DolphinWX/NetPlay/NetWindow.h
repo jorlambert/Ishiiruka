@@ -69,7 +69,8 @@ enum class MD5Target
 {
   CurrentGame = 1,
   OtherGame = 2,
-  SdCard = 3
+  SdCard = 3,
+  SaveFile = 4
 };
 
 class NetPlayDialog : public wxFrame, public NetPlayUI
@@ -145,6 +146,7 @@ private:
   wxCheckBox* m_memcard_write;
   wxCheckBox* m_music_off_chkbox;
   wxCheckBox* m_record_chkbox;
+  //wxCheckBox* m_copy_wii_save;
 
   wxSpinCtrl* m_player_padbuf_spin;
 
