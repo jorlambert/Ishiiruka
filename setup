@@ -66,16 +66,22 @@ fi
 if [ -z "$FPPVERSION" ] || [ -z "$COMMITHASH" ] || [ -z "$GITCLONELINK" ] || [ -z "$CONFIGLINK" ]; then #ORs used to ensure everything filled out
 	echo ""
 	echo "Which version of Faster Project Plus would you like to install? (default: 1)"
-	echo "1.) 2.0 (Latest version)"
+	echo "1.) 2.1 (Latest version)"
+	echo "2.) 2.0"
 	read -r RESP
-	if [ "$RESP" -eq 1 ] 1> /dev/null; then
+	if [ "$RESP" -eq 2 ] 2> /dev/null; then
 	 	FPPVERSION="2.0"
 		CONFIGNAME="fppconfig"
-		COMMITHASH="a667c245df18678b5060b3807e1c3238536c0ef1" #TODO Must change once release hits!
+		COMMITHASH="a667c245df18678b5060b3807e1c3238536c0ef1"
+		CONFIGLINK="https://github.com/Birdthulu/Ishiiruka/raw/master/config/legacy/$FPPVERSION-$CONFIGNAME.tar.gz"
+		GITCLONELINK="https://github.com/Birdthulu/Ishiiruka"
+	else
+		FPPVERSION="2.1"
+		CONFIGNAME="fppconfig"
+		COMMITHASH="d567795652cb225f605408bcc7cc5a0faf9fc8c5"
 		CONFIGLINK="https://github.com/Birdthulu/Ishiiruka/raw/master/config/$FPPVERSION-$CONFIGNAME.tar.gz"
 		GITCLONELINK="https://github.com/Birdthulu/Ishiiruka"
 	fi
-
 	echo "Installing version $FPPVERSION!"
 else
 	echo ""
@@ -146,12 +152,12 @@ fi
 # --- prompt for -j flag (# of cores utilized)
 echo ""
 echo "CPU Threads detected: $CPUS"
-echo "How many threads would you like to use to compile? (passed to make as -j flag, default: 1, range: 1 - $(( CPUS + 1 )))"
+echo "How many threads would you like to use to compile? (passed to make as -j flag, default: $CPUS, range: 1 - $(( CPUS )))"
 read -r RESP
 if [ "$RESP" -ge 1 ] 2> /dev/null && [ "$RESP" -le $((CPUS + 1)) ] 2> /dev/null; then
 	CPUS=$RESP 
 else
-	CPUS=1
+	CPUS=$CPUS
 fi
 echo "Using $CPUS thread(s)!"
 # ---
