@@ -1086,7 +1086,12 @@ static int GetMenuIDFromHotkey(unsigned int key)
 
 void CFrame::OnKeyDown(wxKeyEvent& event)
 {
+  event.Skip();
+}
+
 #ifdef __APPLE__
+void CFrame::OnChar(wxKeyEvent& event)
+{
   // On OS X, we claim all keyboard events while
   // emulation is running to avoid wxWidgets sounding
   // the system beep for unhandled key events when
@@ -1099,12 +1104,8 @@ void CFrame::OnKeyDown(wxKeyEvent& event)
     // of the keyboard in the rest of the UI.
     event.Skip();
   }
-#else
-  // On other platforms, we leave the key event alone
-  // so it can be passed on to the windowing system.
-  event.Skip();
-#endif
 }
+#endif
 
 void CFrame::OnMouse(wxMouseEvent& event)
 {
