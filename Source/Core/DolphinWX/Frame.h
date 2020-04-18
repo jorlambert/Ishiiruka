@@ -319,6 +319,9 @@ private:
   void OnToggleWindow(wxCommandEvent& event);
 
   void OnKeyDown(wxKeyEvent& event);  // Keyboard
+#ifdef __APPLE__
+  void OnChar(wxKeyEvent& event);
+#endif
   void OnMouse(wxMouseEvent& event);  // Mouse
 
   void OnHostMessage(wxCommandEvent& event);
