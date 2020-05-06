@@ -291,6 +291,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
   core->Set("CustomRTCValue", m_customRTCValue);
   core->Set("EnableSignatureChecks", m_enable_signature_checks);
   core->Set("QoSEnabled", bQoSEnabled);
+  core->Set("AdapterWarning", bAdapterWarning);
 }
 
 void SConfig::SaveMovieSettings(IniFile& ini)
@@ -597,6 +598,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
   core->Get("CustomRTCValue", &m_customRTCValue, 946684800);
   core->Get("EnableSignatureChecks", &m_enable_signature_checks, true);
   core->Get("QoSEnabled", &bQoSEnabled, true);
+  core->Get("AdapterWarning", &bAdapterWarning, true);
 }
 
 void SConfig::LoadMovieSettings(IniFile& ini)

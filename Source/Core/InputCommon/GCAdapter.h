@@ -12,12 +12,19 @@ struct GCPadStatus;
 
 namespace GCAdapter
 {
+  static constexpr int TIMEOUT = 16;
+
 enum ControllerTypes
 {
   CONTROLLER_NONE = 0,
   CONTROLLER_WIRED = 1,
   CONTROLLER_WIRELESS = 2
 };
+
+extern bool adapter_error;
+
+bool AdapterError();
+
 void Init();
 void ResetRumble();
 void Shutdown();

@@ -74,13 +74,22 @@ namespace GCAdapter
 
   static auto lastPollTime = std::chrono::steady_clock::now();
 
+  bool adapter_error = false;
+
+  bool AdapterError()
+  {
+    return adapter_error && s_adapter_thread_running.IsSet();
+  }
+
   static void Read()
   {
+    adapter_error = false;
+
     int payload_size = 0;
     while (s_adapter_thread_running.IsSet())
     {
-      libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-        sizeof(s_controller_payload_swap), &payload_size, 16);
+      adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+        sizeof(s_controller_payload_swap), &payload_size, TIMEOUT) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
 
       {
         std::lock_guard<std::mutex> lk(s_mutex);
@@ -105,7 +114,7 @@ namespace GCAdapter
 
       u8 payload[5] = { 0x11, s_controller_rumble[0], s_controller_rumble[1], s_controller_rumble[2],
                        s_controller_rumble[3] };
-      libusb_interrupt_transfer(s_handle, s_endpoint_out, payload, sizeof(payload), &size, 16);
+      libusb_interrupt_transfer(s_handle, s_endpoint_out, payload, sizeof(payload), &size, TIMEOUT);
     }
   }
 
@@ -339,7 +348,7 @@ namespace GCAdapter
 
     int tmp = 0;
     unsigned char payload = 0x13;
-    libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, 16);
+    libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, TIMEOUT);
 
     s_adapter_thread_running.Set(true);
     s_adapter_input_thread = std::thread(Read);
@@ -412,6 +421,16 @@ namespace GCAdapter
 
     if (s_handle == nullptr || !s_detected)
       return {};
+
+    if (AdapterError())
+    {
+      GCPadStatus centered_status = { 0 };
+      centered_status.stickX = centered_status.stickY =
+        centered_status.substickX = centered_status.substickY =
+        /* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+
+      return centered_status;
+    }
 
     int payload_size = 0;
     u8 controller_payload_copy[37];
@@ -497,12 +516,14 @@ namespace GCAdapter
         pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
         pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
       }
-      else if (!Core::WantsDeterminism())
+      else
       {
-        // This is a hack to prevent a desync due to SI devices
-        // being different and returning different values.
-        // The corresponding code in DeviceGCAdapter has the same check
-        pad.button = PAD_ERR_STATUS;
+        GCPadStatus centered_status = { 0 };
+        centered_status.stickX = centered_status.stickY =
+          centered_status.substickX = centered_status.substickY =
+          /* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+
+        return centered_status;
       }
     }
 

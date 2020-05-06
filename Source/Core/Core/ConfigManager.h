@@ -110,6 +110,7 @@ struct SConfig
   bool bEnableCheats = false;
   bool bNTSC = false;
   bool bQoSEnabled = true;
+  bool bAdapterWarning = true;
   bool bEnableMemcardSdWriting = false;
   bool bCopyWiiSaveNetplay = true;
 
