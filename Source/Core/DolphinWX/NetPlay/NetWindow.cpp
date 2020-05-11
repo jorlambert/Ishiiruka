@@ -264,6 +264,12 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
   m_player_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_player_padbuf_spin));
 
   m_music_off_chkbox = new wxCheckBox(parent, wxID_ANY, "Client Side Music Off");
+  m_music_off_chkbox->SetToolTip("Turn off music client side (To make this permanent right click brawl then go to properties and then patches)");
+  m_music_off_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnMusicToggle, this);
+  if (Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
+    m_music_off_chkbox->SetValue(true);
+  else if(!Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
+    m_music_off_chkbox->SetValue(false);
 
   if (m_is_hosting)
   {
@@ -278,6 +284,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(minimum_padbuf_spin));
 
     m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Write save/SD data"));
+    m_memcard_write->SetToolTip("Enable writing to Memory Card/SD Card");
 
     //m_copy_wii_save = new wxCheckBox(parent, wxID_ANY, _("Load Wii Save"));
 
@@ -299,7 +306,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     //bottom_szr->Add(m_copy_wii_save, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-    bottom_szr->AddSpacer(space5);
+    //bottom_szr->AddSpacer(space5);
   }
   else
   {
@@ -319,7 +326,13 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     bottom_szr->Add(m_music_off_chkbox, 0, wxALIGN_CENTER_VERTICAL);
   }
 
+  m_spec_chkbox = new wxCheckBox(parent, wxID_ANY, _("Spectator"));
+  m_spec_chkbox->SetToolTip("Spectators will not cause lag unless there is a networking issue");
+  m_spec_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnSpectatorToggle, this);
+  bottom_szr->Add(m_spec_chkbox, 0, wxALIGN_CENTER_VERTICAL);
+
   bottom_szr->Add(m_record_chkbox, 0, wxALIGN_CENTER_VERTICAL);
+  m_record_chkbox->Hide();
   bottom_szr->AddStretchSpacer();
   bottom_szr->Add(quit_btn, 0, wxALIGN_CENTER_VERTICAL);
   return bottom_szr;
@@ -343,6 +356,19 @@ NetPlayDialog::~NetPlayDialog()
     netplay_server = nullptr;
   }
   npd = nullptr;
+}
+
+void NetPlayDialog::OnMusicToggle(wxCommandEvent& event)
+{
+  const bool ismusicoff = ((wxCheckBox*)event.IsChecked());
+  Config::SetBaseOrCurrent(Config::NETPLAY_IS_MUSIC_OFF, ismusicoff);
+}
+
+void NetPlayDialog::OnSpectatorToggle(wxCommandEvent& event)
+{
+  // ask server to set mapping
+  const bool spectator = ((wxCheckBox*)event.IsChecked());
+  netplay_client->SendSpectatorSetting(spectator);
 }
 
 void NetPlayDialog::OnChat(wxCommandEvent&)
@@ -483,6 +509,7 @@ void NetPlayDialog::OnMsgStartGame()
 
   m_music_off_chkbox->Disable();
   m_record_chkbox->Disable();
+  m_spec_chkbox->Disable();
 }
 
 void NetPlayDialog::OnMsgStopGame()
@@ -501,6 +528,7 @@ void NetPlayDialog::OnMsgStopGame()
 
   m_music_off_chkbox->Enable();
   m_record_chkbox->Enable();
+  m_spec_chkbox->Enable();
 }
 
 void NetPlayDialog::OnAdjustMinimumBuffer(wxCommandEvent& event)
@@ -842,6 +870,16 @@ bool NetPlayDialog::IsRecording()
 bool NetPlayDialog::IsMusicOff()
 {
   return m_music_off_chkbox->GetValue();
+}
+
+bool NetPlayDialog::IsSpectating()
+{
+  return m_spec_chkbox->GetValue();
+}
+
+void NetPlayDialog::SetSpectating(bool spectating)
+{
+  m_spec_chkbox->SetValue(spectating);
 }
 
 void NetPlayDialog::OnCopyIP(wxCommandEvent&)

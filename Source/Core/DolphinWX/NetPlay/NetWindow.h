@@ -109,6 +109,8 @@ public:
   static void FillWithGameNames(wxListBox* game_lbox, const GameListCtrl& game_list);
 
   bool IsRecording() override;
+  bool IsSpectating() override;
+  void SetSpectating(bool spectating) override;
   bool IsMusicOff() override;
 
 private:
@@ -140,12 +142,16 @@ private:
 
   bool IsPMELF();
 
+  void OnSpectatorToggle(wxCommandEvent& event);
+  void OnMusicToggle(wxCommandEvent& event);
+
   wxListBox* m_player_lbox;
   wxTextCtrl* m_chat_text;
   wxTextCtrl* m_chat_msg_text;
   wxCheckBox* m_memcard_write;
   wxCheckBox* m_music_off_chkbox;
   wxCheckBox* m_record_chkbox;
+  wxCheckBox* m_spec_chkbox;
   //wxCheckBox* m_copy_wii_save;
 
   wxSpinCtrl* m_player_padbuf_spin;
