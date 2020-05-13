@@ -294,7 +294,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     bottom_szr->Add(buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     bottom_szr->Add(m_player_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-    if (IsPMELF() == false)
+    if (!IsPMELF())
     {
       m_music_off_chkbox->Hide();
     }
@@ -394,10 +394,7 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 
 bool NetPlayDialog::IsPMELF()
 {
-  if (!m_selected_game.compare(m_selected_game.length() - 4, 4, ".elf"))
-    {return true;}
-  else
-    {return false;}
+  return m_selected_game.find("elf") != std::string::npos;
 }
 
 void NetPlayDialog::GetNetSettings(NetSettings& settings)

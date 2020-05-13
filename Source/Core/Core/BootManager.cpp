@@ -370,7 +370,6 @@ bool BootCore(std::unique_ptr<BootParameters> boot)
     StartUp.m_EXIDevice[1] = g_NetPlaySettings.m_EXIDevice[1];
     config_cache.bSetEXIDevice[0] = true;
     config_cache.bSetEXIDevice[1] = true;
-    StartUp.bBrawlMusicOff = g_NetPlaySettings.m_BrawlMusicOff;
   }
   else
   {

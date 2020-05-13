@@ -25,8 +25,6 @@ struct NetSettings
   bool m_OCEnable;
   float m_OCFactor;
   ExpansionInterface::TEXIDevices m_EXIDevice[2];
-
-  bool m_BrawlMusicOff;
 };
 
 struct NetTraversalConfig
