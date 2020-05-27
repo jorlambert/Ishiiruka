@@ -8,6 +8,7 @@
 #include <vector>
 #include "Common/CommonTypes.h"
 #include "Core/HW/EXI/EXI_Device.h"
+#include "Core/ConfigManager.h"
 
 struct NetSettings
 {
@@ -25,6 +26,8 @@ struct NetSettings
   bool m_OCEnable;
   float m_OCFactor;
   ExpansionInterface::TEXIDevices m_EXIDevice[2];
+
+  StageListCode m_StageList;
 };
 
 struct NetTraversalConfig

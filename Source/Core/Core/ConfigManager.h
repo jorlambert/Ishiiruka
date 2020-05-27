@@ -57,6 +57,14 @@ enum PollingMethod
   POLLING_ONSIREAD = 1
 };
 
+enum class StageListCode
+{
+  STAGELIST_UNSET = 0,
+  STAGELIST_PMBR = 1,
+  STAGELIST_PARAGON = 2,
+  STAGELIST_AUS = 3
+};
+
 struct SConfig
 {
   // Wii Devices
@@ -113,6 +121,8 @@ struct SConfig
   bool bAdapterWarning = true;
   bool bEnableMemcardSdWriting = false;
   bool bCopyWiiSaveNetplay = true;
+
+  StageListCode iStageListCode = StageListCode::STAGELIST_UNSET;
 
   bool bDPL2Decoder = false;
   int iLatency = 20;

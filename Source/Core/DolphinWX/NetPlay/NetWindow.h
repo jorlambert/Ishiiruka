@@ -36,6 +36,7 @@ class wxStaticText;
 class wxString;
 class wxTextCtrl;
 class wxSpinCtrl;
+class wxComboBox;
 
 enum
 {
@@ -152,9 +153,11 @@ private:
   wxCheckBox* m_music_off_chkbox;
   wxCheckBox* m_record_chkbox;
   wxCheckBox* m_spec_chkbox;
+  wxChoice* m_stage_list_choice;
   //wxCheckBox* m_copy_wii_save;
 
   wxSpinCtrl* m_player_padbuf_spin;
+  wxSpinCtrl* m_minimum_padbuf_spin;
 
   std::string m_selected_game;
   wxButton* m_player_config_btn;

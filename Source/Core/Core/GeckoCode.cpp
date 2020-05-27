@@ -65,17 +65,59 @@ static Installation s_code_handler_installed = Installation::Uninstalled;
 static std::vector<GeckoCode> s_active_codes;
 static std::mutex s_active_codes_lock;
 
+static bool IsEnabledStageListCode(const GeckoCode& code)
+{
+  if (NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iStageListCode != StageListCode::STAGELIST_UNSET)
+  {
+    if (SConfig::GetInstance().iStageListCode == StageListCode::STAGELIST_PMBR)
+    {
+      return code.name.find("PMBR Stagelist") != std::string::npos;
+    }
+      
+    if (SConfig::GetInstance().iStageListCode == StageListCode::STAGELIST_PARAGON)
+    {
+      return code.name.find("Paragon Stagelist") != std::string::npos;
+    }
+      
+    if (SConfig::GetInstance().iStageListCode == StageListCode::STAGELIST_AUS)
+    {
+      return code.name.find("Australia Stagelist") != std::string::npos;
+    }
+  }
+  return false;
+}
+
+static bool IsDisabledStageListCode(const GeckoCode& code)
+{
+  if (NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iStageListCode == StageListCode::STAGELIST_UNSET)
+    return false;
+
+  return false;
+}
+
 void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 {
   std::lock_guard<std::mutex> lk(s_active_codes_lock);
 
   s_active_codes.clear();
+
+  // add enabled codes
+  for (const GeckoCode& gecko_code : gcodes)
+  {
+    if ((gecko_code.enabled && !IsDisabledStageListCode(gecko_code)) || IsEnabledStageListCode(gecko_code))
+    {
+      // TODO: apply modifiers
+      // TODO: don't need description or creator string, just takin up memory
+      s_active_codes.push_back(gecko_code);
+    }
+  }
+  /*
   if (SConfig::GetInstance().bEnableCheats)
   {
     s_active_codes.reserve(gcodes.size());
     std::copy_if(gcodes.begin(), gcodes.end(), std::back_inserter(s_active_codes),
                  [](const GeckoCode& code) { return code.enabled; });
-  }
+  }*/
   s_active_codes.shrink_to_fit();
 
   s_code_handler_installed = Installation::Uninstalled;
@@ -149,11 +191,14 @@ static Installation InstallCodeHandlerLocked()
       continue;
     }
 
-    for (const GeckoCode::Code& code : active_code.codes)
+    if ((active_code.enabled && !IsDisabledStageListCode(active_code)) || IsEnabledStageListCode(active_code))
     {
-      PowerPC::HostWrite_U32(code.address, next_address);
-      PowerPC::HostWrite_U32(code.data, next_address + 4);
-      next_address += CODE_SIZE;
+      for (const GeckoCode::Code& code : active_code.codes)
+      {
+        PowerPC::HostWrite_U32(code.address, next_address);
+        PowerPC::HostWrite_U32(code.data, next_address + 4);
+        next_address += CODE_SIZE;
+      }
     }
   }
 

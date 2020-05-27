@@ -11,8 +11,10 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <wx/arrstr.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/combobox.h>
 #include <wx/choice.h>
 #include <wx/clipbrd.h>
 #include <wx/colour.h>
@@ -264,7 +266,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
   m_player_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_player_padbuf_spin));
 
   m_music_off_chkbox = new wxCheckBox(parent, wxID_ANY, "Client Side Music Off");
-  m_music_off_chkbox->SetToolTip("Turn off music client side (To make this permanent right click brawl then go to properties and then patches)");
+  m_music_off_chkbox->SetToolTip("Netplay safe client side music off");
   m_music_off_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnMusicToggle, this);
   if (Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
     m_music_off_chkbox->SetValue(true);
@@ -277,12 +279,23 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     m_start_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnStart, this);
 
     wxStaticText* minimum_buffer_lbl = new wxStaticText(parent, wxID_ANY, _("Minimum Buffer:"));
-    wxSpinCtrl* const minimum_padbuf_spin =
+    m_minimum_padbuf_spin =
       new wxSpinCtrl(parent, wxID_ANY, std::to_string(Config::Get(Config::NETPLAY_BUFFER_SIZE)), wxDefaultPosition,
         wxDefaultSize, wxSP_ARROW_KEYS, 0, 200, Config::Get(Config::NETPLAY_BUFFER_SIZE));
-    minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
-    minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(minimum_padbuf_spin));
+    m_minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
+    m_minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_minimum_padbuf_spin));
 
+    if (IsPMELF())
+    {
+      wxArrayString choices;
+      choices.Add("PMBR");
+      choices.Add("Paragon");
+      choices.Add("Australia");
+
+      m_stage_list_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
+      m_stage_list_choice->SetSelection(0);
+    }
+    
     m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Write save/SD data"));
     m_memcard_write->SetToolTip("Enable writing to Memory Card/SD Card");
 
@@ -290,17 +303,20 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 
     bottom_szr->Add(m_start_btn, 0, wxALIGN_CENTER_VERTICAL);
     bottom_szr->Add(minimum_buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
-    bottom_szr->Add(minimum_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+    bottom_szr->Add(m_minimum_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     bottom_szr->Add(buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     bottom_szr->Add(m_player_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-    if (!IsPMELF())
+    if (IsPMELF())
     {
-      m_music_off_chkbox->Hide();
+      bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Stagelist:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+      bottom_szr->Add(m_stage_list_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+
+      bottom_szr->Add(m_music_off_chkbox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     }
     else
     {
-      bottom_szr->Add(m_music_off_chkbox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+      m_music_off_chkbox->Hide();
     }
 
     bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -415,6 +431,7 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
   settings.m_OCFactor = instance.m_OCFactor;
   settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : ExpansionInterface::EXIDEVICE_NONE;
   settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : ExpansionInterface::EXIDEVICE_NONE;
+  settings.m_StageList = IsPMELF() ? (StageListCode)(m_stage_list_choice->GetSelection() + 1) : StageListCode::STAGELIST_UNSET;
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
@@ -502,6 +519,9 @@ void NetPlayDialog::OnMsgStartGame()
     m_game_btn->Disable();
     m_player_config_btn->Disable();
 
+    if (IsPMELF())
+      m_stage_list_choice->Disable();
+    
   }
 
   m_music_off_chkbox->Disable();
@@ -521,6 +541,9 @@ void NetPlayDialog::OnMsgStopGame()
     m_game_btn->Enable();
     m_player_config_btn->Enable();
 
+    if (IsPMELF())
+      m_stage_list_choice->Enable();
+    
   }
 
   m_music_off_chkbox->Enable();

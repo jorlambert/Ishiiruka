@@ -483,6 +483,9 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
       packet >> tmp;
       g_NetPlaySettings.m_EXIDevice[1] = (ExpansionInterface::TEXIDevices)tmp;
 
+      packet >> tmp;
+      g_NetPlaySettings.m_StageList = (StageListCode)tmp;
+
       u32 time_low, time_high;
       packet >> time_low;
       packet >> time_high;
