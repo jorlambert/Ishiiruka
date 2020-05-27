@@ -54,6 +54,7 @@ void InitializeWiiRoot(bool use_temporary)
 {
   if (use_temporary)
   {
+    File::DeleteDirRecursively(File::GetUserPath(D_USER_IDX) + "WiiSession" DIR_SEP);
     s_temp_wii_root = File::GetUserPath(D_USER_IDX) + "WiiSession" DIR_SEP;
     WARN_LOG(IOS_FILEIO, "Using temporary directory %s for minimal Wii FS", s_temp_wii_root.c_str());
 
