@@ -91,6 +91,12 @@ namespace GCAdapter
       adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
         sizeof(s_controller_payload_swap), &payload_size, TIMEOUT) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
 
+      int err = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+        sizeof(s_controller_payload_swap), &payload_size, TIMEOUT);
+
+      if (err)
+        ERROR_LOG(SERIALINTERFACE, "adapter libusb read failed: err=%s", libusb_error_name(err));
+
       {
         std::lock_guard<std::mutex> lk(s_mutex);
         std::swap(s_controller_payload_swap, s_controller_payload);
@@ -114,7 +120,9 @@ namespace GCAdapter
 
       u8 payload[5] = { 0x11, s_controller_rumble[0], s_controller_rumble[1], s_controller_rumble[2],
                        s_controller_rumble[3] };
-      libusb_interrupt_transfer(s_handle, s_endpoint_out, payload, sizeof(payload), &size, TIMEOUT);
+      int err = libusb_interrupt_transfer(s_handle, s_endpoint_out, payload, sizeof(payload), &size, TIMEOUT);
+      if (err)
+        ERROR_LOG(SERIALINTERFACE, "adapter libusb write failed: err=%s", libusb_error_name(err));
     }
   }
 
