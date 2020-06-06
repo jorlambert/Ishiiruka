@@ -73,6 +73,7 @@ void WiiConfigPane::InitializeGUI()
   m_system_language_choice =
       new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_system_language_strings);
   m_sd_card_checkbox = new wxCheckBox(this, wxID_ANY, _("Insert SD Card"));
+  m_save_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Saving to SD Card"));
   m_connect_keyboard_checkbox = new wxCheckBox(this, wxID_ANY, _("Connect USB Keyboard"));
   m_usb_passthrough_devices_listbox =
       new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 100));
@@ -89,6 +90,7 @@ void WiiConfigPane::InitializeGUI()
   m_screensaver_checkbox->SetToolTip(_("Dims the screen after five minutes of inactivity."));
   m_system_language_choice->SetToolTip(_("Sets the Wii system language."));
   m_sd_card_checkbox->SetToolTip(_("Saved to /Wii/sd.raw (default size is 128mb)"));
+  m_save_checkbox->SetToolTip(_("Enables saving to the SD card when playing offline. Enabling this may corrupt your SD card and cause netplay desyncs."));
   m_connect_keyboard_checkbox->SetToolTip(_("May cause slow down in Wii Menu and some games."));
   m_bt_wiimote_motor_checkbox->SetToolTip(_("Enables Wii Remote vibration."));
 
@@ -98,14 +100,15 @@ void WiiConfigPane::InitializeGUI()
   misc_settings_grid_sizer->Add(m_pal60_mode_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(m_screensaver_checkbox, wxGBPosition(0, 2), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(m_sd_card_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2));
-  misc_settings_grid_sizer->Add(m_connect_keyboard_checkbox, wxGBPosition(1, 2), wxGBSpan(1, 2));
+  misc_settings_grid_sizer->Add(m_save_checkbox, wxGBPosition(1, 2), wxGBSpan(1, 2));
+  misc_settings_grid_sizer->Add(m_connect_keyboard_checkbox, wxGBPosition(2, 0), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("Aspect Ratio:")),
-                                wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-  misc_settings_grid_sizer->Add(m_aspect_ratio_choice, wxGBPosition(2, 1), wxDefaultSpan,
+                                wxGBPosition(3, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+  misc_settings_grid_sizer->Add(m_aspect_ratio_choice, wxGBPosition(3, 1), wxDefaultSpan,
                                 wxALIGN_CENTER_VERTICAL);
   misc_settings_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("System Language:")),
-                                wxGBPosition(2, 2), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-  misc_settings_grid_sizer->Add(m_system_language_choice, wxGBPosition(2, 3), wxDefaultSpan,
+                                wxGBPosition(3, 2), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+  misc_settings_grid_sizer->Add(m_system_language_choice, wxGBPosition(3, 3), wxDefaultSpan,
                                 wxALIGN_CENTER_VERTICAL);
 
   auto* const usb_passthrough_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -186,6 +189,7 @@ void WiiConfigPane::LoadGUIValues()
   m_system_language_choice->SetSelection(Config::Get(Config::SYSCONF_LANGUAGE));
 
   m_sd_card_checkbox->SetValue(SConfig::GetInstance().m_WiiSDCard);
+  m_save_checkbox->SetValue(SConfig::GetInstance().bAllowSdWriting);
   m_connect_keyboard_checkbox->SetValue(SConfig::GetInstance().m_WiiKeyboard);
 
   PopulateUSBPassthroughListbox();
@@ -224,6 +228,8 @@ void WiiConfigPane::BindEvents()
   m_system_language_choice->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
   m_sd_card_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnSDCardCheckBoxChanged, this);
+  m_save_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnSaveCheckBoxChanged, this);
+  m_save_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
   m_connect_keyboard_checkbox->Bind(wxEVT_CHECKBOX,
                                     &WiiConfigPane::OnConnectKeyboardCheckBoxChanged, this);
 
@@ -288,6 +294,11 @@ void WiiConfigPane::OnSDCardCheckBoxChanged(wxCommandEvent& event)
   const auto ios = IOS::HLE::GetIOS();
   if (ios)
     ios->SDIO_EventNotify();
+}
+
+void WiiConfigPane::OnSaveCheckBoxChanged(wxCommandEvent& event)
+{
+  SConfig::GetInstance().bAllowSdWriting = m_save_checkbox->IsChecked();
 }
 
 void WiiConfigPane::OnConnectKeyboardCheckBoxChanged(wxCommandEvent& event)

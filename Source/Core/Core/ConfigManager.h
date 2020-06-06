@@ -111,7 +111,8 @@ struct SConfig
   bool bNTSC = false;
   bool bQoSEnabled = true;
   bool bAdapterWarning = true;
-  bool bEnableMemcardSdWriting = false;
+  bool bEnableMemcardSdWriting = true;
+  bool bAllowSdWriting = false;
   bool bCopyWiiSaveNetplay = true;
 
   bool bDPL2Decoder = false;
