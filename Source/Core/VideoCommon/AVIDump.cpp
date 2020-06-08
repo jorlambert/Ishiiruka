@@ -78,6 +78,10 @@ static bool AVStreamCopyContext(AVStream* stream, AVCodecContext* codec_context)
 
 bool AVIDump::Start(int w, int h, bool fromBGRA)
 {
+  if (!File::Exists(File::GetUserPath(D_DUMPFRAMES_IDX)))
+  {
+    File::CreateDir(File::GetUserPath(D_DUMPFRAMES_IDX));
+  }
   s_pix_fmt = fromBGRA ? AV_PIX_FMT_BGRA : AV_PIX_FMT_RGBA;
 
   s_width = w;
