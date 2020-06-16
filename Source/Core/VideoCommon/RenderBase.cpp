@@ -48,6 +48,8 @@
 #include "Core/NetPlayClient.h"
 #include "Core/HW/SI/SI.h"
 
+#include "InputCommon/GCAdapter.h"
+
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/CommandProcessor.h"
@@ -513,6 +515,11 @@ void Renderer::DrawDebugText()
   if (g_ActiveConfig.bOverlayProjStats)
     final_cyan += Statistics::ToStringProj();
 
+  if (GCAdapter::AdapterError())
+    final_yellow +=
+    "There is a potential problem with your GameCube Adapter and inputs\nare being set to their default positon to prevent unintended inputs"
+    "\nIf you want, you can turn this off in [Config] > [Advanced Options]";
+
   // and then the text
   RenderText(final_cyan, 20, 20, 0xFF00FFFF);
   RenderText(final_yellow, 20, 20, 0xFFFFFF00);
@@ -773,9 +780,9 @@ void Renderer::UpdateDrawRectangle()
     {
       float ratio = CalculateDrawAspectRatio(width, height);
       if (ratio > 1.01f)
-        width /= ratio;
+        width = (int)(width / ratio);
       if (ratio < 0.99f)
-        height *= ratio;
+        height = (int)(height * ratio);
     }
     m_target_rectangle.left = m_backbuffer_width / 2 - width / 2;
     m_target_rectangle.top = m_backbuffer_height / 2 - height / 2;

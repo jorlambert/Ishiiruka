@@ -14,6 +14,7 @@ struct BootParameters;
 namespace BootManager
 {
 bool BootCore(std::unique_ptr<BootParameters> parameters);
+void SetEmulationSpeedReset(bool value);
 
 // Stop the emulation core and restore the configuration.
 void Stop();

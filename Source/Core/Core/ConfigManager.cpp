@@ -253,6 +253,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
   core->Set("DefaultISO", m_strDefaultISO);
   core->Set("EnableCheats", bEnableCheats);
   core->Set("WiiSDCardWritable", bEnableMemcardSdWriting);
+  core->Set("SDWritable", bAllowSdWriting);
   core->Set("SelectedLanguage", SelectedLanguage);
   core->Set("OverrideGCLang", bOverrideGCLanguage);
   core->Set("DPL2Decoder", bDPL2Decoder);
@@ -291,6 +292,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
   core->Set("CustomRTCValue", m_customRTCValue);
   core->Set("EnableSignatureChecks", m_enable_signature_checks);
   core->Set("QoSEnabled", bQoSEnabled);
+  core->Set("AdapterWarning", bAdapterWarning);
 }
 
 void SConfig::SaveMovieSettings(IniFile& ini)
@@ -545,7 +547,8 @@ void SConfig::LoadCoreSettings(IniFile& ini)
   core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
   core->Get("DefaultISO", &m_strDefaultISO);
   core->Get("EnableCheats", &bEnableCheats, false);
-  core->Get("WiiSDCardWritable", &bEnableMemcardSdWriting, false);
+  core->Get("WiiSDCardWritable", &bEnableMemcardSdWriting, true);
+  core->Get("SDWritable", &bAllowSdWriting, false);
   core->Get("SelectedLanguage", &SelectedLanguage, 0);
   core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
   core->Get("DPL2Decoder", &bDPL2Decoder, false);
@@ -597,6 +600,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
   core->Get("CustomRTCValue", &m_customRTCValue, 946684800);
   core->Get("EnableSignatureChecks", &m_enable_signature_checks, true);
   core->Get("QoSEnabled", &bQoSEnabled, true);
+  core->Get("AdapterWarning", &bAdapterWarning, true);
 }
 
 void SConfig::LoadMovieSettings(IniFile& ini)
@@ -813,7 +817,8 @@ void SConfig::LoadDefaults()
   bSyncGPU = false;
   bFastDiscSpeed = false;
   m_strWiiSDCardPath = File::GetUserPath(F_WIISDCARD_IDX);
-  bEnableMemcardSdWriting = false;
+  bEnableMemcardSdWriting = true;
+  bAllowSdWriting = false;
   SelectedLanguage = 0;
   bOverrideGCLanguage = false;
   bWii = false;

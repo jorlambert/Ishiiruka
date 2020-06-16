@@ -140,6 +140,8 @@ private:
 
   bool IsPMELF();
 
+  void OnMusicToggle(wxCommandEvent& event);
+
   wxListBox* m_player_lbox;
   wxTextCtrl* m_chat_text;
   wxTextCtrl* m_chat_msg_text;
