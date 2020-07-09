@@ -4,7 +4,6 @@
 
 #include "UICommon/GameFile.h"
 
-#include <wx/utils.h>
 #include <wx/image.h>
 
 #include <algorithm>
@@ -125,39 +124,39 @@ GameFile::GameFile(const std::string& path)
     // in a folder with their own icons. Useful for those who don't want to have
     // a Homebrew Channel-style folder structure.
     if (ReadPNGBanner(path + name + ".png"))
-  	  return;
+      return;
 
     // Homebrew Channel icon. Typical for DOLs and ELFs,
     // but can be also used with volumes.
     if (ReadPNGBanner(path + "icon.png"))
-  	  return;
+      return;
   }
 }
 
 // Outputs to m_Bitmap
 bool GameFile::ReadPNGBanner(const std::string& path)
 {
-	if (!File::Exists(path))
-		return false;
+  if (!File::Exists(path))
+    return false;
 
-	wxImage image(StrToWxStr(path), wxBITMAP_TYPE_PNG);
-	if (!image.IsOk())
-		return false;
+  wxImage image(StrToWxStr(path), wxBITMAP_TYPE_PNG);
+  if (!image.IsOk())
+    return false;
 
-    int width = image.GetWidth();
-    int height = image.GetHeight();
-	std::vector<u32> imagedata(image.GetHeight()*image.GetWidth(), 0);
-	for(int y=0; y<height; y++){
-		for(int x=0; x<width; x++){
-			imagedata[(y*width) + x] = (image.GetRed(x, y) << 16) |
-					(image.GetGreen(x, y) << 8) | image.GetBlue(x, y);
-		}
-	}
+  int width = image.GetWidth();
+  int height = image.GetHeight();
+  std::vector<u32> imagedata(image.GetHeight() * image.GetWidth(), 0);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      imagedata[(y * width) + x] = (image.GetRed(x, y) << 16) |
+        (image.GetGreen(x, y) << 8) | image.GetBlue(x, y);
+    }
+  }
 
-	m_volume_banner.buffer = imagedata;
-	m_volume_banner.width = image.GetWidth();
-	m_volume_banner.height = image.GetHeight();
-	return true;
+  m_volume_banner.buffer = imagedata;
+  m_volume_banner.width = image.GetWidth();
+  m_volume_banner.height = image.GetHeight();
+  return true;
 }
 
 bool GameFile::IsValid() const

@@ -268,7 +268,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
   m_music_off_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnMusicToggle, this);
   if (Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
     m_music_off_chkbox->SetValue(true);
-  else if(!Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
+  else if (!Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
     m_music_off_chkbox->SetValue(false);
 
   if (m_is_hosting)

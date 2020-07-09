@@ -146,7 +146,7 @@ namespace IOS::HLE::Device
 
       if (!file.ReadBytes(data.data(), data.size()))
         return DolphinDevice::GetDefaultReply(IPC_ENOENT);
-      
+
       SettingsHandler gen;
       gen.SetBytes(std::move(data));
       const std::string code = gen.GetValue("CODE");
