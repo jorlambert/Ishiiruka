@@ -185,6 +185,10 @@ void AudioConfigPane::LoadGUIValues()
   {
     m_audio_latency_spinctrl->SetValue(startup_params.iLatency);
   }
+  if (m_device_selection_supported && SConfig::GetInstance().sWASAPIDevice == "default")
+  {
+    m_audio_device_choice->SetSelection(0);
+  }
   m_stretch_checkbox->SetValue(startup_params.m_audio_stretch);
   m_stretch_slider->Enable(startup_params.m_audio_stretch);
   m_stretch_slider->SetValue(startup_params.m_audio_stretch_max_latency);
@@ -200,7 +204,7 @@ void AudioConfigPane::ToggleBackendSpecificControls(const std::string& backend)
   bool supports_latency_control = AudioCommon::SupportsLatencyControl(backend);
   if (m_latency_control_supported)
   {
-    m_audio_latency_spinctrl->Enable(supports_latency_control);
+    m_audio_latency_spinctrl->Show(supports_latency_control);
     m_audio_latency_label->Enable(supports_latency_control);
   }
 
@@ -331,11 +335,6 @@ void AudioConfigPane::PopulateBackendChoiceBox()
 void AudioConfigPane::PopulateDeviceChoiceBox()
 {
   m_audio_device_choice->Append(StrToWxStr("Default Device"));
-
-  if (SConfig::GetInstance().sWASAPIDevice == "default")
-  {
-    m_audio_device_choice->SetSelection(1);
-  }
 
   for (const std::string& device : WASAPIStream::GetAvailableDevices())
   {
