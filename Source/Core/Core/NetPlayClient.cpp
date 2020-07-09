@@ -336,10 +336,14 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 
   case NP_MSG_PAD_MAPPING:
   {
+    bool assigned = false;
     for (PadMapping& mapping : m_pad_map)
     {
       packet >> mapping;
+      if (!assigned && mapping == this->m_pid)
+        assigned = true;
     }
+    dialog->SetSpectating(!assigned);
 
     UpdateDevices();
 
@@ -1123,6 +1127,89 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
   }
 
   return true;
+}
+
+// called from ---GUI--- thread
+void NetPlayClient::SendSpectatorSetting(bool spectator) {
+  auto spac = std::make_unique<sf::Packet>();
+  *spac << static_cast<MessageId>(NP_MSG_PAD_SPECTATOR);
+  *spac << spectator;
+  SendAsync(std::move(spac));
+}
+
+// called from ---CPU--- thread
+void NetPlayClient::SendNetPad(int pad_nb)
+{
+  GCPadStatus status = { 0 };
+  if (OSD::Chat::toggled)
+  {
+    status.stickX = status.stickY =
+      status.substickX = status.substickY =
+      /* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+  }
+
+  // this is the old behavior
+  // just a small lag decrease
+  if (IsFirstInGamePad(pad_nb))
+  {
+    for (int i = 0; i < NumLocalPads(); i++)
+    {
+      int ingame_pad = LocalPadToInGamePad(i);
+
+      if (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
+      {
+        if (!OSD::Chat::toggled)
+        {
+          switch (SConfig::GetInstance().m_SIDevice[i])
+          {
+          case SerialInterface::SIDEVICE_WIIU_ADAPTER:
+            status = GCAdapter::Input(i);
+            break;
+          case SerialInterface::SIDEVICE_GC_CONTROLLER:
+          default:
+            status = Pad::GetStatus(i);
+            break;
+          }
+        }
+
+        while (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
+        {
+          m_pad_buffer[ingame_pad].Push(status);
+          SendPadState(ingame_pad, status);
+        }
+      }
+    }
+  }
+  // this is only to make sure that the buffer won't be empty
+  else
+  {
+    int local_pad = InGamePadToLocalPad(pad_nb);
+    if (local_pad != 4)
+    {
+      if (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
+      {
+        if (!OSD::Chat::toggled)
+        {
+          switch (SConfig::GetInstance().m_SIDevice[local_pad])
+          {
+          case SerialInterface::SIDEVICE_WIIU_ADAPTER:
+            status = GCAdapter::Input(local_pad);
+            break;
+          case SerialInterface::SIDEVICE_GC_CONTROLLER:
+          default:
+            status = Pad::GetStatus(local_pad);
+            break;
+          }
+        }
+
+        while (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
+        {
+          m_pad_buffer[pad_nb].Push(status);
+          SendPadState(pad_nb, status);
+        }
+      }
+    }
+  }
 }
 
 // called from ---CPU--- thread

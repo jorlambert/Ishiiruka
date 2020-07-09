@@ -55,6 +55,8 @@ NetPlaySetupFrame::NetPlaySetupFrame(wxWindow* const parent, const GameListCtrl*
     m_upnp_chk->SetValue(Config::Get(Config::NETPLAY_USE_UPNP));
 #endif
 
+    m_spectator_toggle->SetValue(Config::Get(Config::NETPLAY_IS_SPECTATOR));
+
     unsigned int listen_port = Config::Get(Config::NETPLAY_LISTEN_PORT);
     m_traversal_listen_port_enabled->SetValue(listen_port != 0);
     m_traversal_listen_port->Enable(m_traversal_listen_port_enabled->IsChecked());
@@ -173,6 +175,15 @@ wxNotebook* NetPlaySetupFrame::CreateNotebookGUI(wxWindow* parent)
           "\n"
           "Wii Remote support in netplay is experimental and should not be expected to work.\n"));
 
+    wxStaticText* const spectator_info = new wxStaticText(connect_tab, wxID_ANY,
+      _("Enabling Spectator Mode will disable your controller so you can view the game without interfering with the players."));
+
+    m_spectator_toggle = new wxCheckBox(connect_tab, wxID_ANY, _("Spectator Mode"));
+    if (!Config::Get(Config::NETPLAY_IS_SPECTATOR))
+      m_spectator_toggle->SetValue(true);
+    else
+      m_spectator_toggle->SetValue(false);
+
     wxBoxSizer* const top_szr = new wxBoxSizer(wxHORIZONTAL);
     top_szr->Add(m_ip_lbl, 0, wxALIGN_CENTER_VERTICAL);
     top_szr->Add(m_connect_ip_text, 3, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -187,6 +198,10 @@ wxNotebook* NetPlaySetupFrame::CreateNotebookGUI(wxWindow* parent)
     con_szr->AddSpacer(space5);
     con_szr->Add(alert_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
     con_szr->AddStretchSpacer(1);
+    con_szr->AddSpacer(space5);
+    con_szr->Add(spectator_info, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+    con_szr->AddSpacer(space5);
+    con_szr->Add(m_spectator_toggle, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
     con_szr->AddSpacer(space5);
     con_szr->Add(connect_btn, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT, space5);
     con_szr->AddSpacer(space5);
@@ -277,6 +292,7 @@ NetPlaySetupFrame::~NetPlaySetupFrame()
                            static_cast<u16>(m_traversal_listen_port_enabled->IsChecked() ?
                                                 m_traversal_listen_port->GetValue() :
                                                 0));
+  Config::SetBaseOrCurrent(Config::NETPLAY_IS_SPECTATOR, m_spectator_toggle->GetValue());
 
 #ifdef USE_UPNP
   Config::SetBaseOrCurrent(Config::NETPLAY_USE_UPNP, m_upnp_chk->GetValue());
@@ -356,6 +372,11 @@ void NetPlaySetupFrame::DoJoin()
 
   join_config.traversal_port = Config::Get(Config::NETPLAY_TRAVERSAL_PORT);
   join_config.traversal_host = Config::Get(Config::NETPLAY_TRAVERSAL_SERVER);
+
+  if (m_spectator_toggle->IsChecked())
+    join_config.is_spectator = true;
+  else if (!m_spectator_toggle->IsChecked())
+    join_config.is_spectator = false;
 
   if (NetPlayLauncher::Join(join_config))
   {
