@@ -12,6 +12,7 @@
 #include "AudioCommon/PulseAudioStream.h"
 #include "AudioCommon/XAudio2Stream.h"
 #include "AudioCommon/XAudio2_7Stream.h"
+#include "AudioCommon/WASAPIStream.h"
 #include "Common/Common.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
@@ -37,6 +38,8 @@ void InitSoundStream()
     g_sound_stream = std::make_unique<OpenALStream>();
   else if (backend == BACKEND_NULLSOUND)
     g_sound_stream = std::make_unique<NullSound>();
+  else if (backend == BACKEND_WASAPI && WASAPIStream::isValid())
+    g_sound_stream = std::make_unique<WASAPIStream>();
   else if (backend == BACKEND_XAUDIO2)
   {
     if (XAudio2::isValid())
@@ -108,6 +111,9 @@ std::vector<std::string> GetSoundBackends()
     backends.push_back(BACKEND_OPENAL);
   if (OpenSLESStream::isValid())
     backends.push_back(BACKEND_OPENSLES);
+  if (WASAPIStream::isValid())
+    backends.push_back(BACKEND_WASAPI);
+
   return backends;
 }
 
@@ -126,7 +132,12 @@ bool SupportsDPL2Decoder(const std::string& backend)
 
 bool SupportsLatencyControl(const std::string& backend)
 {
-  return backend == BACKEND_OPENAL;
+  return backend == BACKEND_OPENAL || backend == BACKEND_WASAPI;;
+}
+
+bool SupportsDeviceSelection(const std::string& backend)
+{
+  return backend == BACKEND_WASAPI;;
 }
 
 bool SupportsVolumeChanges(const std::string& backend)
@@ -134,7 +145,10 @@ bool SupportsVolumeChanges(const std::string& backend)
   // FIXME: this one should ask the backend whether it supports it.
   //       but getting the backend from string etc. is probably
   //       too much just to enable/disable a stupid slider...
-  return backend == BACKEND_CUBEB || backend == BACKEND_OPENAL || backend == BACKEND_XAUDIO2;
+  return backend == BACKEND_CUBEB
+    || backend == BACKEND_OPENAL
+    || backend == BACKEND_XAUDIO2
+    || backend == BACKEND_WASAPI;
 }
 
 void UpdateSoundStream()

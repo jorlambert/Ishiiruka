@@ -38,6 +38,16 @@ private:
   void OnStretchCheckBoxChanged(wxCommandEvent&);
   void OnStretchSliderChanged(wxCommandEvent&);
 
+#ifdef _WIN32
+  void CheckSupportsDeviceSelection();
+  void PopulateDeviceChoiceBox();
+  void OnAudioDeviceChanged(wxCommandEvent&);
+  wxChoice* m_audio_device_choice;
+  wxStaticText* m_audio_device_label;
+  wxArrayString m_audio_device_strings;
+  bool m_device_selection_supported;
+#endif
+
   wxArrayString m_dsp_engine_strings;
   wxArrayString m_audio_backend_strings;
 

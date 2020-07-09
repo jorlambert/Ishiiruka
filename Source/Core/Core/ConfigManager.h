@@ -35,6 +35,7 @@ class TMDReader;
 #define BACKEND_NULLSOUND _trans("No Audio Output")
 #define BACKEND_ALSA "ALSA"
 #define BACKEND_CUBEB "Cubeb"
+#define BACKEND_WASAPI "WASAPI (Exclusive Mode)"
 #define BACKEND_OPENAL "OpenAL"
 #define BACKEND_PULSEAUDIO "Pulse"
 #define BACKEND_XAUDIO2 "XAudio2"
@@ -317,6 +318,11 @@ struct SConfig
   bool m_DumpUCode;
   int m_Volume;
   std::string sBackend;
+
+#ifdef _WIN32
+  // WSAPI settings
+  std::string sWASAPIDevice;
+#endif
 
   // Input settings
   bool m_BackgroundInput;
