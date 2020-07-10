@@ -252,7 +252,6 @@ void SConfig::SaveCoreSettings(IniFile& ini)
   core->Set("AccurateNaNs", bAccurateNaNs);
   core->Set("DefaultISO", m_strDefaultISO);
   core->Set("EnableCheats", bEnableCheats);
-  core->Set("WiiSDCardWritable", bEnableMemcardSdWriting);
   core->Set("SDWritable", bAllowSdWriting);
   core->Set("SelectedLanguage", SelectedLanguage);
   core->Set("OverrideGCLang", bOverrideGCLanguage);
@@ -552,7 +551,6 @@ void SConfig::LoadCoreSettings(IniFile& ini)
   core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
   core->Get("DefaultISO", &m_strDefaultISO);
   core->Get("EnableCheats", &bEnableCheats, false);
-  core->Get("WiiSDCardWritable", &bEnableMemcardSdWriting, true);
   core->Get("SDWritable", &bAllowSdWriting, false);
   core->Get("SelectedLanguage", &SelectedLanguage, 0);
   core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
