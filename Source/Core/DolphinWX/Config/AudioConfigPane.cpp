@@ -94,6 +94,10 @@ void AudioConfigPane::InitializeGUI()
       wxALIGN_CENTER_VERTICAL);
     backend_grid_sizer->Add(m_audio_device_choice, wxGBPosition(1, 1), wxDefaultSpan,
       wxALIGN_CENTER_VERTICAL);
+
+    m_audio_device_choice->Append(StrToWxStr("Default Device"));
+
+    PopulateDeviceChoiceBox();
   }
 #endif
 
@@ -165,9 +169,6 @@ void AudioConfigPane::LoadGUIValues()
 {
   const SConfig& startup_params = SConfig::GetInstance();
   PopulateBackendChoiceBox();
-#ifdef _WIN32
-  PopulateDeviceChoiceBox();
-#endif
 
   ToggleBackendSpecificControls(SConfig::GetInstance().sBackend);
 
@@ -185,10 +186,12 @@ void AudioConfigPane::LoadGUIValues()
   {
     m_audio_latency_spinctrl->SetValue(startup_params.iLatency);
   }
+#ifdef _WIN32
   if (m_device_selection_supported && SConfig::GetInstance().sWASAPIDevice == "default")
   {
     m_audio_device_choice->SetSelection(0);
   }
+#endif
   m_stretch_checkbox->SetValue(startup_params.m_audio_stretch);
   m_stretch_slider->Enable(startup_params.m_audio_stretch);
   m_stretch_slider->SetValue(startup_params.m_audio_stretch_max_latency);
@@ -207,14 +210,14 @@ void AudioConfigPane::ToggleBackendSpecificControls(const std::string& backend)
     m_audio_latency_spinctrl->Show(supports_latency_control);
     m_audio_latency_label->Enable(supports_latency_control);
   }
-
+#ifdef _WIN32
   bool supports_device_selection = AudioCommon::SupportsDeviceSelection(backend);
   if (m_device_selection_supported)
   {
     m_audio_device_choice->Show(supports_device_selection);
     m_audio_device_label->Show(supports_device_selection);
   }
-  
+#endif
   bool supports_volume_changes = AudioCommon::SupportsVolumeChanges(backend);
   m_volume_slider->Enable(supports_volume_changes);
   m_volume_text->Enable(supports_volume_changes);
@@ -291,15 +294,6 @@ void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent& event)
   AudioCommon::UpdateSoundStream();
 }
 
-#ifdef _WIN32
-void AudioConfigPane::OnAudioDeviceChanged(wxCommandEvent& event)
-{
-  SConfig::GetInstance().sWASAPIDevice = m_audio_device_choice->GetSelection() ?
-    WxStrToStr(m_audio_device_choice->GetStringSelection()) :
-    "default";
-}
-#endif
-
 void AudioConfigPane::OnLatencySpinCtrlChanged(wxCommandEvent& event)
 {
   SConfig::GetInstance().iLatency = m_audio_latency_spinctrl->GetValue();
@@ -332,10 +326,15 @@ void AudioConfigPane::PopulateBackendChoiceBox()
 }
 
 #ifdef _WIN32
+void AudioConfigPane::OnAudioDeviceChanged(wxCommandEvent& event)
+{
+  SConfig::GetInstance().sWASAPIDevice = m_audio_device_choice->GetSelection() ?
+    WxStrToStr(m_audio_device_choice->GetStringSelection()) :
+    "default";
+}
+
 void AudioConfigPane::PopulateDeviceChoiceBox()
 {
-  m_audio_device_choice->Append(StrToWxStr("Default Device"));
-
   for (const std::string& device : WASAPIStream::GetAvailableDevices())
   {
     m_audio_device_choice->Append(StrToWxStr(device));
