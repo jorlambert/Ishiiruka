@@ -493,7 +493,7 @@ void ControllerConfigDiag::OnGameCubeConfigButton(wxCommandEvent& event)
   else if (device_type == SerialInterface::SIDEVICE_WIIU_ADAPTER)
   {
     GCAdapterConfigDiag config_diag(
-      this, wxString::Format(_("Wii U GameCube Controller Adapter Configuration Port %i"),
+      this, wxString::Format(_("Adapter Configuration Port %i"),
         port_num + 1),
       port_num);
     config_diag.ShowModal();

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <libusb.h>
 #include <mutex>
+#include <chrono>
 
 #include "Common/Event.h"
 #include "Common/Flag.h"
@@ -74,6 +75,9 @@ namespace GCAdapter
 
   static auto lastPollTime = std::chrono::steady_clock::now();
 
+  static u64 s_consecutive_slow_transfers = 0;
+  static double s_read_rate = 0.0;
+
   bool adapter_error = false;
 
   bool AdapterError()
@@ -81,15 +85,58 @@ namespace GCAdapter
     return adapter_error && s_adapter_thread_running.IsSet();
   }
 
+  bool IsReadingAtReducedRate()
+  {
+    return s_consecutive_slow_transfers > 80;
+  }
+
+  double ReadRate()
+  {
+    return s_read_rate;
+  }
+
   static void Read()
   {
+    s_consecutive_slow_transfers = 0;
     adapter_error = false;
+
+    u8 bkp_payload_swap[37];
+    int bkp_payload_size = 0;
+    bool has_prev_input = false;
+    s_read_rate = 0.0;
 
     int payload_size = 0;
     while (s_adapter_thread_running.IsSet())
     {
+      bool reuseOldInputsEnabled = SConfig::GetInstance().bAdapterWarning;
+      std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
       adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-        sizeof(s_controller_payload_swap), &payload_size, TIMEOUT) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
+        sizeof(s_controller_payload_swap), &payload_size, TIMEOUT) != LIBUSB_SUCCESS && reuseOldInputsEnabled;
+
+      double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
+
+      // Store previous input and restore in the case of an adapter error
+      if (reuseOldInputsEnabled)
+      {
+        if (!adapter_error)
+        {
+          memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
+          bkp_payload_size = payload_size;
+          has_prev_input = true;
+        }
+        else if (has_prev_input)
+        {
+          memcpy(s_controller_payload_swap, bkp_payload_swap, 37);
+          payload_size = bkp_payload_size;
+        }
+      }
+
+      if (elapsed > 15.0)
+        s_consecutive_slow_transfers++;
+      else
+        s_consecutive_slow_transfers = 0;
+
+      s_read_rate = elapsed;
 
       {
         std::lock_guard<std::mutex> lk(s_mutex);
@@ -421,16 +468,6 @@ namespace GCAdapter
 
     if (s_handle == nullptr || !s_detected)
       return {};
-
-    if (AdapterError())
-    {
-      GCPadStatus centered_status = { 0 };
-      centered_status.stickX = centered_status.stickY =
-        centered_status.substickX = centered_status.substickY =
-        /* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
-
-      return centered_status;
-    }
 
     int payload_size = 0;
     u8 controller_payload_copy[37];
