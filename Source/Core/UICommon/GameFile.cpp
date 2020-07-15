@@ -4,6 +4,7 @@
 
 #include "UICommon/GameFile.h"
 
+#include <wx/utils.h>
 #include <wx/image.h>
 
 #include <algorithm>
