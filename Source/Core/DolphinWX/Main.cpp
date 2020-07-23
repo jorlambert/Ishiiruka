@@ -251,7 +251,8 @@ bool DolphinApp::OnInit()
           }
         }
 
-        wxMessageBox("Translocation from the application bundle couldn't be removed.\nSome things might not work correctly.\nAsk in #support-dolphin or check the subreddit for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+        wxMessageBox("This app is quarantined! Move it to your Applications folder and reopen it.\nAsk in #support-dolphin or check the subreddit for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+        exit(EXIT_SUCCESS);
         }
       }
     }
