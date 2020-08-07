@@ -410,10 +410,12 @@ sum2(TYPE_SAMPLE * out,
      F&& operand,
      uint32_t frames)
 {
+#if _HAS_DEPRECATED_RESULT_OF
   static_assert(
     std::is_same<TYPE_COEFF,
                  typename std::result_of<F(TYPE_COEFF)>::type>::value,
     "function must return the same type as used by matrix_coeff");
+#endif
   for (uint32_t i = 0; i < frames; i++) {
     *out = operand(coeff1 * *in1 + coeff2 * *in2);
     out += stride_out;
@@ -432,10 +434,12 @@ copy(TYPE_SAMPLE * out,
      F&& operand,
      uint32_t frames)
 {
+#if _HAS_DEPRECATED_RESULT_OF
   static_assert(
     std::is_same<TYPE_COEFF,
                  typename std::result_of<F(TYPE_COEFF)>::type>::value,
     "function must return the same type as used by matrix_coeff");
+#endif
   for (uint32_t i = 0; i < frames; i++) {
     *out = operand(coeff * *in);
     out += stride_out;
@@ -448,10 +452,12 @@ static int rematrix(const MixerContext * s, TYPE * aOut, const TYPE * aIn,
                     const TYPE_COEFF (&matrix_coeff)[COLS][COLS],
                     F&& aF, uint32_t frames)
 {
+#if _HAS_DEPRECATED_RESULT_OF
   static_assert(
     std::is_same<TYPE_COEFF,
                  typename std::result_of<F(TYPE_COEFF)>::type>::value,
     "function must return the same type as used by matrix_coeff");
+#endif
 
   for (uint32_t out_i = 0; out_i < s->_out_ch_count; out_i++) {
     TYPE* out = aOut + out_i;
