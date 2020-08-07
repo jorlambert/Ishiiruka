@@ -1927,7 +1927,7 @@ int setup_wasapi_stream_one_side(cubeb_stream * stm,
   }
 
   // IAudioClient3 has problems with capture sessions:
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1590902
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1590902
   bool has_capture = direction == eCapture || direction == eAll;
 
   stm->stream_reset_lock.assert_current_thread_owns();
