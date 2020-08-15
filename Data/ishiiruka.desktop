@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+GenericName=Wii/GameCube Emulator
+Comment=Ishiiruka fork for SSBPM
+Categories=Emulator;Game;
+Icon=ishiiruka
+Name=Faster Project Plus 
+Exec=ishiiruka
