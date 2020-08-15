@@ -37,7 +37,8 @@ SdCardLink="http://www.mediafire.com/file/$SdCardDlHash/$SdCardFileName/file"
 # mv "Ishiiruka-$COMMITHASH" Ishiiruka
 # cd Ishiiruka
 
-cd build
+rm build -rf;
+mkdir build; cd build;
 
 echo "cmaking..."
 if [ ! -z "${IN_NIX_SHELL++}" ]; then
@@ -55,28 +56,40 @@ echo "Downloading config files..."
 curl -LO# $CONFIGLINK
 echo "Extracting config files..."
 tar -C "AppDir/usr/bin/" -xzf "$FPPVERSION-$CONFIGNAME.tar.gz" --checkpoint-action='exec=printf "%d/410 records extracted.\r" $TAR_CHECKPOINT' --totals
-mv AppDir/usr/bin/Binaries/* ../ -f
+rm AppDir/usr/bin/Sys -r
+mv AppDir/usr/bin/Binaries/* AppDir/usr/bin/ -f
+rm AppDir/usr/bin/Binaries -r
 rm "$FPPVERSION-$CONFIGNAME.tar.gz"
 
-# --- Download the sd card tarball, extract it, move it to proper folder, and delete tarball
-# credit to https://superuser.com/a/1517096 superuser.com user Zibri
-echo "Downloading sd card"
-url=$(curl -Lqs0 "$SdCardLink" | grep "href.*download.*media.*"| grep "$SdCardFileName" | cut -d '"' -f 2)
+LINUXDEPLOY_PATH="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous"
+LINUXDEPLOY_FILE="linuxdeploy-x86_64.AppImage"
+LINUXDEPLOY_URL="${LINUXDEPLOY_PATH}/${LINUXDEPLOY_FILE}"
 
-echo "Attempting with Axel";
-if [ -x "$(command -v axel)" ]; then
-	axel "$url" -a -n $CPUS; 
-elif [ -x "$(command -v aria2c)" ]; then
-	echo "Axel command failed, dependency may be missing, attempting with aria2c";
-	aria2c -x$CPUS "$url"
-else
- echo "Axel and Aria2c command failed, dependency may be missing, reverting to slowest way possible";
- wget "$url"
+UPDATEPLUG_PATH="https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous"
+UPDATEPLUG_FILE="linuxdeploy-plugin-appimage-x86_64.AppImage"
+UPDATEPLUG_URL="${UPDATEPLUG_PATH}/${UPDATEPLUG_FILE}"
+
+UPDATETOOL_PATH="https://github.com/AppImage/AppImageUpdate/releases/download/continuous"
+UPDATETOOL_FILE="appimageupdatetool-x86_64.AppImage"
+UPDATETOOL_URL="${UPDATETOOL_PATH}/${UPDATETOOL_FILE}"
+
+DESKTOP_APP_URL="https://github.com/project-slippi/slippi-desktop-app"
+DESKTOP_APP_SYS_PATH="./slippi-desktop-app/app/dolphin-dev/overwrite/Sys"
+
+APPDIR_BIN="./AppDir/usr/bin"
+
+# Grab various appimage binaries from GitHub if we don't have them
+if [ ! -e ./linuxdeploy ]; then
+	wget ${LINUXDEPLOY_URL} -O ./linuxdeploy
+	chmod +x ./linuxdeploy
+fi
+if [ ! -e ./linuxdeploy-update-plugin ]; then
+	wget ${UPDATEPLUG_URL} -O ./linuxdeploy-update-plugin
+	chmod +x ./linuxdeploy-update-plugin
+fi
+if [ ! -e ./appimageupdatetool ]; then
+	wget ${UPDATETOOL_URL} -O ./appimageupdatetool
+	chmod +x ./appimageupdatetool
 fi
 
-echo "Extracting sd card"
-tar -C  "AppDir/usr/bin/User/Wii/" -xzf "$SdCardFileName" --checkpoint-action='exec=printf "%d/12130 records extracted.\r" $TAR_CHECKPOINT' --totals
-rm "$SdCardFileName"
-# ---
-
-./linuxdeploy-x86_64.AppImage --appdir AppDir/ --output appimage
+OUTPUT="FasterProjectPlus-2.1.5-x86_64.AppImage" ./linuxdeploy --appdir AppDir/ --output appimage
