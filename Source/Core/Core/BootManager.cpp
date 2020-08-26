@@ -212,6 +212,11 @@ void ConfigCache::RestoreConfig(SConfig* config)
 
 static ConfigCache config_cache;
 
+void SetEmulationSpeedReset(bool value)
+{
+  config_cache.bSetEmulationSpeed = value;
+}
+
 static GPUDeterminismMode ParseGPUDeterminismMode(const std::string& mode)
 {
   if (mode == "auto")
@@ -370,7 +375,6 @@ bool BootCore(std::unique_ptr<BootParameters> boot)
     StartUp.m_EXIDevice[1] = g_NetPlaySettings.m_EXIDevice[1];
     config_cache.bSetEXIDevice[0] = true;
     config_cache.bSetEXIDevice[1] = true;
-    StartUp.bBrawlMusicOff = g_NetPlaySettings.m_BrawlMusicOff;
   }
   else
   {

@@ -29,6 +29,7 @@ private:
   void OnScreenSaverCheckBoxChanged(wxCommandEvent&);
   void OnPAL60CheckBoxChanged(wxCommandEvent&);
   void OnSDCardCheckBoxChanged(wxCommandEvent&);
+  void OnSaveCheckBoxChanged(wxCommandEvent&);
   void OnConnectKeyboardCheckBoxChanged(wxCommandEvent&);
   void OnSystemLanguageChoiceChanged(wxCommandEvent&);
   void OnAspectRatioChoiceChanged(wxCommandEvent&);
@@ -49,6 +50,7 @@ private:
   wxCheckBox* m_screensaver_checkbox;
   wxCheckBox* m_pal60_mode_checkbox;
   wxCheckBox* m_sd_card_checkbox;
+  wxCheckBox* m_save_checkbox;
   wxCheckBox* m_connect_keyboard_checkbox;
   wxChoice* m_system_language_choice;
   wxChoice* m_aspect_ratio_choice;

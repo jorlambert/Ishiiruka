@@ -46,6 +46,7 @@ public:
   ~GameFile() = default;
 
   bool IsValid() const;
+  bool ReadPNGBanner(const std::string& path);
   const std::string& GetFilePath() const { return m_file_path; }
   const std::string& GetFileName() const { return m_file_name; }
   const std::string& GetName(bool long_name = true) const;

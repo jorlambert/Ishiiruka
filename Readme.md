@@ -38,10 +38,10 @@ Dolphin can only be installed on devices that satisfy the above requirements. At
 
 ## Building for Windows
 
-Use the solution file `Source/dolphin-emu.sln` to build Dolphin on Windows.
-Visual Studio 2017 is a hard requirement. Other compilers might be
+Use the solution file `Source/Dolphin.sln` to build Dolphin on Windows.
+Visual Studio 2019 is a hard requirement. Other compilers might be
 able to build Dolphin on Windows but have not been tested and are not
-recommended to be used. Git and Windows 10 SDK 10.0.15063.0 must be installed when building.
+recommended to be used. Git, Windows 10 SDK 10.0, and MSVC v142 x64/x86 build tools (v14.25) must be installed when building.
 
 An installer can be created by using the `Installer.nsi` script in the
 Installer directory. This will require the Nullsoft Scriptable Install System
