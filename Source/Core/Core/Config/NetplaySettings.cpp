@@ -27,6 +27,7 @@ const ConfigInfo<u16> NETPLAY_CONNECT_PORT{{System::Main, "NetPlay", "ConnectPor
                                            DEFAULT_LISTEN_PORT};
 const ConfigInfo<u16> NETPLAY_LISTEN_PORT{{System::Main, "NetPlay", "ListenPort"},
                                           DEFAULT_LISTEN_PORT};
+const ConfigInfo<bool> NETPLAY_IS_MUSIC_OFF{ {System::Main, "NetPlay","MusicOff"}, false };
 
 const ConfigInfo<std::string> NETPLAY_NICKNAME{{System::Main, "NetPlay", "Nickname"}, "Player"};
 const ConfigInfo<std::string> NETPLAY_SELECTED_HOST_GAME{

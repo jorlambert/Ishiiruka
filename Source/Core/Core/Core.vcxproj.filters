@@ -888,8 +888,11 @@
     <ClCompile Include="DSP\Jit\x64\DSPJitUtil.cpp">
       <Filter>DSPCore\Jit</Filter>
     </ClCompile>
-	<ClCompile Include="Config\UISettings.cpp">
+    <ClCompile Include="Config\UISettings.cpp">
       <Filter>Config</Filter>
+    </ClCompile>
+    <ClCompile Include="IOS\DolphinDevice.cpp">
+      <Filter>IOS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1538,7 +1541,7 @@
     <ClInclude Include="HW\WiimoteCommon\WiimoteReport.h">
       <Filter>HW %28Flipper/Hollywood%29\WiimoteCommon</Filter>
     </ClInclude>
-	<ClInclude Include="Config\UISettings.h">
+    <ClInclude Include="Config\UISettings.h">
       <Filter>Config</Filter>
     </ClInclude>
     <ClInclude Include="Config\MainSettings.h">
@@ -1561,6 +1564,9 @@
     </ClInclude>
     <ClInclude Include="DSP\Jit\x64\DSPJitRegCache.h">
       <Filter>DSPCore\Jit</Filter>
+    </ClInclude>
+    <ClInclude Include="IOS\DolphinDevice.h">
+      <Filter>IOS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

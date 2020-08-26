@@ -478,8 +478,9 @@ void TextureCacheBase::DumpTexture(TCacheEntry* entry, std::string basename, u32
     basename += StringFromFormat("_mip%i", level);
   }
 
-  std::string filename = szDir + "/" + basename +
-                         (TexDecoder::IsCompressed(entry->GetConfig().pcformat) ? ".dds" : ".png");
+  /*std::string filename = szDir + "/" + basename +
+                         (TexDecoder::IsCompressed(entry->GetConfig().pcformat) ? ".dds" : ".png");*/
+  std::string filename = szDir + "/" + basename + ".png";
 
   if (!File::Exists(filename))
     entry->texture->Save(filename, level);
@@ -554,6 +555,7 @@ void TextureCacheBase::SetupEnviromentTexture()
       currenthits = env_iter->second.last_frame_hits;
       current = env_iter->second.envtexture;
     }
+    env_iter++;
   }
   bound_enviroment = current;
 }
@@ -588,8 +590,7 @@ void TextureCacheBase::LoadEnviromentTexture(std::string basename)
     u8* Bufferptr = TextureCacheBase::temp;
     for (size_t i = 0; i < 6; i++)
     {
-      entry->texture->Load(Bufferptr, config.width, config.height, config.width, 0,
-                           currentlayer);      
+      entry->texture->Load(Bufferptr, config.width, config.height, config.width, 0, currentlayer);
       Bufferptr += TextureUtil::GetTextureSizeInBytes(config.width, config.height, config.pcformat);
       for (u32 level = 1; level != env_tex->m_levels; ++level)
       {

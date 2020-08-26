@@ -230,7 +230,7 @@ static const tevSources tevAOutputSourceMap[] = {tevSources::APREV, tevSources::
 
 static const char* headerUtil = R"hlsl(
 float4 CHK_O_U8(float4 x)
-{ 
+{
 	return frac(((x) + 1024.0) * (1.0/256.0)) * 256.0;
 }
 #define CAST_TO_U6(x) (floor((x) * 0.25) * 4.0)
@@ -307,22 +307,22 @@ float3x3 cotangent_frame( float3 N, float3 p, float2 uv, bool negate )
     float3 dp2 = ddy( p );
     float2 duv1 = ddx( uv );
     float2 duv2 = (negate ? -1.0 : 1.0) *ddy( uv );
- 
+
     // solve the linear system
     float3 dp2perp = cross( dp2, N );
     float3 dp1perp = cross( N, dp1 );
     float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
     float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
- 
-    // construct a scale-invariant frame 
+
+    // construct a scale-invariant frame
     float invmax = rsqrt( max( dot(T,T), dot(B,B) ) );
 	return float3x3( T * invmax, B * invmax, N );
 }
 
 float3 perturb_normal( float3 N, float3 P, float2 texcoord , float3 map, bool negate)
 {
-	// assume N, the interpolated vertex normal and 
-	// P, Position	
+	// assume N, the interpolated vertex normal and
+	// P, Position
 	float3x3 TBN = cotangent_frame( N, P, texcoord, negate);
 	return normalize( mul(map, TBN) );
 }
@@ -334,10 +334,10 @@ float3 CalculateSurfaceGradient(float3 n, float3 dpdx, float3 dpdy, float dhdx, 
 {
     float3 r1 = cross(dpdy, n);
     float3 r2 = cross(n, dpdx);
- 
+
     return (r1 * dhdx + r2 * dhdy) / dot(dpdx, r1);
 }
- 
+
 // Move the normal away from the surface normal in the opposite surface gradient direction
 float3 PerturbNormalGradient(float3 n, float3 dpdx, float3 dpdy, float dhdx, float dhdy)
 {
@@ -350,7 +350,7 @@ float3 CalculateSurfaceNormal(float3 position, float3 normal, float height)
 {
 	float3 dpdx = ddx(position);
 	float3 dpdy = ddy(position);
-	
+
 	float dhdx = ddx(height);
 	float dhdy = ddy(height);
 
@@ -384,15 +384,15 @@ float snoise(float2 v)
      -0.577350269189626, // -1.0 + 2.0 * C.x
         0.024390243902439  // 1.0 / 41.0
     );
- 
+
 // First corner
     float2 i = floor( v + dot(v, C.yy) );
     float2 x0 = v - i + dot(i, C.xx);
- 
+
     float4 x12 = x0.xyxy + C.xxzz;
     float2 i1 = (x0.x > x0.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);
     x12.xy -= i1;
- 
+
 // Permutations
     i = mod289(i); // Avoid truncation effects in permutation
     float3 p = permute(
@@ -400,7 +400,7 @@ float snoise(float2 v)
                 i.y + float3(0.0, i1.y, 1.0 )
         ) + i.x + float3(0.0, i1.x, 1.0 )
     );
- 
+
     float3 m = max(
         0.5 - float3(
             dot(x0, x0),
@@ -411,19 +411,19 @@ float snoise(float2 v)
     );
     m = m*m ;
     m = m*m ;
- 
+
 // Gradients: 41 points uniformly over a line, mapped onto a diamond.
 // The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
- 
+
     float3 x = 2.0 * frac(p * C.www) - 1.0;
     float3 h = abs(x) - 0.5;
     float3 ox = floor(x + 0.5);
     float3 a0 = x - ox;
- 
+
 // Normalise gradients implicitly by scaling m
 // Approximation of: m *= inversesqrt( a0*a0 + h*h );
     m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
- 
+
 // Compute final noise value at P
     float3 g;
     g.x = a0.x * x0.x + h.x * x0.y;
@@ -454,9 +454,10 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
       bpm.zmode.testenable.Value() &&
       ((bpm.ztex2.op.Value() != ZTEXTURE_DISABLE && bpm.UseLateDepthTest()) ||
        (!g_ActiveConfig.bFastDepthCalc && !forced_early_z) || bpm.genMode.zfreeze.Value());
-  bool forced_lighting_enabled = g_ActiveConfig.TessellationEnabled() &&
-                                 xfr.projection.type == GX_PERSPECTIVE &&
-                                 g_ActiveConfig.bForcedLighting;
+  bool forced_lighting_enabled =
+      g_ActiveConfig.TessellationEnabled() &&   // forced ligthing only works using tesselation
+      xfr.projection.type == GX_PERSPECTIVE &&  // don't apply ligth to 2d screens
+      g_ActiveConfig.bForcedLighting;
   bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components) || forced_lighting_enabled;
   // uid_data.uint_output = bpm.blendmode.UseLogicOp() && g_ActiveConfig.backend_info.APIType ==
   // API_D3D11 ? 1 : 0;
@@ -545,7 +546,6 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
     // Only col0 and col1 are needed so discard the remaining components
     uid_data.components = (components >> VB_COL_SHIFT) & 3;
     uid_data.numColorChans = xfr.numChan.numColorChans;
-    GetLightingShaderUid(uid_data.lighting, xfr);
     GetLightingShaderUid(uid_data.lighting, xfr);
   }
 
@@ -1032,7 +1032,7 @@ inline void WriteTevCompareI(T& out, int components, int cmp)
   {
     // if rgb just use the regular cmp
     // for alpha use the last 2 functions
-    out.Write(TEVCMPOPTable[cmp + (components << 1)]);
+    out.Write("%s", TEVCMPOPTable[cmp + (components << 1)]);
   }
 }
 
@@ -1068,7 +1068,7 @@ inline void WriteTevCompare(T& out, int components, int cmp)
   {
     // if rgb just use the regular cmp
     // for alpha use the last 2 functions
-    out.Write(TEVCMPOPTable[cmp + (components << 1)]);
+    out.Write("%s", TEVCMPOPTable[cmp + (components << 1)]);
   }
 }
 
@@ -1504,11 +1504,11 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
   out.Write("//Pixel Shader for TEV stages\n");
   if (enablenormalmaps || forcePhong)
   {
-    out.Write(headerLightUtil);
+    out.Write("%s", headerLightUtil);
   }
   if (enablesimbumps || uid_data.dither)
   {
-    out.Write(headerBumpUtil);
+    out.Write("%s", headerBumpUtil);
   }
   if (Use_integer_math)
   {
@@ -1525,7 +1525,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
       out.Write("#define wu3 int3\n");
       out.Write("#define wu4 int4\n");
     }
-    out.Write(headerUtilI);
+    out.Write("%s", headerUtilI);
   }
   else
   {
@@ -1542,7 +1542,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
       out.Write("#define wu3 float3\n");
       out.Write("#define wu4 float4\n");
     }
-    out.Write(headerUtil);
+    out.Write("%s", headerUtil);
   }
 
   if (ApiType == API_D3D11)
@@ -2184,8 +2184,8 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
       }
       else if (ApiType & API_OPENGL || ApiType & API_VULKAN)
       {
-        out.Write(
-            "textureLod(envtex, reflect(-View.xyz, _norm0.xyz).xyz, (1.0 - (normalmap.w * normalmap.w * normalmap.w)) * 10.0);\n");
+        out.Write("textureLod(envtex, reflect(-View.xyz, _norm0.xyz).xyz, (1.0 - (normalmap.w * "
+                  "normalmap.w * normalmap.w)) * 10.0);\n");
       }
       // Env component
       out.Write("prev.rgb += wu3((prev.rgb / 255.0f) * envcolor.rgb * 255.0 * normalmap.w);\n");

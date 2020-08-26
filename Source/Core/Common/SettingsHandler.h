@@ -21,7 +21,12 @@ public:
     INITIAL_SEED = 0x73B5DBFA
   };
 
+  using Buffer = std::array<u8, SETTINGS_SIZE>;
   SettingsHandler();
+  explicit SettingsHandler(Buffer&& buffer);
+
+  const Buffer& GetBytes() const;
+  void SetBytes(Buffer&& buffer);
 
   bool Open(const std::string& settings_file_path);
   bool Save(const std::string& destination_file_path) const;

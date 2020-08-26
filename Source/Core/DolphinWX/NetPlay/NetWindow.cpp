@@ -264,6 +264,12 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
   m_player_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_player_padbuf_spin));
 
   m_music_off_chkbox = new wxCheckBox(parent, wxID_ANY, "Client Side Music Off");
+  m_music_off_chkbox->SetToolTip("Turn off music client side (To make this permanent right click brawl then go to properties and then patches)");
+  m_music_off_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnMusicToggle, this);
+  if (Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
+    m_music_off_chkbox->SetValue(true);
+  else if (!Config::Get(Config::NETPLAY_IS_MUSIC_OFF))
+    m_music_off_chkbox->SetValue(false);
 
   if (m_is_hosting)
   {
@@ -278,6 +284,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(minimum_padbuf_spin));
 
     m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Write save/SD data"));
+    m_memcard_write->SetToolTip("Enable writing to Memory Card/SD Card");
 
     //m_copy_wii_save = new wxCheckBox(parent, wxID_ANY, _("Load Wii Save"));
 
@@ -287,7 +294,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     bottom_szr->Add(buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     bottom_szr->Add(m_player_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-    if (IsPMELF() == false)
+    if (!IsPMELF())
     {
       m_music_off_chkbox->Hide();
     }
@@ -299,7 +306,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
     bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
     //bottom_szr->Add(m_copy_wii_save, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-    bottom_szr->AddSpacer(space5);
+    //bottom_szr->AddSpacer(space5);
   }
   else
   {
@@ -345,6 +352,12 @@ NetPlayDialog::~NetPlayDialog()
   npd = nullptr;
 }
 
+void NetPlayDialog::OnMusicToggle(wxCommandEvent& event)
+{
+  const bool ismusicoff = ((wxCheckBox*)event.IsChecked());
+  Config::SetBaseOrCurrent(Config::NETPLAY_IS_MUSIC_OFF, ismusicoff);
+}
+
 void NetPlayDialog::OnChat(wxCommandEvent&)
 {
   std::string text = WxStrToStr(m_chat_msg_text->GetValue());
@@ -368,10 +381,7 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 
 bool NetPlayDialog::IsPMELF()
 {
-  if (!m_selected_game.compare(m_selected_game.length() - 4, 4, ".elf"))
-    {return true;}
-  else
-    {return false;}
+  return m_selected_game.find("elf") != std::string::npos;
 }
 
 void NetPlayDialog::GetNetSettings(NetSettings& settings)

@@ -30,7 +30,7 @@ int2 BSH(int2 x, int n)
 }
 int remainder(int x, int y)
 {
-	return x %% y;
+	return x % y;
 }
 // dot product for integer vectors
 int idot(int3 x, int3 y)
@@ -220,8 +220,11 @@ void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, c
     }
   }
   uid_data.nIndirectStagesUsed = nIndirectStagesUsed;
-  bool enable_pl =
-      g_ActiveConfig.PixelLightingEnabled(xfr, components) || g_ActiveConfig.bForcedLighting;
+  bool forced_lighting_enabled =
+      g_ActiveConfig.TessellationEnabled() &&  // forced ligthing only works using tesselation
+      xfr.projection.type == GX_PERSPECTIVE &&  // don't apply ligth to 2d screens
+      g_ActiveConfig.bForcedLighting;
+  bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components) || forced_lighting_enabled;
   uid_data.pixel_lighting = enable_pl;
   bool enablenormalmaps = g_ActiveConfig.HiresMaterialMapsEnabled() && numTexgen > 0;
   if (enablenormalmaps)
@@ -262,12 +265,15 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n,
 {
   const auto& stage = uid_data.stagehash[n];
   u32 texcoord = stage.tevorders_texcoord;
+
   bool bHasTexCoord = texcoord < uid_data.numTexGens;
   bool bHasIndStage = stage.hasindstage && stage.tevorders_enable;
-
+  u32 numTexgen = uid_data.numTexGens;
   TevStageIndirect tevind;
   tevind.hex = stage.tevind;
-  int texmap = stage.tevorders_texmap;
+  u32 texmap = stage.tevorders_texmap;
+  texmap = texmap >= numTexgen ? 0 : texmap;
+  texcoord = texcoord >= numTexgen ? 0 : texcoord;
   out.Write("\n{\n");
   if (bHasIndStage)
   {
@@ -421,7 +427,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
       out.Write("SamplerState samp[8] : register(s0);\n");
       out.Write("Texture2DArray Tex[8] : register(t0);\n");
     }
-    out.Write(headerUtilI);
+    out.Write("%s", headerUtilI);
   }
   // uniforms
   if (ApiType == API_OPENGL)
@@ -483,7 +489,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
       out.Write(" float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 1);
     out.Write(" float4 Normal[3]: TEXCOORD%d;\n", texcount * 3 + 1);
     out.Write("};\n");
-    out.Write(s_hlsl_hull_header_str);
+    out.Write("%s", s_hlsl_hull_header_str);
     if (uid_data.numTexGens < 7)
     {
       out.Write(" result.pos = float4(patch[id].clipPos.x,patch[id].clipPos.y,patch[id].Normal.w, "
@@ -499,7 +505,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
     if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
       out.Write("result.clipDist = patch[id].clipDist;\n");
     out.Write("return result;\n}\n");
-    out.Write(s_hlsl_constant_header_str);
+    out.Write("%s", s_hlsl_constant_header_str);
     out.Write(" if (" I_CULLPARAMS ".y != 0) {\n"
               "   float3 spos0 = patch[0].pos.xyz / patch[0].pos.w;\n"
               "   float3 spos1 = patch[1].pos.xyz / patch[1].pos.w;\n"
@@ -588,7 +594,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
         "   result.InsideFactor = (result.EFactor[0] + result.EFactor[1] + result.EFactor[2]) / "
         "3;\n"
         "   return result;\n};\n");
-    out.Write(s_hlsl_ds_str);
+    out.Write("%s", s_hlsl_ds_str);
 
     for (u32 i = 0; i < texcount; ++i)
       out.Write(" result.tex%d.xyz = BInterpolate(pconstans.tex%d, bCoords).xyz;\n", i, i);
@@ -633,6 +639,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
         {
           u32 texcoord = uid_data.GetTevindirefCoord(i);
           u32 texmap = uid_data.GetTevindirefMap(i);
+          texmap = texmap >= numTexgen ? numTexgen - 1 : texmap;
           if (texcoord < numTexgen)
           {
             out.Write("   t_coord = BSHR(int2(uv[%d].xy) , " I_INDTEXSCALE "[%d].%s);\n", texcoord,
@@ -643,8 +650,7 @@ inline void GenerateTessellationShader(ShaderCode& out,
             out.Write("   t_coord = int2(0,0);\n");
           }
           out.Write("   int3 indtex%d = ", i);
-          SampleTexture<ApiType>(out, "float2(t_coord)", "abg",
-                                 texmap >= numTexgen ? numTexgen - 1 : texmap);
+          SampleTexture<ApiType>(out, "float2(t_coord)", "abg", texmap);
         }
       }
       for (u32 i = 0; i < numStages; ++i)
