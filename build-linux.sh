@@ -4,6 +4,21 @@
 set -e
 # ---
 
+function download_file {
+	url = $1
+	output = $2
+	echo "Attempting with Axel";
+	if [ -x "$(command -v axel)" ]; then
+		axel "$url" -a -n $CPUS --output $output; 
+	elif [ -x "$(command -v aria2c)" ]; then
+		echo "Axel command failed, dependency may be missing, attempting with aria2c";
+		aria2c -x $CPUS "$url" -o $output;
+	else
+	echo "Axel and Aria2c command failed, dependency may be missing, reverting to slowest way possible";
+	wget "$url" -O $output;
+	fi
+}
+
 CPUS=$(getconf _NPROCESSORS_ONLN 2>/dev/null)
 # FreeBSD and similar...
 [ -z "$CPUS" ] && CPUS=$(getconf NPROCESSORS_ONLN)
@@ -17,25 +32,11 @@ FPPVERSION="2.15"
 CONFIGNAME="fppconfig"
 COMMITHASH="d6800a124dbba118e297188900d07adfea661b87"
 CONFIGLINK="https://github.com/Birdthulu/FPM-Installer/raw/master/config/$FPPVERSION-$CONFIGNAME.tar.gz"
+CONFIGFOLDER="$FPPVERSION-$CONFIGNAME.tar.gz"
 GITCLONELINK="https://github.com/Birdthulu/Ishiiruka"
 SdCardFileName="ProjectPlusSdCard215.tar.gz"
 SdCardDlHash="0anckw4hrxlqn5i"
 SdCardLink="http://www.mediafire.com/file/$SdCardDlHash/$SdCardFileName/file"
-# FOLDERNAME="FasterProjectPlus-${FPPVERSION}"
-
-# rm -r "$FOLDERNAME"
-
-# --- enter folder, download and extract needed files
-# echo ""
-# mkdir "$FOLDERNAME" && cd "$FOLDERNAME"
-# echo "Downloading config files..."
-# curl -LO# $CONFIGLINK
-# echo "Extracting config files..."
-# tar -xzf "$FPPVERSION-$CONFIGNAME.tar.gz" --checkpoint-action='exec=printf "%d/410 records extracted.\r" $TAR_CHECKPOINT' --totals
-# rm "$FPPVERSION-$CONFIGNAME.tar.gz"
-
-# mv "Ishiiruka-$COMMITHASH" Ishiiruka
-# cd Ishiiruka
 
 rm build -rf;
 mkdir build; cd build;
@@ -54,12 +55,15 @@ echo ""
 mkdir "$FOLDERNAME" && cd "$FOLDERNAME"
 echo "Downloading config files..."
 curl -LO# $CONFIGLINK
+
 echo "Extracting config files..."
-tar -C "AppDir/usr/bin/" -xzf "$FPPVERSION-$CONFIGNAME.tar.gz" --checkpoint-action='exec=printf "%d/410 records extracted.\r" $TAR_CHECKPOINT' --totals
+NUMBEROFRECORDS = tar -tzf "$CONFIGFOLDER" | wc -l
+tar -C "AppDir/usr/bin/" -xzf "$CONFIGFOLDER" --checkpoint-action='exec=printf "%d/'$NUMBEROFRECORDS' records extracted.\r" $TAR_CHECKPOINT' --totals
+
 rm AppDir/usr/bin/Sys -r
 mv AppDir/usr/bin/Binaries/* AppDir/usr/bin/ -f
 rm AppDir/usr/bin/Binaries -r
-rm "$FPPVERSION-$CONFIGNAME.tar.gz"
+rm "$CONFIGFOLDER"
 
 LINUXDEPLOY_PATH="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous"
 LINUXDEPLOY_FILE="linuxdeploy-x86_64.AppImage"
@@ -80,16 +84,17 @@ APPDIR_BIN="./AppDir/usr/bin"
 
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./linuxdeploy ]; then
-	wget ${LINUXDEPLOY_URL} -O ./linuxdeploy
+	download_file ${LINUXDEPLOY_URL} ./linuxdeploy
 	chmod +x ./linuxdeploy
 fi
 if [ ! -e ./linuxdeploy-update-plugin ]; then
-	wget ${UPDATEPLUG_URL} -O ./linuxdeploy-update-plugin
+	download_file ${UPDATEPLUG_URL} ./linuxdeploy-update-plugin
 	chmod +x ./linuxdeploy-update-plugin
 fi
 if [ ! -e ./appimageupdatetool ]; then
-	wget ${UPDATETOOL_URL} -O ./appimageupdatetool
+
+	download_file ${UPDATETOOL_URL} ./appimageupdatetool
 	chmod +x ./appimageupdatetool
 fi
 
-OUTPUT="FasterProjectPlus-2.1.5-x86_64.AppImage" ./linuxdeploy --appdir AppDir/ --output appimage
+OUTPUT="FasterProjectPlus-$FPPVERSION-x86_64.AppImage" ./linuxdeploy --appdir AppDir/ --output appimage
