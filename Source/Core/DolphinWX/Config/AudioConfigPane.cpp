@@ -47,6 +47,13 @@ void AudioConfigPane::InitializeGUI()
   m_volume_text = new wxStaticText(this, wxID_ANY, "");
   m_audio_backend_choice =
     new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_backend_strings);
+
+#ifdef _WIN32
+  m_audio_device_choice =
+      new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_device_strings);
+  m_audio_device_label = new wxStaticText(this, wxID_ANY, "Device:");
+#endif
+
   if (m_latency_control_supported)
   {
     m_audio_latency_spinctrl =
@@ -83,33 +90,32 @@ void AudioConfigPane::InitializeGUI()
     wxALIGN_CENTER_VERTICAL);
 
 #ifdef _WIN32
+  backend_grid_sizer->Add(m_audio_device_label, wxGBPosition(1, 0), wxDefaultSpan,
+                          wxALIGN_CENTER_VERTICAL);
   if (m_device_selection_supported)
   {
-    m_audio_device_choice =
-      new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_device_strings);
-
-    m_audio_device_label = new wxStaticText(this, wxID_ANY, "Device:");
-
-    backend_grid_sizer->Add(m_audio_device_label, wxGBPosition(1, 0), wxDefaultSpan,
-      wxALIGN_CENTER_VERTICAL);
     backend_grid_sizer->Add(m_audio_device_choice, wxGBPosition(1, 1), wxDefaultSpan,
-      wxALIGN_CENTER_VERTICAL);
+                            wxALIGN_CENTER_VERTICAL);
 
     m_audio_device_choice->Append(StrToWxStr("Default Device"));
 
     PopulateDeviceChoiceBox();
   }
+  else
+    m_audio_device_choice->Hide();
 #endif
 
-  backend_grid_sizer->Add(m_dpl2_decoder_checkbox, wxGBPosition(2, 0), wxGBSpan(1, 2),
-    wxALIGN_CENTER_VERTICAL);
   if (m_latency_control_supported)
   {
-    backend_grid_sizer->Add(m_audio_latency_label, wxGBPosition(3, 0), wxDefaultSpan,
+    backend_grid_sizer->Add(m_audio_latency_label, wxGBPosition(2, 0), wxDefaultSpan,
       wxALIGN_CENTER_VERTICAL);
-    backend_grid_sizer->Add(m_audio_latency_spinctrl, wxGBPosition(3, 1), wxDefaultSpan,
+    backend_grid_sizer->Add(m_audio_latency_spinctrl, wxGBPosition(2, 1), wxDefaultSpan,
       wxALIGN_CENTER_VERTICAL);
   }
+
+  backend_grid_sizer->Add(m_dpl2_decoder_checkbox, wxGBPosition(4, 0), wxGBSpan(1, 2),
+                          wxALIGN_CENTER_VERTICAL);
+
   wxStaticBoxSizer* const backend_static_box_sizer =
     new wxStaticBoxSizer(wxVERTICAL, this, _("Backend Settings"));
   backend_static_box_sizer->AddSpacer(space5);
@@ -215,7 +221,7 @@ void AudioConfigPane::ToggleBackendSpecificControls(const std::string& backend)
   if (m_device_selection_supported)
   {
     m_audio_device_choice->Show(supports_device_selection);
-    m_audio_device_label->Show(supports_device_selection);
+    m_audio_device_label->Enable(supports_device_selection);
   }
 #endif
   bool supports_volume_changes = AudioCommon::SupportsVolumeChanges(backend);
@@ -292,6 +298,7 @@ void AudioConfigPane::OnAudioBackendChanged(wxCommandEvent& event)
     BACKEND_NULLSOUND;
   ToggleBackendSpecificControls(WxStrToStr(m_audio_backend_choice->GetStringSelection()));
   AudioCommon::UpdateSoundStream();
+  Refresh();
 }
 
 void AudioConfigPane::OnLatencySpinCtrlChanged(wxCommandEvent& event)
