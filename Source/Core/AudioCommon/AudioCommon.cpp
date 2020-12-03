@@ -132,12 +132,12 @@ bool SupportsDPL2Decoder(const std::string& backend)
 
 bool SupportsLatencyControl(const std::string& backend)
 {
-  return backend == BACKEND_OPENAL || backend == BACKEND_WASAPI;;
+  return backend == BACKEND_OPENAL || backend == BACKEND_WASAPI;
 }
 
 bool SupportsDeviceSelection(const std::string& backend)
 {
-  return backend == BACKEND_WASAPI;;
+  return backend == BACKEND_WASAPI;
 }
 
 bool SupportsVolumeChanges(const std::string& backend)
