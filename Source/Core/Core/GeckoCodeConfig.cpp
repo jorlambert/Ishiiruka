@@ -30,7 +30,8 @@ std::vector<GeckoCode> DownloadCodes(std::string gameid, bool* succeeded)
     break;
   }
 
-  std::string endpoint{ "https://www.geckocodes.org/txt.php?txt=" + gameid };
+  // codes.rc24.xyz is a mirror of the now defunct geckocodes.org.
+  std::string endpoint{"https://codes.rc24.xyz/txt.php?txt=" + gameid};
   Common::HttpRequest http;
 
   // Circumvent high-tech DDOS protection
