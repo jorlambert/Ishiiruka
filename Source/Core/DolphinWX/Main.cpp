@@ -26,6 +26,10 @@
 #include <wx/utils.h>
 #include <wx/window.h>
 
+#if defined(_WIN32) || defined(__APPLE__)
+#include <picojson/picojson.h>
+#endif
+
 #include "Common/CPUDetect.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
@@ -99,6 +103,10 @@ bool wxMsgAlert(const char*, const char*, bool, MsgType);
 std::string wxStringTranslator(const char*);
 
 CFrame* main_frame = nullptr;
+
+#if defined(_WIN32) || defined(__APPLE__)
+bool DolphinApp::updateAvailable = false;
+#endif
 
 bool DolphinApp::Initialize(int& c, wxChar** v)
 {
@@ -370,6 +378,33 @@ void DolphinApp::AfterInit()
   }
 #endif
 
+#ifdef _WIN32
+  if (File::Exists("./Updater-temp.exe") && File::Exists("./Updater.exe"))
+  {
+    File::Delete("./Updater-temp.exe");
+  }
+  else if (File::Exists("./Updater-temp.exe") && !File::Exists("./Updater.exe"))
+  {
+    File::Rename("./Updater-temp.exe", "./Updater.exe");
+  }
+#endif
+
+#ifdef __APPLE__
+  if (File::Exists("./Dolphin.app/Contents/MacOS/Updater-temp") && File::Exists("./Dolphin.app/Contents/MacOS/Updater"))
+  {
+    File::Delete("./Dolphin.app/Contents/MacOS/Updater-temp");
+  }
+  else if (File::Exists("./Dolphin.app/Contents/MacOS/Updater-temp") && !File::Exists("./Dolphin.app/Contents/MacOS/Updater"))
+  {
+    File::Rename("./Dolphin.app/Contents/MacOS/Updater-temp", "./Dolphin.app/Contents/MacOS/Updater");
+  }
+#endif
+
+#if defined(_WIN32) || defined(__APPLE__)
+  if (Config::Get(Config::MAIN_UPDATE_CHECK) == true)
+    DolphinApp::CheckUpdate();
+#endif
+
   if (m_confirm_stop)
     SConfig::GetInstance().bConfirmStop = m_confirm_setting;
 
@@ -485,6 +520,87 @@ void DolphinApp::OnIdle(wxIdleEvent& ev)
   ev.Skip();
   Core::HostDispatchJobs();
 }
+
+#if defined(_WIN32) || defined(__APPLE__)
+static void RunSystemCommand(const std::string& command)
+{
+#ifdef _WIN32
+  _wsystem(UTF8ToUTF16(command).c_str());
+#else
+  system(command.c_str());
+#endif
+}
+
+void DolphinApp::CheckUpdate()
+{
+  std::string url = "https://5fed2cdaa92e6d0008a19197--pplus.netlify.app/Update.json";
+  Common::HttpRequest req{ std::chrono::seconds{10} };
+  auto resp = req.Get(url);
+  if (!resp)
+  {
+    ERROR_LOG(COMMON, "Update request failed");
+    return;
+  }
+  std::string contents(reinterpret_cast<char*>(resp->data()), resp->size());
+  INFO_LOG(COMMON, "Update JSON response: %s", contents.c_str());
+  picojson::value json;
+  std::string err = picojson::parse(json, contents);
+  if (!err.empty())
+  {
+    ERROR_LOG(COMMON, "Invalid JSON received from auto-update service: %s", err.c_str());
+    return;
+  }
+  picojson::object obj = json.get<picojson::object>();
+
+  if (obj["hash"].get<std::string>() == Common::scm_rev_git_str.c_str() && obj["version"].get<std::string>() == Common::scm_desc_str.c_str())
+  {
+    INFO_LOG(COMMON, "Update status: we are up to date.");
+    updateAvailable = false;
+  }
+  else
+  {
+    INFO_LOG(COMMON, "Update status: we are not up to date.");
+    updateAvailable = true;
+    std::string changelog = obj["changelog"].get<std::string>();
+    int answer = wxMessageBox(_(
+      "An update is available. Would you like to update? Changelog:\n\n" + changelog +
+      "\n\nWANRING! IF YOU HAVE ANY CUSTOM CONTENT THIS MAY REPLACE IT!"
+      "\nBack up your files if there's something you want to keep!"),
+      _("Update"), wxYES_NO, main_frame);
+
+    if (answer == wxYES)
+    {
+#ifdef _WIN32
+      if (File::Exists("./Updater.exe"))
+        File::Rename("./Updater.exe", "./Updater-temp.exe");
+#endif
+      DolphinApp::UpdateApp();
+#ifdef _WIN32
+      Exit();
+#elif defined(__APPLE__)
+      main_frame->Close();
+#endif
+    }
+    else if (answer == wxNO && Config::Get(Config::MAIN_UPDATE_CHECK) != false)
+    {
+      Config::SetBaseOrCurrent(Config::MAIN_UPDATE_CHECK, false);
+    }
+  }
+}
+
+void DolphinApp::UpdateApp()
+{
+#ifdef _WIN32
+  std::string path = File::GetExeDirectory() + "/Updater-temp.exe";
+  std::string command = "start " + path + "\"";
+  WARN_LOG(COMMON, "Executing app update command: %s", command);
+  RunSystemCommand(command);
+#elif defined(__APPLE__)
+  std::string command = "/Dolphin.app/Contents/MacOS/Updater";
+  RunSystemCommand(command);
+#endif
+}
+#endif
 
 // ------------
 // Talk to GUI

@@ -525,6 +525,9 @@ wxMenu* MainMenuBar::CreateHelpMenu() const
   help_menu->Append(IDM_HELP_GITHUB, _("&GitHub Repository"));
   help_menu->AppendSeparator();
   help_menu->Append(wxID_ABOUT, _("&About"));
+#if defined(_WIN32) || defined(__APPLE__)
+  help_menu->Append(IDM_CHECK_UPDATE, _("&Check for Update"));
+#endif
 
   return help_menu;
 }

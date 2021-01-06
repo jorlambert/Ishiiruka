@@ -4,9 +4,6 @@
 
 #include "UICommon/GameFile.h"
 
-#include <wxWidgets3/include/wx/utils.h>
-#include <wxWidgets3/include/wx/image.h>
-
 #include <algorithm>
 #include <cinttypes>
 #include <cstdio>

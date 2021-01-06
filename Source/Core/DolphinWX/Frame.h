@@ -362,6 +362,10 @@ private:
   void HandleCursorTimer(wxTimerEvent&);
   void HandleSignal(wxTimerEvent&);
 
+#if defined(_WIN32) || defined(__APPLE__)
+  void CheckUpdate(wxCommandEvent& event);
+#endif
+
   bool InitControllers();
 
   // Event table

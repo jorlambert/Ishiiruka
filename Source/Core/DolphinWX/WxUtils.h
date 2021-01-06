@@ -11,6 +11,9 @@
 #include <wx/gdicmn.h>
 #include <wx/string.h>
 
+#include <wx/utils.h>
+#include <wx/image.h>
+
 #include "Common/CommonTypes.h"
 
 class wxControl;

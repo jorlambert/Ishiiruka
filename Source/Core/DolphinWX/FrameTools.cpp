@@ -99,6 +99,10 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
+#if defined(_WIN32) || defined(__APPLE__)
+#include <DolphinWX/Main.h>
+#endif
+
 class InputConfig;
 class wxFrame;
 
@@ -212,6 +216,9 @@ void CFrame::BindMenuBarEvents()
   Bind(wxEVT_MENU, &CFrame::OnHelp, this, IDM_HELP_ONLINE_DOCS);
   Bind(wxEVT_MENU, &CFrame::OnHelp, this, IDM_HELP_GITHUB);
   Bind(wxEVT_MENU, &CFrame::OnHelp, this, wxID_ABOUT);
+#if defined(_WIN32) || defined(__APPLE__)
+  Bind(wxEVT_MENU, &CFrame::CheckUpdate, this, IDM_CHECK_UPDATE);
+#endif
 
   if (m_use_debugger)
     BindDebuggerMenuBarEvents();
@@ -1119,6 +1126,16 @@ void CFrame::OnHelp(wxCommandEvent& event)
     break;
   }
 }
+
+#if defined(_WIN32) || defined(__APPLE__)
+void CFrame::CheckUpdate(wxCommandEvent& WXUNUSED(event))
+{
+  DolphinApp *dolphin = nullptr;
+  dolphin->CheckUpdate();
+  if (DolphinApp::updateAvailable == false)
+    wxMessageBox(_("No Updates Available!"),_("Update"), wxOK, main_frame);
+}
+#endif
 
 void CFrame::OnReloadThemeBitmaps(wxCommandEvent& WXUNUSED(event))
 {

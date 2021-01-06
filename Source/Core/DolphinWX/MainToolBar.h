@@ -48,6 +48,7 @@ private:
     TOOLBAR_CONFIGMAIN,
     TOOLBAR_CONFIGGFX,
     TOOLBAR_CONTROLLER,
+    TOOLBAR_UPDATE,
   };
 
   void BindEvents();

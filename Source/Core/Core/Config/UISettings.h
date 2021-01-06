@@ -17,5 +17,6 @@ namespace Config
 // UI.General
 
 extern const ConfigInfo<bool> MAIN_USE_DISCORD_PRESENCE;
+extern const ConfigInfo<bool> MAIN_UPDATE_CHECK;
 
 }  // namespace Config

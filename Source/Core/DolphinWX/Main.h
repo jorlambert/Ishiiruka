@@ -21,6 +21,11 @@ class DolphinApp : public wxApp
 public:
   bool IsActiveThreadsafe() const { return m_is_active; }
   CFrame* GetCFrame();
+#if defined(_WIN32) || defined(__APPLE__)
+  void CheckUpdate();
+  void UpdateApp();
+  static bool updateAvailable;
+#endif
 
 private:
   bool OnInit() override;

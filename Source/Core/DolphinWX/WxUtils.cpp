@@ -13,13 +13,11 @@
 #include <wx/combobox.h>
 #include <wx/display.h>
 #include <wx/gdicmn.h>
-#include <wx/image.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/toolbar.h>
 #include <wx/toplevel.h>
-#include <wx/utils.h>
 
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"

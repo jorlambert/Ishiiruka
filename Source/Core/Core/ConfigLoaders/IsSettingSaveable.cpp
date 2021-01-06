@@ -159,6 +159,7 @@ bool IsSettingSaveable(const Config::ConfigLocation& config_location)
       // UI.General
 
       Config::MAIN_USE_DISCORD_PRESENCE.location,
+      Config::MAIN_UPDATE_CHECK.location,
   };
 
   return std::find(s_setting_saveable.begin(), s_setting_saveable.end(), config_location) !=

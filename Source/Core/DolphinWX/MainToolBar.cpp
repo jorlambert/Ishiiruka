@@ -43,6 +43,9 @@ void MainToolBar::BindMainButtonEvents()
   Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreRunningOrPaused, IDM_TOGGLE_FULLSCREEN);
   Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreRunningOrPaused, IDM_SCREENSHOT);
   Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning, IDM_NETPLAY);
+#if defined(_WIN32) || defined(__APPLE__)
+  Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning, IDM_CHECK_UPDATE);
+#endif
 
 }
 
@@ -96,7 +99,8 @@ void MainToolBar::InitializeThemeBitmaps()
                          {TOOLBAR_FULLSCREEN, CreateBitmap("fullscreen")},
                          {TOOLBAR_CONFIGMAIN, CreateBitmap("config")},
                          {TOOLBAR_CONFIGGFX, CreateBitmap("graphics")},
-                         {TOOLBAR_CONTROLLER, CreateBitmap("gcpad")}});
+                         {TOOLBAR_CONTROLLER, CreateBitmap("gcpad")},
+                         {TOOLBAR_UPDATE, CreateBitmap("update")}});
 }
 
 void MainToolBar::InitializeDebuggerBitmaps()
@@ -125,7 +129,7 @@ wxBitmap MainToolBar::CreateDebuggerBitmap(const std::string& name) const
 
 void MainToolBar::ApplyThemeBitmaps()
 {
-  constexpr std::array<std::pair<int, ToolBarBitmapID>, 9> bitmap_entries{
+  constexpr std::array<std::pair<int, ToolBarBitmapID>, 10> bitmap_entries{
       {{wxID_OPEN, TOOLBAR_FILEOPEN},
        {wxID_REFRESH, TOOLBAR_REFRESH},
        {IDM_STOP, TOOLBAR_STOP},
@@ -134,7 +138,8 @@ void MainToolBar::ApplyThemeBitmaps()
        {IDM_NETPLAY, TOOLBAR_NETPLAY},
        {wxID_PREFERENCES, TOOLBAR_CONFIGMAIN},
        {IDM_CONFIG_GFX_BACKEND, TOOLBAR_CONFIGGFX},
-       {IDM_CONFIG_CONTROLLERS, TOOLBAR_CONTROLLER}}};
+       {IDM_CONFIG_CONTROLLERS, TOOLBAR_CONTROLLER},
+       {IDM_CHECK_UPDATE, TOOLBAR_UPDATE}}};
 
   for (const auto& entry : bitmap_entries)
     ApplyBitmap(entry.first, entry.second);
@@ -192,6 +197,10 @@ void MainToolBar::AddMainToolBarButtons()
                    _("Graphics settings"));
   AddToolBarButton(IDM_CONFIG_CONTROLLERS, TOOLBAR_CONTROLLER, _("Controllers"),
                    _("Controller settings"));
+#if defined(_WIN32) || defined(__APPLE__)
+  AddSeparator();
+  AddToolBarButton(IDM_CHECK_UPDATE, TOOLBAR_UPDATE, _("Update"), _("Check for Update"));
+#endif
 }
 
 void MainToolBar::AddDebuggerToolBarButtons()
