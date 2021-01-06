@@ -390,13 +390,13 @@ void DolphinApp::AfterInit()
 #endif
 
 #ifdef __APPLE__
-  if (File::Exists("./Dolphin.app/Contents/MacOS/Updater-temp") && File::Exists("./Dolphin.app/Contents/MacOS/Updater"))
+  if (File::Exists("./Dolphin.app/Contents/Resources/Updater-temp") && File::Exists("./Dolphin.app/Contents/Resources/Updater"))
   {
-    File::Delete("./Dolphin.app/Contents/MacOS/Updater-temp");
+    File::Delete("./Dolphin.app/Contents/Resources/Updater-temp");
   }
-  else if (File::Exists("./Dolphin.app/Contents/MacOS/Updater-temp") && !File::Exists("./Dolphin.app/Contents/MacOS/Updater"))
+  else if (File::Exists("./Dolphin.app/Contents/Resources/Updater-temp") && !File::Exists("./Dolphin.app/Contents/Resources/Updater"))
   {
-    File::Rename("./Dolphin.app/Contents/MacOS/Updater-temp", "./Dolphin.app/Contents/MacOS/Updater");
+    File::Rename("./Dolphin.app/Contents/Resources/Updater-temp", "./Dolphin.app/Contents/Resources/Updater");
   }
 #endif
 
@@ -596,7 +596,7 @@ void DolphinApp::UpdateApp()
   WARN_LOG(COMMON, "Executing app update command: %s", command);
   RunSystemCommand(command);
 #elif defined(__APPLE__)
-  std::string command = "/Dolphin.app/Contents/MacOS/Updater";
+  std::string command = File::GetBundleDirectory() + "/Contents/Resources/Updater";
   RunSystemCommand(command);
 #endif
 }
