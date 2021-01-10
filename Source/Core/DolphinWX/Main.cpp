@@ -76,6 +76,7 @@
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #include <dlfcn.h>
+#include <unistd.h>
 #endif
 
 #ifdef _WIN32
@@ -533,7 +534,7 @@ static void RunSystemCommand(const std::string& command)
 
 void DolphinApp::CheckUpdate()
 {
-  std::string url = "https://5fed2cdaa92e6d0008a19197--pplus.netlify.app/Update.json";
+  std::string url = "https://raw.githubusercontent.com/Birdthulu/birdthulu.github.io/master/Update.json";
   Common::HttpRequest req{ std::chrono::seconds{10} };
   auto resp = req.Get(url);
   if (!resp)
@@ -596,7 +597,8 @@ void DolphinApp::UpdateApp()
   WARN_LOG(COMMON, "Executing app update command: %s", command);
   RunSystemCommand(command);
 #elif defined(__APPLE__)
-  std::string command = File::GetBundleDirectory() + "/Contents/Resources/Updater";
+  chdir(File::GetBundleDirectory().c_str());
+  std::string command = "./Contents/Resources/Updater";
   RunSystemCommand(command);
 #endif
 }
