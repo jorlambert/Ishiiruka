@@ -16,7 +16,7 @@ on:
 jobs:
   ubuntu64-netplay:
       name: "Ubuntu Netplay"
-      runs-on: ubuntu-18.04
+      runs-on: ubuntu-20.04
       steps:
         - name: "Checkout"
           uses: actions/checkout@v2
