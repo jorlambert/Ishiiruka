@@ -40,9 +40,9 @@ rm -rf ./AppDir/
 mkdir -p AppDir
 ./Tools/linuxdeploy \
 	--appdir=./AppDir \
-	-e ./build/Binaries/dolphin-emu \
+	-e ./build/Binaries/ishiiruka \
 	-d ./Data/fpm.desktop \
-	-i ./Data/dolphin-emu.png
+	-i ./Data/ishiiruka.png
 
 # Add the Sys dir to the AppDir for packaging
 cp -r Data/Sys ${APPDIR_BIN}
