@@ -16,7 +16,7 @@ on:
 jobs:
   ubuntu64-netplay:
       name: "Ubuntu Netplay"
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-18.04
       steps:
         - name: "Checkout"
           uses: actions/checkout@v2
@@ -55,10 +55,8 @@ jobs:
             libreadline-dev \
             libsfml-dev \
             libsoil-dev \
-            libsoundtouch-dev \
             libswscale-dev \
             libusb-1.0-0-dev \
-            libwxbase3.0-dev \
             libwxgtk3.0-dev \
             libxext-dev \
             libxrandr-dev \
