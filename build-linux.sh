@@ -10,8 +10,8 @@ BINARY_PATH="./build/Binaries/"
 mkdir -p build
 pushd build
 cmake ${CMAKE_FLAGS} ../
-cp ./Externals/wxWidgets3/include/wx ./Source/Core/ -r
-cp ./Externals/wxWidgets3/wx/* ./Source/Core/wx/
+cp /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Externals/wxWidgets3/include/wx /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/ -r
+cp /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Externals/wxWidgets3/wx/* /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/wx/
 make -j$(nproc)
 popd
 
