@@ -41,7 +41,7 @@ mkdir -p AppDir
 ./Tools/linuxdeploy \
 	--appdir=./AppDir \
 	-e ./build/Binaries/ishiiruka \
-	-d ./Data/fpm.desktop \
+	-d ./Data/faster-project-plus.desktop \
 	-i ./Data/ishiiruka.png
 
 # Add the Sys dir to the AppDir for packaging
