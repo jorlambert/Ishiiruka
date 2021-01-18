@@ -21,7 +21,7 @@
 // headers
 // ----------------------------------------------------------------------------
 
-#include "defs.h"        // everybody should include this
+#include "wx/defs.h"        // everybody should include this
 
 #if defined(__WXMAC__)
     #include <ctype.h>
@@ -33,13 +33,13 @@
 #include <limits.h>
 #include <stdlib.h>
 
-#include "wxcrtbase.h"   // for wxChar, wxStrlen() etc.
-#include "strvararg.h"
-#include "buffer.h"      // for wxCharBuffer
-#include "strconv.h"     // for wxConvertXXX() macros and wxMBConv classes
-#include "stringimpl.h"
-#include "stringops.h"
-#include "unichar.h"
+#include "wx/wxcrtbase.h"   // for wxChar, wxStrlen() etc.
+#include "wx/strvararg.h"
+#include "wx/buffer.h"      // for wxCharBuffer
+#include "wx/strconv.h"     // for wxConvertXXX() macros and wxMBConv classes
+#include "wx/stringimpl.h"
+#include "wx/stringops.h"
+#include "wx/unichar.h"
 
 // by default we cache the mapping of the positions in UTF-8 string to the byte
 // offset as this results in noticeable performance improvements for loops over
@@ -62,7 +62,7 @@
 #endif
 
 #if wxUSE_STRING_POS_CACHE
-    #include "tls.h"
+    #include "wx/tls.h"
 
     // change this 0 to 1 to enable additional (very expensive) asserts
     // verifying that string caching logic works as expected

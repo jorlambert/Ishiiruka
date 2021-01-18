@@ -12,7 +12,7 @@
 #ifndef _WX_VECTOR_H_
 #define _WX_VECTOR_H_
 
-#include "defs.h"
+#include "wx/defs.h"
 
 #if wxUSE_STD_CONTAINERS
 
@@ -28,13 +28,13 @@ inline void wxVectorSort(wxVector<T>& v)
 
 #else // !wxUSE_STD_CONTAINERS
 
-#include "scopeguard.h"
-#include "meta/movable.h"
-#include "meta/if.h"
+#include "wx/scopeguard.h"
+#include "wx/meta/movable.h"
+#include "wx/meta/if.h"
 
-#include "beforestd.h"
+#include "wx/beforestd.h"
 #include <new> // for placement new
-#include "afterstd.h"
+#include "wx/afterstd.h"
 
 // wxQsort is declared in wx/utils.h, but can't include that file here,
 // it indirectly includes this file. Just lovely...

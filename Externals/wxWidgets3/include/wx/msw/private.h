@@ -178,7 +178,7 @@ protected:
     // implicitly convertible to HANDLE, which is a pointer.
     static HANDLE InvalidHandle()
     {
-        return (HANDLE)INVALID_VALUE;
+        return static_cast<HANDLE>(INVALID_VALUE);
     }
 
     void DoClose()

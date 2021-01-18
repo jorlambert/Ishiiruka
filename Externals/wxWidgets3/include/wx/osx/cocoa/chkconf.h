@@ -48,7 +48,7 @@
  */
 
 #define wxOSX_USE_QUICKTIME 0
-#define wxOSX_USE_AUDIOTOOLBOX 0
+#define wxOSX_USE_AUDIOTOOLBOX 1
 
 /*
    Use the more efficient FSEvents API instead of kqueue
