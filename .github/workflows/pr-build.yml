@@ -43,7 +43,6 @@ jobs:
             gcc \
             g++ \
             git \
-            x11proto-xinerama-dev \
             libxxf86vm-dev \
             libavcodec-dev \
             libavformat-dev \
@@ -69,8 +68,6 @@ jobs:
             libpng-dev \
             libusb-1.0-0-dev gettext \
             libxmu-dev \
-            libwxbase3.0-dev \
-            libwxgtk3.0-dev \
             libpango1.0-dev
         - name: "Build Netplay Dolphin"
           if: success()
