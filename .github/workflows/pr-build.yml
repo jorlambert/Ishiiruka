@@ -70,7 +70,8 @@ jobs:
             libusb-1.0-0-dev gettext \
             libxmu-dev \
             libwxbase3.0-dev \
-            libwxgtk3.0-dev
+            libwxgtk3.0-dev \
+            libpango1.0-dev
         - name: "Build Netplay Dolphin"
           if: success()
           working-directory: ${{ github.workspace }}
