@@ -9,6 +9,8 @@ BINARY_PATH="./build/Binaries/"
 # Move into the build directory, run CMake, and compile the project
 mkdir -p build
 pushd build
+cp Externals/wxWidgets3/include/wx Source/Core/ -r
+cp Externals/wxWidgets3/wx/* Source/Core/wx/ 
 cmake ${CMAKE_FLAGS} ../
 make -j$(nproc)
 popd
