@@ -726,7 +726,7 @@ if(NOT ANDROID)
 endif()
 
 if(ENABLE_WX)
-  find_package(wxWidgets 3.1.0 COMPONENTS core aui adv)
+  find_package(wxWidgets COMPONENTS core aui adv)
 
   if(_ARCH_32)
     add_definitions(-DwxSIZE_T_IS_UINT)
