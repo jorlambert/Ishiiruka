@@ -98,39 +98,42 @@ void InitializeWiiRoot(bool use_temporary)
 
 void ShutdownWiiRoot()
 {
-  std::string s_brawl_temp_save = File::GetUserPath(D_USER_IDX) + "WiiSession" DIR_SEP + "title" DIR_SEP + "00010000" DIR_SEP + "52534245" DIR_SEP + "data" DIR_SEP;
-  std::string replay_data = "./ReplayData";
-
-  if (File::Exists(s_brawl_temp_save + "collect.vff"))
+  if (SConfig::GetInstance().bSaveNetplayReplays == true)
   {
-    if (!File::Exists(replay_data))
+    std::string s_brawl_temp_save = File::GetUserPath(D_USER_IDX) + "WiiSession" DIR_SEP + "title" DIR_SEP + "00010000" DIR_SEP + "52534245" DIR_SEP + "data" DIR_SEP;
+    std::string replay_data = "./ReplayData";
+
+    if (File::Exists(s_brawl_temp_save + "collect.vff"))
     {
-      File::CreateDir(replay_data);
+      if (!File::Exists(replay_data))
+      {
+        File::CreateDir(replay_data);
+      }
+
+      time_t rawtime;
+      struct tm* timeinfo;
+      char buffer[80];
+
+      time(&rawtime);
+      timeinfo = localtime(&rawtime);
+
+      strftime(buffer, sizeof(buffer), "%d-%m-%Y %H_%M_%S", timeinfo);
+      std::string date(buffer);
+
+      std::string replay_file = s_brawl_temp_save + "collect.vff" + " " + date;
+      std::string replay_file_backup = replay_data + DIR_SEP "collect.vff" + " " + date;
+
+      WARN_LOG(IOS_FILEIO, "Attempting to backup replay data", s_brawl_temp_save.c_str());
+      File::Rename(s_brawl_temp_save + "collect.vff", replay_file);
+      File::Copy(replay_file, replay_file_backup);
+
+      if (File::Exists(replay_file_backup))
+        WARN_LOG(IOS_FILEIO, "Replay file was backed up");
+      else
+        ERROR_LOG(IOS_FILEIO, "Could not backup replay save file");
     }
-    
-    time_t rawtime;
-    struct tm* timeinfo;
-    char buffer[80];
-
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-
-    strftime(buffer, sizeof(buffer), "%d-%m-%Y %H_%M_%S", timeinfo);
-    std::string date(buffer);
-
-    std::string replay_file = s_brawl_temp_save + "collect.vff" + " " + date;
-    std::string replay_file_backup = replay_data + DIR_SEP "collect.vff" + " " + date;
-
-    WARN_LOG(IOS_FILEIO, "Attempting to backup replay data", s_brawl_temp_save.c_str());
-    File::Rename(s_brawl_temp_save + "collect.vff", replay_file);
-    File::Copy(replay_file, replay_file_backup);
-
-    if (File::Exists(replay_file_backup))
-      WARN_LOG(IOS_FILEIO, "Replay file was backed up");
-    else
-      ERROR_LOG(IOS_FILEIO, "Could not backup replay save file");
   }
-
+  
   if (!s_temp_wii_root.empty())
   {
     const u64 title_id = SConfig::GetInstance().GetTitleID();

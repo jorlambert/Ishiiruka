@@ -3,14 +3,12 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
-#include <fstream>
 #include <libusb.h>
 #include <mutex>
 #include <chrono>
 
 #include "Common/Event.h"
 #include "Common/Flag.h"
-#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/Thread.h"
 #include "Core/ConfigManager.h"
@@ -73,8 +71,6 @@ namespace GCAdapter
   static u8 s_endpoint_out = 0;
 
   static u64 s_last_init = 0;
-
-  static auto lastPollTime = std::chrono::steady_clock::now();
 
   static u64 s_consecutive_slow_transfers = 0;
   static double s_read_rate = 0.0;
@@ -454,12 +450,6 @@ namespace GCAdapter
     NOTICE_LOG(SERIALINTERFACE, "GC Adapter detached");
   }
 
-  void writeInputsToFile(char* payload) {
-    std::ofstream myfile;
-    myfile.open("./GCCinputs.bin", std::ios::binary);
-    myfile.write(payload, 37);
-  }
-
   GCPadStatus Input(int chan)
   {
     if (!UseAdapter())
@@ -504,16 +494,6 @@ namespace GCAdapter
       {
         u8 b1 = controller_payload_copy[1 + (9 * chan) + 1];
         u8 b2 = controller_payload_copy[1 + (9 * chan) + 2];
-
-        if (SConfig::GetInstance().m_WriteInputsToFile == true)
-        {
-          auto now = std::chrono::steady_clock::now();
-          if (std::chrono::duration_cast<std::chrono::microseconds>(now - lastPollTime).count() >= 16667)
-          {
-            writeInputsToFile((char*) controller_payload_copy);
-            lastPollTime = std::chrono::steady_clock::now();
-          }
-        }
 
         if (b1 & (1 << 0))
           pad.button |= PAD_BUTTON_A;

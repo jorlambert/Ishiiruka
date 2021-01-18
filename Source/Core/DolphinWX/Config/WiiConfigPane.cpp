@@ -75,6 +75,7 @@ void WiiConfigPane::InitializeGUI()
   m_sd_card_checkbox = new wxCheckBox(this, wxID_ANY, _("Insert SD Card"));
   m_save_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Saving to SD Card"));
   m_connect_keyboard_checkbox = new wxCheckBox(this, wxID_ANY, _("Connect USB Keyboard"));
+  m_netplay_replays_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Netplay Replays"));
   m_usb_passthrough_devices_listbox =
       new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 100));
   m_usb_passthrough_add_device_btn = new wxButton(this, wxID_ANY, _("Add..."));
@@ -92,6 +93,7 @@ void WiiConfigPane::InitializeGUI()
   m_sd_card_checkbox->SetToolTip(_("Saved to /Wii/sd.raw (default size is 128mb)"));
   m_save_checkbox->SetToolTip(_("Enables saving to the SD card when playing offline. Enabling this may corrupt your SD card and cause netplay desyncs."));
   m_connect_keyboard_checkbox->SetToolTip(_("May cause slow down in Wii Menu and some games."));
+  m_netplay_replays_checkbox->SetToolTip(_("Save replays from netplay sessions to a file."));
   m_bt_wiimote_motor_checkbox->SetToolTip(_("Enables Wii Remote vibration."));
 
   const int space5 = FromDIP(5);
@@ -102,6 +104,7 @@ void WiiConfigPane::InitializeGUI()
   misc_settings_grid_sizer->Add(m_sd_card_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(m_save_checkbox, wxGBPosition(1, 2), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(m_connect_keyboard_checkbox, wxGBPosition(2, 0), wxGBSpan(1, 2));
+  misc_settings_grid_sizer->Add(m_netplay_replays_checkbox, wxGBPosition(2, 2), wxGBSpan(1, 2));
   misc_settings_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("Aspect Ratio:")),
                                 wxGBPosition(3, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
   misc_settings_grid_sizer->Add(m_aspect_ratio_choice, wxGBPosition(3, 1), wxDefaultSpan,
@@ -191,6 +194,7 @@ void WiiConfigPane::LoadGUIValues()
   m_sd_card_checkbox->SetValue(SConfig::GetInstance().m_WiiSDCard);
   m_save_checkbox->SetValue(SConfig::GetInstance().bAllowSdWriting);
   m_connect_keyboard_checkbox->SetValue(SConfig::GetInstance().m_WiiKeyboard);
+  m_netplay_replays_checkbox->SetValue(SConfig::GetInstance().bSaveNetplayReplays);
 
   PopulateUSBPassthroughListbox();
 
@@ -232,6 +236,8 @@ void WiiConfigPane::BindEvents()
   m_save_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
   m_connect_keyboard_checkbox->Bind(wxEVT_CHECKBOX,
                                     &WiiConfigPane::OnConnectKeyboardCheckBoxChanged, this);
+  m_netplay_replays_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnNetplayReplaysCheckBoxChanged, this);
+  m_netplay_replays_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
   m_bt_sensor_bar_pos->Bind(wxEVT_CHOICE, &WiiConfigPane::OnSensorBarPosChanged, this);
   m_bt_sensor_bar_pos->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
@@ -304,6 +310,11 @@ void WiiConfigPane::OnSaveCheckBoxChanged(wxCommandEvent& event)
 void WiiConfigPane::OnConnectKeyboardCheckBoxChanged(wxCommandEvent& event)
 {
   SConfig::GetInstance().m_WiiKeyboard = m_connect_keyboard_checkbox->IsChecked();
+}
+
+void WiiConfigPane::OnNetplayReplaysCheckBoxChanged(wxCommandEvent& event)
+{
+  SConfig::GetInstance().bSaveNetplayReplays = m_netplay_replays_checkbox->IsChecked();
 }
 
 void WiiConfigPane::OnSystemLanguageChoiceChanged(wxCommandEvent& event)

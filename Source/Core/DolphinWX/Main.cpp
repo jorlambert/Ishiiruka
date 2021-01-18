@@ -534,7 +534,7 @@ static void RunSystemCommand(const std::string& command)
 
 void DolphinApp::CheckUpdate()
 {
-  std::string url = "https://raw.githubusercontent.com/Birdthulu/birdthulu.github.io/master/Update.json";
+  std::string url = "https://projectplusgame.com/update.json";
   Common::HttpRequest req{ std::chrono::seconds{10} };
   auto resp = req.Get(url);
   if (!resp)
@@ -598,7 +598,7 @@ void DolphinApp::UpdateApp()
   RunSystemCommand(command);
 #elif defined(__APPLE__)
   chdir(File::GetBundleDirectory().c_str());
-  std::string command = "./Contents/Resources/Updater";
+  std::string command = "open -a /Applications/Utilities/Terminal.app Contents/Resources/Updater";
   RunSystemCommand(command);
 #endif
 }

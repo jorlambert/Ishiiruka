@@ -857,8 +857,8 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 		${SRCS_UNIX}
 		${SRCS_UNIXGTK}
         )
-	if (NOT X11_xf86vmode_FOUND)
-		message(FATAL_ERROR "wxGTK2 needs Xxf86vm")
+	if (NOT X11_xf86vmode_FOUND OR NOT X11_Xinerama_FOUND)
+		message(FATAL_ERROR "wxGTK2 needs Xinerama and Xxf86vm")
 	endif()
 
         find_package(GTK2 REQUIRED)
@@ -877,6 +877,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 		${Backtrace_LIBRARY}
 		${X11_X11_LIB}
 		${X11_Xxf86vm_LIB}
+		${X11_Xinerama_LIB}
         )
 elseif(WIN32)
 	remove_definitions(-DWIN32_LEAN_AND_MEAN)

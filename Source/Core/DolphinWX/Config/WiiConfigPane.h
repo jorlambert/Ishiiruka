@@ -31,6 +31,7 @@ private:
   void OnSDCardCheckBoxChanged(wxCommandEvent&);
   void OnSaveCheckBoxChanged(wxCommandEvent&);
   void OnConnectKeyboardCheckBoxChanged(wxCommandEvent&);
+  void OnNetplayReplaysCheckBoxChanged(wxCommandEvent&);
   void OnSystemLanguageChoiceChanged(wxCommandEvent&);
   void OnAspectRatioChoiceChanged(wxCommandEvent&);
 
@@ -52,6 +53,7 @@ private:
   wxCheckBox* m_sd_card_checkbox;
   wxCheckBox* m_save_checkbox;
   wxCheckBox* m_connect_keyboard_checkbox;
+  wxCheckBox* m_netplay_replays_checkbox;
   wxChoice* m_system_language_choice;
   wxChoice* m_aspect_ratio_choice;
 

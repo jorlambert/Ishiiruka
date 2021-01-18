@@ -115,6 +115,7 @@ struct SConfig
   bool bEnableMemcardSdWriting = true;
   bool bAllowSdWriting = false;
   bool bCopyWiiSaveNetplay = true;
+  bool bSaveNetplayReplays = true;
 
   bool bDPL2Decoder = false;
   int iLatency = 20;
@@ -326,7 +327,6 @@ struct SConfig
 
   // Input settings
   bool m_BackgroundInput;
-  bool m_WriteInputsToFile;
   bool m_AdapterRumble[4];
   bool m_AdapterKonga[4];
 
