@@ -10,6 +10,7 @@ BINARY_PATH="./build/Binaries/Dolphin.app/Contents/Resources/"
 mkdir -p build
 pushd build
 cmake ${CMAKE_FLAGS} ..
+#Copy wx folder to Source/Core/
 cp -R /Users/runner/work/Ishiiruka-Private/Ishiiruka-Private/Externals/wxWidgets3/include/wx /Users/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/
 cp /Users/runner/work/Ishiiruka-Private/Ishiiruka-Private/Externals/wxWidgets3/wx/* /Users/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/wx/
 make -j7
