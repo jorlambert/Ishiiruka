@@ -4,7 +4,7 @@
 CMAKE_FLAGS=''
 
 DATA_SYS_PATH="./Data/Sys/"
-BINARY_PATH="./build/Binaries/Ishiiruka Dolphin.app/Contents/Resources/"
+BINARY_PATH="./build/Binaries/Dolphin.app/Contents/Resources/"
 
 # Move into the build directory, run CMake, and compile the project
 mkdir -p build
