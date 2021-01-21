@@ -86,7 +86,7 @@ jobs:
           mkdir -p ~/private_keys/
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Ishiiruka\ Dolphin.app
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Dolphin.app
       - name: "Package, Sign and Notarize Netplay Release DMG"
         if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
@@ -121,7 +121,7 @@ jobs:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           cd  ./build/Binaries
-          zip -r "${{ env.FILE_NAME }}.zip" Ishiiruka\ Dolphin.app
+          zip -r "${{ env.FILE_NAME }}.zip" Dolphin.app
           mv "${{ env.FILE_NAME }}.zip" ../../artifact/
       - name: "Publish"
         if: success()
