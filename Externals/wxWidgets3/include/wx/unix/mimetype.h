@@ -99,8 +99,6 @@ protected:
                        const wxArrayString& strExtensions,
                        const wxString& strDesc);
 
-    virtual wxString GetIconFromMimeType(const wxString& mime);
-
     // give it access to m_aXXX variables
     friend class WXDLLIMPEXP_FWD_BASE wxFileTypeImpl;
 };

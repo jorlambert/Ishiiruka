@@ -9,11 +9,7 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#if wxUSE_DATAVIEWCTRL
-
-#include "wx/dataview.h"
-
-#ifndef wxHAS_GENERIC_DATAVIEWCTRL
+#if (wxUSE_DATAVIEWCTRL != 0) && (!defined(wxUSE_GENERICDATAVIEWCTRL) || (wxUSE_GENERICDATAVIEWCTRL == 0))
 
 #include <limits>
 
@@ -104,7 +100,6 @@ bool wxOSXDataViewModelNotifier::ItemAdded(wxDataViewItem const& parent, wxDataV
   wxCHECK_MSG(item.IsOk(),false,"Added item is invalid.");
   noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Add(parent,item);
   AdjustRowHeight(item);
-  AdjustAutosizedColumns();
   return noFailureFlag;
 }
 
@@ -117,7 +112,6 @@ bool wxOSXDataViewModelNotifier::ItemsAdded(wxDataViewItem const& parent, wxData
   noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Add(parent,items);
  // adjust row heights:
   AdjustRowHeights(items);
-  AdjustAutosizedColumns();
  // done:
   return noFailureFlag;
 }
@@ -128,8 +122,13 @@ bool wxOSXDataViewModelNotifier::ItemChanged(wxDataViewItem const& item)
   wxCHECK_MSG(GetOwner() != NULL,false,"Owner not initialized.");
   if (m_DataViewCtrlPtr->GetDataViewPeer()->Update(GetOwner()->GetParent(item),item))
   {
-   // send the equivalent wxWidgets event:
-    wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED, m_DataViewCtrlPtr, item);
+   // sent the equivalent wxWidget event:
+    wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED,m_DataViewCtrlPtr->GetId());
+
+    dataViewEvent.SetEventObject(m_DataViewCtrlPtr);
+    dataViewEvent.SetModel(m_DataViewCtrlPtr->GetModel());
+    dataViewEvent.SetItem(item);
+   // sent the equivalent wxWidget event:
     m_DataViewCtrlPtr->HandleWindowEvent(dataViewEvent);
    // row height may have to be adjusted:
     AdjustRowHeight(item);
@@ -145,11 +144,16 @@ bool wxOSXDataViewModelNotifier::ItemsChanged(wxDataViewItemArray const& items)
 {
   size_t const noOfItems = items.GetCount();
 
+  wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED,m_DataViewCtrlPtr->GetId());
+
+
+  dataViewEvent.SetEventObject(m_DataViewCtrlPtr);
+  dataViewEvent.SetModel(m_DataViewCtrlPtr->GetModel());
   for (size_t indexItem=0; indexItem<noOfItems; ++indexItem)
     if (m_DataViewCtrlPtr->GetDataViewPeer()->Update(GetOwner()->GetParent(items[indexItem]),items[indexItem]))
     {
-     // send for all changed items a wxWidgets event:
-      wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED,m_DataViewCtrlPtr,items[indexItem]);
+     // send for all changed items a wxWidget event:
+      dataViewEvent.SetItem(items[indexItem]);
       m_DataViewCtrlPtr->HandleWindowEvent(dataViewEvent);
     }
     else
@@ -172,7 +176,7 @@ bool wxOSXDataViewModelNotifier::ItemDeleted(wxDataViewItem const& parent, wxDat
  // to prevent the control trying to ask the model to update an already deleted item the control is informed that currently a deleting process
  // has been started and that variables can currently not be updated even when requested by the system:
   m_DataViewCtrlPtr->SetDeleting(true);
-  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
+  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent,item);
  // enable automatic updating again:
   m_DataViewCtrlPtr->SetDeleting(false);
 
@@ -181,7 +185,7 @@ bool wxOSXDataViewModelNotifier::ItemDeleted(wxDataViewItem const& parent, wxDat
   return noFailureFlag;
 }
 
-bool wxOSXDataViewModelNotifier::ItemsDeleted(wxDataViewItem const& parent, wxDataViewItemArray const& WXUNUSED(items))
+bool wxOSXDataViewModelNotifier::ItemsDeleted(wxDataViewItem const& parent, wxDataViewItemArray const& items)
 {
   bool noFailureFlag;
 
@@ -192,7 +196,7 @@ bool wxOSXDataViewModelNotifier::ItemsDeleted(wxDataViewItem const& parent, wxDa
  // has been started and that variables can currently not be updated even when requested by the system:
   m_DataViewCtrlPtr->SetDeleting(true);
  // delete all specified items:
-  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
+  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent,items);
  // enable automatic updating again:
   m_DataViewCtrlPtr->SetDeleting(false);
 
@@ -207,9 +211,13 @@ bool wxOSXDataViewModelNotifier::ValueChanged(wxDataViewItem const& item, unsign
   wxCHECK_MSG(GetOwner() != NULL,false,"Owner not initialized.");
   if (m_DataViewCtrlPtr->GetDataViewPeer()->Update(GetOwner()->GetParent(item),item))
   {
-    wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED, m_DataViewCtrlPtr, m_DataViewCtrlPtr->GetColumn(col), item);
+    wxDataViewEvent dataViewEvent(wxEVT_DATAVIEW_ITEM_VALUE_CHANGED,m_DataViewCtrlPtr->GetId());
 
-   // send the equivalent wxWidgets event:
+    dataViewEvent.SetEventObject(m_DataViewCtrlPtr);
+    dataViewEvent.SetModel(m_DataViewCtrlPtr->GetModel());
+    dataViewEvent.SetColumn(col);
+    dataViewEvent.SetItem(item);
+   // send the equivalent wxWidget event:
     m_DataViewCtrlPtr->HandleWindowEvent(dataViewEvent);
 
     AdjustAutosizedColumns();
@@ -367,10 +375,6 @@ bool wxDataViewCtrl::Create(wxWindow *parent,
                             const wxValidator& validator,
                             const wxString& name)
 {
-  // Remove wxVSCROLL and wxHSCROLL from the style, since the dataview panel has scrollbars
-  // by default, and wxControl::Create trys to make some but crashes in the process
-  style &= ~(wxVSCROLL | wxHSCROLL);
-
   DontCreatePeer();
   if (!(wxControl::Create(parent,id,pos,size,style,validator,name)))
     return false;
@@ -516,9 +520,9 @@ void wxDataViewCtrl::EnsureVisible(wxDataViewItem const& item, wxDataViewColumn 
   }
 }
 
-void wxDataViewCtrl::DoExpand(wxDataViewItem const& item)
+void wxDataViewCtrl::Expand(wxDataViewItem const& item)
 {
-  return GetDataViewPeer()->DoExpand(item);
+  return GetDataViewPeer()->Expand(item);
 }
 
 bool wxDataViewCtrl::IsExpanded( const wxDataViewItem & item ) const
@@ -553,24 +557,10 @@ wxDataViewColumn *wxDataViewCtrl::GetCurrentColumn() const
 
 wxRect wxDataViewCtrl::GetItemRect(wxDataViewItem const& item, wxDataViewColumn const* columnPtr) const
 {
-  if ( !item.IsOk() )
-      return wxRect();
-
-  wxRect rect = GetDataViewPeer()->GetRectangle(item, columnPtr ? columnPtr : GetColumn(0));
-
-  if ( !columnPtr )
-  {
-      const unsigned columnCount = GetColumnCount();
-      if ( columnCount != 1 )
-      {
-          // Extend the rectangle to the rightmost part of the last column.
-          const wxRect rectLastCol = GetDataViewPeer()->GetRectangle(item, GetColumn(columnCount - 1));
-          rect.SetRight(rectLastCol.GetRight());
-      }
-      //else: We already have the rectangle we need.
-  }
-
-  return rect;
+  if (item.IsOk() && (columnPtr != NULL))
+    return GetDataViewPeer()->GetRectangle(item,columnPtr);
+  else
+    return wxRect();
 }
 
 int wxDataViewCtrl::GetSelectedItemsCount() const
@@ -583,25 +573,9 @@ int wxDataViewCtrl::GetSelections(wxDataViewItemArray& sel) const
   return GetDataViewPeer()->GetSelections(sel);
 }
 
-wxDataViewItem wxDataViewCtrl::GetTopItem() const
-{
-    return GetDataViewPeer()->GetTopItem();
-}
-
-int wxDataViewCtrl::GetCountPerPage() const
-{
-    return GetDataViewPeer()->GetCountPerPage();
-}
-
 void wxDataViewCtrl::HitTest(wxPoint const& point, wxDataViewItem& item, wxDataViewColumn*& columnPtr) const
 {
   return GetDataViewPeer()->HitTest(point,item,columnPtr);
-}
-
-bool wxDataViewCtrl::SetRowHeight(int rowHeight)
-{
-  GetDataViewPeer()->SetRowHeight(rowHeight);
-  return true;
 }
 
 bool wxDataViewCtrl::IsSelected(wxDataViewItem const& item) const
@@ -625,10 +599,6 @@ void wxDataViewCtrl::SelectAll()
 
 void wxDataViewCtrl::SetSelections(wxDataViewItemArray const& sel)
 {
-    wxDataViewWidgetImpl* dataViewWidgetPtr(GetDataViewPeer());
-
-    dataViewWidgetPtr->UnselectAll();
-
     size_t const noOfSelections = sel.GetCount();
 
     size_t i;
@@ -648,6 +618,8 @@ void wxDataViewCtrl::SetSelections(wxDataViewItemArray const& sel)
     }
 
    // finally select the items:
+    wxDataViewWidgetImpl* dataViewWidgetPtr(GetDataViewPeer()); // variable definition for abbreviational purposes
+
     for (i=0; i<noOfSelections; ++i)
       dataViewWidgetPtr->Select(sel[i]);
 }
@@ -673,10 +645,13 @@ wxDataViewWidgetImpl* wxDataViewCtrl::GetDataViewPeer() const
 
 void wxDataViewCtrl::AddChildren(wxDataViewItem const& parentItem)
 {
+  int noOfChildren;
+
   wxDataViewItemArray items;
 
+
   wxCHECK_RET(GetModel() != NULL,"Model pointer not initialized.");
-  GetModel()->GetChildren(parentItem,items);
+  noOfChildren = GetModel()->GetChildren(parentItem,items);
   (void) GetModel()->ItemsAdded(parentItem,items);
 }
 
@@ -767,6 +742,5 @@ wxBEGIN_EVENT_TABLE(wxDataViewCtrl,wxDataViewCtrlBase)
   EVT_MOTION(wxDataViewCtrl::OnMouse)
 wxEND_EVENT_TABLE()
 
-#endif // !wxHAS_GENERIC_DATAVIEWCTRL
+#endif // (wxUSE_DATAVIEWCTRL != 0) && (!defined(wxUSE_GENERICDATAVIEWCTRL) || (wxUSE_GENERICDATAVIEWCTRL == 0))
 
-#endif // wxUSE_DATAVIEWCTRL

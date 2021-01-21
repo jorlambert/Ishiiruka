@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     2006-05-27
-// Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -143,7 +143,6 @@ wxPowerType wxGetPowerType()
 
             default:
                 wxLogDebug(wxT("Unknown ACLineStatus=%u"), sps.ACLineStatus);
-                wxFALLTHROUGH;
             case 255:
                 break;
         }

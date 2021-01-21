@@ -80,7 +80,8 @@ public:
     wxPrintDialogData& GetPrintDialogData() wxOVERRIDE
         { return m_printDialogData; }
 
-    wxDC *GetPrintDC() wxOVERRIDE;
+    wxDC *GetPrintDC() wxOVERRIDE { return m_dc; }
+    void SetPrintDC(wxDC * printDC) { m_dc = printDC; }
 
     virtual int ShowModal() wxOVERRIDE;
 
@@ -104,6 +105,7 @@ private:
     wxPrintDialogData    m_printDialogData;
     wxWindow            *m_parent;
     bool                 m_showDialog;
+    wxDC                *m_dc;
 
     wxDECLARE_DYNAMIC_CLASS(wxGtkPrintDialog);
 };
@@ -192,7 +194,7 @@ public:
     void SetPrintConfig( GtkPrintSettings * config );
 
     GtkPrintOperation* GetPrintJob() { return m_job; }
-    void SetPrintJob(GtkPrintOperation *job);
+    void SetPrintJob(GtkPrintOperation *job) { m_job = job; }
 
     GtkPrintContext *GetPrintContext() { return m_context; }
     void SetPrintContext(GtkPrintContext *context) {m_context = context; }
@@ -226,7 +228,7 @@ public:
 
     virtual void* GetCairoContext() const wxOVERRIDE;
     virtual void* GetHandle() const wxOVERRIDE;
-
+    
     bool CanDrawBitmap() const wxOVERRIDE { return true; }
     void Clear() wxOVERRIDE;
     void SetFont( const wxFont& font ) wxOVERRIDE;
@@ -245,9 +247,7 @@ public:
     wxSize GetPPI() const wxOVERRIDE;
     virtual int GetDepth() const wxOVERRIDE { return 24; }
     void SetBackgroundMode(int mode) wxOVERRIDE;
-#if wxUSE_PALETTE
     void SetPalette(const wxPalette& WXUNUSED(palette)) wxOVERRIDE { }
-#endif
     void SetResolution(int ppi);
 
     // overridden for wxPrinterDC Impl
@@ -291,7 +291,6 @@ protected:
                      wxCoord *descent = NULL,
                      wxCoord *externalLeading = NULL,
                      const wxFont *theFont = NULL ) const wxOVERRIDE;
-    bool DoGetPartialTextExtents(const wxString& text, wxArrayInt& widths) const wxOVERRIDE;
     void DoGetSize(int* width, int* height) const wxOVERRIDE;
     void DoGetSizeMM(int *width, int *height) const wxOVERRIDE;
 

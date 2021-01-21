@@ -23,8 +23,6 @@
     #pragma hdrstop
 #endif
 
-#if wxUSE_DATAOBJ
-
 #ifndef WX_PRECOMP
     #include "wx/intl.h"
     #include "wx/log.h"
@@ -34,23 +32,22 @@
 
 #include "wx/dataobj.h"
 
+#if wxUSE_OLE
+
 #include "wx/scopedarray.h"
 #include "wx/vector.h"
 #include "wx/msw/private.h"         // includes <windows.h>
-#include "wx/msw/dib.h"
-#include "wx/msw/wrapshl.h"
 
-#if wxUSE_OLE
 #include <oleauto.h>
+#include <shlobj.h>
 
 #include "wx/msw/ole/oleutils.h"
-#endif // wxUSE_OLE
+
+#include "wx/msw/dib.h"
 
 #ifndef CFSTR_SHELLURL
 #define CFSTR_SHELLURL wxT("UniformResourceLocator")
 #endif
-
-#if wxUSE_OLE
 
 // ----------------------------------------------------------------------------
 // functions
@@ -61,8 +58,6 @@
 #else // !wxDEBUG_LEVEL
     #define GetTymedName(tymed) wxEmptyString
 #endif // wxDEBUG_LEVEL/!wxDEBUG_LEVEL
-
-#endif // wxUSE_OLE
 
 namespace
 {
@@ -89,7 +84,6 @@ wxDataFormat HtmlFormatFixup(wxDataFormat format)
     return format;
 }
 
-#if wxUSE_OLE
 // helper function for wxCopyStgMedium()
 HGLOBAL wxGlobalClone(HGLOBAL hglobIn)
 {
@@ -159,11 +153,9 @@ HRESULT wxCopyStgMedium(const STGMEDIUM *pmediumIn, STGMEDIUM *pmediumOut)
 
     return hres;
 }
-#endif // wxUSE_OLE
 
 } // anonymous namespace
 
-#if wxUSE_OLE
 // ----------------------------------------------------------------------------
 // wxIEnumFORMATETC interface implementation
 // ----------------------------------------------------------------------------
@@ -175,10 +167,10 @@ public:
     virtual ~wxIEnumFORMATETC() { delete [] m_formats; }
 
     // IEnumFORMATETC
-    STDMETHODIMP Next(ULONG celt, FORMATETC *rgelt, ULONG *pceltFetched) wxOVERRIDE;
-    STDMETHODIMP Skip(ULONG celt) wxOVERRIDE;
-    STDMETHODIMP Reset() wxOVERRIDE;
-    STDMETHODIMP Clone(IEnumFORMATETC **ppenum) wxOVERRIDE;
+    STDMETHODIMP Next(ULONG celt, FORMATETC *rgelt, ULONG *pceltFetched);
+    STDMETHODIMP Skip(ULONG celt);
+    STDMETHODIMP Reset();
+    STDMETHODIMP Clone(IEnumFORMATETC **ppenum);
 
     DECLARE_IUNKNOWN_METHODS;
 
@@ -206,15 +198,15 @@ public:
     void SetDeleteFlag() { m_mustDelete = true; }
 
     // IDataObject
-    STDMETHODIMP GetData(FORMATETC *pformatetcIn, STGMEDIUM *pmedium) wxOVERRIDE;
-    STDMETHODIMP GetDataHere(FORMATETC *pformatetc, STGMEDIUM *pmedium) wxOVERRIDE;
-    STDMETHODIMP QueryGetData(FORMATETC *pformatetc) wxOVERRIDE;
-    STDMETHODIMP GetCanonicalFormatEtc(FORMATETC *In, FORMATETC *pOut) wxOVERRIDE;
-    STDMETHODIMP SetData(FORMATETC *pfetc, STGMEDIUM *pmedium, BOOL fRelease) wxOVERRIDE;
-    STDMETHODIMP EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC **ppenumFEtc) wxOVERRIDE;
-    STDMETHODIMP DAdvise(FORMATETC *pfetc, DWORD ad, IAdviseSink *p, DWORD *pdw) wxOVERRIDE;
-    STDMETHODIMP DUnadvise(DWORD dwConnection) wxOVERRIDE;
-    STDMETHODIMP EnumDAdvise(IEnumSTATDATA **ppenumAdvise) wxOVERRIDE;
+    STDMETHODIMP GetData(FORMATETC *pformatetcIn, STGMEDIUM *pmedium);
+    STDMETHODIMP GetDataHere(FORMATETC *pformatetc, STGMEDIUM *pmedium);
+    STDMETHODIMP QueryGetData(FORMATETC *pformatetc);
+    STDMETHODIMP GetCanonicalFormatEtc(FORMATETC *In, FORMATETC *pOut);
+    STDMETHODIMP SetData(FORMATETC *pfetc, STGMEDIUM *pmedium, BOOL fRelease);
+    STDMETHODIMP EnumFormatEtc(DWORD dwDirection, IEnumFORMATETC **ppenumFEtc);
+    STDMETHODIMP DAdvise(FORMATETC *pfetc, DWORD ad, IAdviseSink *p, DWORD *pdw);
+    STDMETHODIMP DUnadvise(DWORD dwConnection);
+    STDMETHODIMP EnumDAdvise(IEnumSTATDATA **ppenumAdvise);
 
     DECLARE_IUNKNOWN_METHODS;
 
@@ -339,7 +331,6 @@ wxIDataObject::SaveSystemData(FORMATETC *pformatetc,
 
     return S_OK;
 }
-#endif // wxUSE_OLE
 
 // ============================================================================
 // implementation
@@ -365,16 +356,6 @@ bool wxDataFormat::operator==(const wxDataFormat& format) const
 }
 
 bool wxDataFormat::operator!=(const wxDataFormat& format) const
-{
-    return !(*this == format);
-}
-
-bool wxDataFormat::operator==(NativeFormat format) const
-{
-    return HtmlFormatFixup(*this).m_format == format;
-}
-
-bool wxDataFormat::operator!=(NativeFormat format) const
 {
     return !(*this == format);
 }
@@ -408,7 +389,6 @@ wxString wxDataFormat::GetId() const
     return s;
 }
 
-#if wxUSE_OLE
 // ----------------------------------------------------------------------------
 // wxIEnumFORMATETC
 // ----------------------------------------------------------------------------
@@ -1049,8 +1029,6 @@ const wxChar *wxDataObject::GetFormatName(wxDataFormat format)
 
 #endif // wxDEBUG_LEVEL
 
-#endif // wxUSE_OLE
-
 // ----------------------------------------------------------------------------
 // wxBitmapDataObject supports CF_DIB format
 // ----------------------------------------------------------------------------
@@ -1086,8 +1064,8 @@ bool wxBitmapDataObject::SetData(size_t WXUNUSED(len), const void *buf)
     wxCHECK_MSG( hbmp, FALSE, wxT("pasting/dropping invalid bitmap") );
 
     const BITMAPINFOHEADER * const pbmih = &pbmi->bmiHeader;
-    wxBitmap bitmap;
-    bitmap.InitFromHBITMAP((WXHBITMAP)hbmp, pbmih->biWidth, pbmih->biHeight, pbmih->biBitCount);
+    wxBitmap bitmap(pbmih->biWidth, pbmih->biHeight, pbmih->biBitCount);
+    bitmap.SetHBITMAP((WXHBITMAP)hbmp);
 
     // TODO: create wxPalette if the bitmap has any
 
@@ -1124,7 +1102,7 @@ bool wxBitmapDataObject2::GetDataHere(void *pBuf) const
 
 bool wxBitmapDataObject2::SetData(size_t WXUNUSED(len), const void *pBuf)
 {
-    HBITMAP hbmp = *static_cast<const HBITMAP*>(pBuf);
+    HBITMAP hbmp = *(HBITMAP *)pBuf;
 
     BITMAP bmp;
     if ( !GetObject(hbmp, sizeof(BITMAP), &bmp) )
@@ -1132,9 +1110,10 @@ bool wxBitmapDataObject2::SetData(size_t WXUNUSED(len), const void *pBuf)
         wxLogLastError(wxT("GetObject(HBITMAP)"));
     }
 
-    wxBitmap bitmap;
-    if ( !bitmap.InitFromHBITMAP((WXHBITMAP)hbmp, bmp.bmWidth, bmp.bmHeight, bmp.bmBitsPixel) )
-    {
+    wxBitmap bitmap(bmp.bmWidth, bmp.bmHeight, bmp.bmPlanes);
+    bitmap.SetHBITMAP((WXHBITMAP)hbmp);
+
+    if ( !bitmap.IsOk() ) {
         wxFAIL_MSG(wxT("pasting/dropping invalid bitmap"));
 
         return false;
@@ -1223,7 +1202,6 @@ bool wxBitmapDataObject::SetData(const wxDataFormat& format,
                                  size_t size, const void *pBuf)
 {
     HBITMAP hbmp;
-    int w, h, d;
     if ( format.GetFormatId() == CF_DIB )
     {
         // here we get BITMAPINFO struct followed by the actual bitmap bits and
@@ -1239,9 +1217,8 @@ bool wxBitmapDataObject::SetData(const wxDataFormat& format,
             wxLogLastError(wxT("CreateDIBitmap"));
         }
 
-        w = pbmih->biWidth;
-        h = pbmih->biHeight;
-        d = pbmih->biBitCount;
+        m_bitmap.SetWidth(pbmih->biWidth);
+        m_bitmap.SetHeight(pbmih->biHeight);
     }
     else // CF_BITMAP
     {
@@ -1254,12 +1231,12 @@ bool wxBitmapDataObject::SetData(const wxDataFormat& format,
             wxLogLastError(wxT("GetObject(HBITMAP)"));
         }
 
-        w = bmp.bmWidth;
-        h = bmp.bmHeight;
-        d = bmp.bmBitsPixel;
+        m_bitmap.SetWidth(bmp.bmWidth);
+        m_bitmap.SetHeight(bmp.bmHeight);
+        m_bitmap.SetDepth(bmp.bmPlanes);
     }
 
-    m_bitmap.InitFromHBITMAP((WXHBITMAP)hbmp, w, h, d);
+    m_bitmap.SetHBITMAP((WXHBITMAP)hbmp);
 
     wxASSERT_MSG( m_bitmap.IsOk(), wxT("pasting invalid bitmap") );
 
@@ -1283,7 +1260,7 @@ bool wxFileDataObject::SetData(size_t WXUNUSED(size),
     // ((char *)&(pDropFiles.pFiles)) + pDropFiles.pFiles. We're also advised
     // to use DragQueryFile to work with this structure, but not told where and
     // how to get HDROP.
-    HDROP hdrop = static_cast<HDROP>(const_cast<void*>(pData));   // NB: it works, but I'm not sure about it
+    HDROP hdrop = (HDROP)pData;   // NB: it works, but I'm not sure about it
 
     // get number of files (magic value -1)
     UINT nFiles = ::DragQueryFile(hdrop, (unsigned)-1, NULL, 0u);
@@ -1399,13 +1376,13 @@ class CFSTR_SHELLURLDataObject : public wxCustomDataObject
 public:
     CFSTR_SHELLURLDataObject() : wxCustomDataObject(CFSTR_SHELLURL) {}
 
-    virtual size_t GetBufferOffset( const wxDataFormat& WXUNUSED(format) ) wxOVERRIDE
+    virtual size_t GetBufferOffset( const wxDataFormat& WXUNUSED(format) )
     {
         return 0;
     }
 
     virtual const void* GetSizeFromBuffer( const void* buffer, size_t* size,
-                                           const wxDataFormat& WXUNUSED(format) ) wxOVERRIDE
+                                           const wxDataFormat& WXUNUSED(format) )
     {
         // CFSTR_SHELLURL is _always_ ANSI text
         *size = strlen( (const char*)buffer );
@@ -1414,7 +1391,7 @@ public:
     }
 
     virtual void* SetSizeInBuffer( void* buffer, size_t WXUNUSED(size),
-                                   const wxDataFormat& WXUNUSED(format) ) wxOVERRIDE
+                                   const wxDataFormat& WXUNUSED(format) )
     {
         return buffer;
     }
@@ -1506,7 +1483,6 @@ void wxURLDataObject::SetURL(const wxString& url)
 #endif
 }
 
-#if wxUSE_OLE
 // ----------------------------------------------------------------------------
 // private functions
 // ----------------------------------------------------------------------------
@@ -1538,6 +1514,8 @@ static const wxChar *GetTymedName(DWORD tymed)
 // wxDataObject
 // ----------------------------------------------------------------------------
 
+#if wxUSE_DATAOBJ
+
 wxDataObject::wxDataObject()
 {
 }
@@ -1555,23 +1533,8 @@ const wxChar *wxDataObject::GetFormatName(wxDataFormat WXUNUSED(format))
     return NULL;
 }
 
-const void* wxDataObject::GetSizeFromBuffer(const void* WXUNUSED(buffer),
-    size_t* size, const wxDataFormat& WXUNUSED(format))
-{
-    *size = 0;
-    return NULL;
-}
+#endif // wxUSE_DATAOBJ
 
-void* wxDataObject::SetSizeInBuffer(void* buffer, size_t WXUNUSED(size),
-    const wxDataFormat& WXUNUSED(format))
-{
-    return buffer;
-}
-
-size_t wxDataObject::GetBufferOffset(const wxDataFormat& WXUNUSED(format))
-{
-    return 0;
-}
 #endif // wxUSE_OLE/!wxUSE_OLE
 
-#endif // wxUSE_DATAOBJ
+

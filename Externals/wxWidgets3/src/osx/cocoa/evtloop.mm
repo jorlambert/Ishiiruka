@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin, Stefan Csomor
 // Modified by:
 // Created:     2006-01-12
-// Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -28,7 +28,6 @@
 #ifndef WX_PRECOMP
     #include "wx/app.h"
     #include "wx/nonownedwnd.h"
-    #include "wx/dialog.h"
 #endif // WX_PRECOMP
 
 #include "wx/log.h"
@@ -215,22 +214,19 @@ int wxGUIEventLoop::DoDispatchTimeout(unsigned long timeout)
         
         switch (response) 
         {
-            case NSModalResponseContinue:
+            case NSRunContinuesResponse:
             {
-                [[NSRunLoop currentRunLoop]
-                        runMode:NSDefaultRunLoopMode
-                        beforeDate:[NSDate dateWithTimeIntervalSinceNow: timeout/1000.0]];
                 if ( [[NSApplication sharedApplication]
                         nextEventMatchingMask: NSAnyEventMask
-                        untilDate: nil
+                        untilDate: [NSDate dateWithTimeIntervalSinceNow: timeout/1000.0]
                         inMode: NSDefaultRunLoopMode
                         dequeue: NO] != nil )
                     return 1;
                 
                 return -1;
             }
-            case NSModalResponseStop:
-            case NSModalResponseAbort:
+            case NSRunStoppedResponse:
+            case NSRunAbortedResponse:
                 return -1;
             default:
                 // nested native loops may return other codes here, just ignore them
@@ -474,11 +470,11 @@ void wxGUIEventLoop::BeginModalSession( wxWindow* modalWindow )
         wxModalSessionStackElement element;
         element.dummyWindow = m_dummyWindow;
         element.modalSession = m_modalSession;
-        
+
         stack->push_back(element);
-        
+
         // shortcut if nothing changed in this level
-        
+
         if ( m_modalWindow == modalWindow )
             return;
     }
@@ -534,19 +530,19 @@ void wxGUIEventLoop::EndModalSession()
         wxModalSessionStack* stack = gs_modalSessionStackMap[this];
         wxModalSessionStackElement element = stack->back();
         stack->pop_back();
-        
+
         if( m_modalNestedLevel == 1 )
         {
             gs_modalSessionStackMap.erase(this);
             delete stack;
         }
-        
+
         if ( m_modalSession != element.modalSession )
         {
             [NSApp endModalSession:(NSModalSession)m_modalSession];
             m_modalSession = element.modalSession;
         }
-        
+
         if ( m_dummyWindow != element.dummyWindow )
         {
             if ( element.dummyWindow )

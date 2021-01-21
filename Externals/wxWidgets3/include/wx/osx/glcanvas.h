@@ -16,9 +16,6 @@
 #import <OpenGLES/ES1/glext.h>
 #define wxUSE_OPENGL_EMULATION 1
 #else
-#ifndef GL_SILENCE_DEPRECATION
-    #define GL_SILENCE_DEPRECATION
-#endif
 #include <OpenGL/gl.h>
 #endif
 
@@ -46,7 +43,7 @@ public:
                 const wxGLContextAttrs *ctxAttrs = NULL);
     virtual ~wxGLContext();
 
-    virtual bool SetCurrent(const wxGLCanvas& win) const wxOVERRIDE;
+    virtual bool SetCurrent(const wxGLCanvas& win) const;
 
     // Mac-specific
     WXGLContext GetWXGLContext() const { return m_glContext; }
@@ -100,6 +97,7 @@ public:
 
     // implement wxGLCanvasBase methods
     virtual bool SwapBuffers() wxOVERRIDE;
+
 
     // Mac-specific functions
     // ----------------------
@@ -160,13 +158,6 @@ public:
     // implementation-only from now on
 
 protected:
-    bool DoCreate(wxWindow *parent,
-                              wxWindowID id,
-                              const wxPoint& pos,
-                              const wxSize& size,
-                              long style,
-                  const wxString& name);
-
     WXGLPixelFormat m_glFormat;
     wxGLAttributes m_GLAttrs;
 

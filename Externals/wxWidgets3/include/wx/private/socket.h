@@ -62,15 +62,6 @@
     #include <sys/time.h>   // for timeval
 #endif
 
-// 64 bit Cygwin can't use the standard struct timeval because it has long
-// fields, which are supposed to be 32 bits in Win64 API, but long is 64 bits
-// in 64 bit Cygwin, so we need to use its special __ms_timeval instead.
-#if defined(__CYGWIN__) && defined(__LP64__) && defined(__WINDOWS__)
-    typedef __ms_timeval wxTimeVal_t;
-#else
-    typedef timeval wxTimeVal_t;
-#endif
-
 // these definitions are for MSW when we don't use configure, otherwise these
 // symbols are defined by configure
 #ifndef WX_SOCKLEN_T
@@ -263,7 +254,7 @@ public:
     // flags defines what kind of conditions we're interested in, the return
     // value is composed of a (possibly empty) subset of the bits set in flags
     wxSocketEventFlags Select(wxSocketEventFlags flags,
-                              wxTimeVal_t *timeout = NULL);
+                              const timeval *timeout = NULL);
 
     // convenient wrapper calling Select() with our default timeout
     wxSocketEventFlags SelectWithTimeout(wxSocketEventFlags flags)
@@ -280,12 +271,6 @@ public:
 
     // notifications
     // -------------
-
-    // Update the socket depending on the presence or absence of wxSOCKET_BLOCK
-    // in GetSocketFlags(): if it's present, make the socket blocking and
-    // ensure that we don't get any asynchronous event for it, otherwise put
-    // it into non-blocking mode and enable monitoring it in the event loop.
-    virtual void UpdateBlockingState() = 0;
 
     // notify m_wxsocket about the given socket event by calling its (inaptly
     // named) OnRequest() method
@@ -314,7 +299,7 @@ public:
     bool m_broadcast;
     bool m_dobind;
 
-    wxTimeVal_t m_timeout;
+    struct timeval m_timeout;
 
 protected:
     wxSocketImpl(wxSocketBase& wxsocket);
@@ -328,6 +313,10 @@ protected:
 private:
     // called by Close() if we have a valid m_fd
     virtual void DoClose() = 0;
+
+    // put this socket into non-blocking mode and enable monitoring this socket
+    // as part of the event loop
+    virtual void UnblockAndRegisterWithEventLoop() = 0;
 
     // check that the socket wasn't created yet and that the given address
     // (either m_local or m_peer depending on the socket kind) is valid and
@@ -352,7 +341,7 @@ private:
     }
 
     // apply the options to the (just created) socket and register it with the
-    // event loop by calling UpdateBlockingState()
+    // event loop by calling UnblockAndRegisterWithEventLoop()
     void PostCreation();
 
     // update local address after binding/connecting

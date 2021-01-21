@@ -156,11 +156,12 @@ void wxFileTypeInfo::VarArgInit(const wxString *mimeType,
 
 
 wxFileTypeInfo::wxFileTypeInfo(const wxArrayString& sArray)
-    : m_mimeType(sArray[0u])
-    , m_openCmd( sArray[1u])
-    , m_printCmd(sArray[2u])
-    , m_desc(    sArray[3u])
 {
+    m_mimeType = sArray [0u];
+    m_openCmd  = sArray [1u];
+    m_printCmd = sArray [2u];
+    m_desc     = sArray [3u];
+
     size_t count = sArray.GetCount();
     for ( size_t i = 4; i < count; i++ )
     {
@@ -290,7 +291,8 @@ wxFileType::wxFileType()
 
 wxFileType::~wxFileType()
 {
-    delete m_impl;
+    if ( m_impl )
+        delete m_impl;
 }
 
 bool wxFileType::GetExtensions(wxArrayString& extensions)
@@ -588,7 +590,8 @@ wxMimeTypesManager::wxMimeTypesManager()
 
 wxMimeTypesManager::~wxMimeTypesManager()
 {
-    delete m_impl;
+    if ( m_impl )
+        delete m_impl;
 }
 
 bool wxMimeTypesManager::Unassociate(wxFileType *ft)

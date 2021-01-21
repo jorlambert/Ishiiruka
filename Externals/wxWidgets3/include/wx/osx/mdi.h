@@ -22,7 +22,7 @@ public:
                      const wxPoint& pos = wxDefaultPosition,
                      const wxSize& size = wxDefaultSize,
                      long style = wxDEFAULT_FRAME_STYLE | wxVSCROLL | wxHSCROLL,
-                     const wxString& name = wxASCII_STR(wxFrameNameStr))
+                     const wxString& name = wxFrameNameStr)
     {
         Init();
         Create(parent, id, title, pos, size, style, name);
@@ -34,7 +34,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE | wxVSCROLL | wxHSCROLL,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
     virtual ~wxMDIParentFrame();
 
@@ -102,7 +102,7 @@ public:
                     const wxPoint& pos = wxDefaultPosition,
                     const wxSize& size = wxDefaultSize,
                     long style = wxDEFAULT_FRAME_STYLE,
-                    const wxString& name = wxASCII_STR(wxFrameNameStr))
+                    const wxString& name = wxFrameNameStr)
     {
         Init() ;
         Create(parent, id, title, pos, size, style, name);
@@ -114,19 +114,19 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
     virtual ~wxMDIChildFrame();
 
     // un-override the base class override
-    virtual bool IsTopLevel() const wxOVERRIDE { return true; }
+    virtual bool IsTopLevel() const { return true; }
 
     // implement MDI operations
-    virtual void Activate() wxOVERRIDE;
+    virtual void Activate();
 
 
     // Mac OS activate event
-    virtual void MacActivate(long timestamp, bool activating) wxOVERRIDE;
+    virtual void MacActivate(long timestamp, bool activating);
 
 protected:
     // common part of all ctors
@@ -142,10 +142,10 @@ public:
     virtual ~wxMDIClientWindow();
 
     virtual bool CreateClient(wxMDIParentFrame *parent,
-                              long style = wxVSCROLL | wxHSCROLL) wxOVERRIDE;
+                              long style = wxVSCROLL | wxHSCROLL);
 
 protected:
-    virtual void DoGetClientSize(int *width, int *height) const wxOVERRIDE;
+    virtual void DoGetClientSize(int *width, int *height) const;
 
     wxDECLARE_DYNAMIC_CLASS(wxMDIClientWindow);
 };

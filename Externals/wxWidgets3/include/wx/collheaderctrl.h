@@ -35,7 +35,7 @@ public:
         const wxSize& size = wxDefaultSize,
         long style = wxBORDER_NONE,
         const wxValidator& validator = wxDefaultValidator,
-        const wxString& name = wxASCII_STR(wxCollapsibleHeaderCtrlNameStr))
+        const wxString& name = wxCollapsibleHeaderCtrlNameStr)
     {
         Create(parent, id, label, pos, size, style, validator, name);
     }
@@ -47,7 +47,7 @@ public:
         const wxSize& size = wxDefaultSize,
         long style = wxBORDER_NONE,
         const wxValidator& validator = wxDefaultValidator,
-        const wxString& name = wxASCII_STR(wxCollapsibleHeaderCtrlNameStr))
+        const wxString& name = wxCollapsibleHeaderCtrlNameStr)
     {
         if ( !wxControl::Create(parent, id, pos, size, style, validator, name) )
             return false;
@@ -91,7 +91,7 @@ public:
         const wxSize& size = wxDefaultSize,
         long style = wxBORDER_NONE,
         const wxValidator& validator = wxDefaultValidator,
-        const wxString& name = wxASCII_STR(wxCollapsibleHeaderCtrlNameStr))
+        const wxString& name = wxCollapsibleHeaderCtrlNameStr)
     {
         Create(parent, id, label, pos, size, style, validator, name);
     }

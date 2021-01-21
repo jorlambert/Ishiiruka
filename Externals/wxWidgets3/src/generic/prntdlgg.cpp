@@ -86,6 +86,7 @@ wxIMPLEMENT_CLASS(wxPostScriptPrintNativeData, wxPrintNativeDataBase);
 
 wxPostScriptPrintNativeData::wxPostScriptPrintNativeData()
 {
+    m_previewCommand = wxEmptyString;
 #ifdef __VMS__
     m_printerCommand = wxT("print");
     m_printerOptions = wxT("/nonotify/queue=psqueue");
@@ -94,11 +95,14 @@ wxPostScriptPrintNativeData::wxPostScriptPrintNativeData()
 
 #ifdef __WXMSW__
     m_printerCommand = wxT("print");
+    m_printerOptions = wxEmptyString;
     m_afmPath = wxT("c:\\windows\\system\\");
 #endif
 
 #if !defined(__VMS__) && !defined(__WXMSW__)
     m_printerCommand = wxT("lpr");
+    m_printerOptions = wxEmptyString;
+    m_afmPath = wxEmptyString;
 #endif
 
     m_printerScaleX = 1.0;
@@ -569,7 +573,7 @@ void wxGenericPrintSetupDialog::Init(wxPrintData* data)
                 wxStringTokenizer tok2( tmp, wxT(" ") );
                 tmp = tok2.GetNextToken();  // "printer"
                 tmp = tok2.GetNextToken();  // "hp_deskjet930c"
-                tmp.clear();
+                tmp = wxEmptyString;
                 while (tok2.HasMoreTokens())
                 {
                     tmp += tok2.GetNextToken();

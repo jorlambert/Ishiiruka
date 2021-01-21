@@ -27,7 +27,9 @@
 #endif
 
 #ifdef __WXGTK20__
+    #include <gtk/gtk.h>
     #include "wx/gtk/private.h"
+    #include "wx/gtk/private/gtk2-compat.h"
 #endif
 
 // we only have to do it here when we use wxStatusBarGeneric in addition to the
@@ -128,7 +130,11 @@ bool wxStatusBarGeneric::Create(wxWindow *parent,
 
 #if defined( __WXGTK20__ )
 #if GTK_CHECK_VERSION(2,12,0)
-    if (HasFlag(wxSTB_SHOW_TIPS) && wx_is_at_least_gtk2(12))
+    if (HasFlag(wxSTB_SHOW_TIPS)
+#ifndef __WXGTK3__
+        && gtk_check_version(2,12,0) == NULL
+#endif
+        )
     {
         g_object_set(m_widget, "has-tooltip", TRUE, NULL);
         g_signal_connect(m_widget, "query-tooltip",
@@ -184,27 +190,18 @@ void wxStatusBarGeneric::DoUpdateFieldWidths()
 {
     m_lastClientSize = GetClientSize();
 
-    int width = m_lastClientSize.x;
-    if ( ShowsSizeGrip() )
-        width -= GetSizeGripRect().width;
-
     // recompute the cache of the field widths if the status bar width has changed
-    m_widthsAbs = CalculateAbsWidths(width);
+    m_widthsAbs = CalculateAbsWidths(m_lastClientSize.x);
 }
 
 bool wxStatusBarGeneric::ShowsSizeGrip() const
 {
-    // Currently drawing size grip is implemented only in wxGTK.
-#ifdef __WXGTK20__
     if ( !HasFlag(wxSTB_SIZEGRIP) )
         return false;
 
     wxTopLevelWindow * const
         tlw = wxDynamicCast(wxGetTopLevelParent(GetParent()), wxTopLevelWindow);
     return tlw && !tlw->IsMaximized() && tlw->HasFlag(wxRESIZE_BORDER);
-#else // !__WXGTK20__
-    return false;
-#endif // __WXGTK20__/!__WXGTK20__
 }
 
 void wxStatusBarGeneric::DrawFieldText(wxDC& dc, const wxRect& rect, int i, int textHeight)
@@ -240,12 +237,12 @@ void wxStatusBarGeneric::DrawFieldText(wxDC& dc, const wxRect& rect, int i, int 
 
     // eventually ellipsize the text so that it fits the field width
 
-    wxEllipsizeMode ellmode = wxELLIPSIZE_NONE;
+    wxEllipsizeMode ellmode = (wxEllipsizeMode)-1;
     if (HasFlag(wxSTB_ELLIPSIZE_START)) ellmode = wxELLIPSIZE_START;
     else if (HasFlag(wxSTB_ELLIPSIZE_MIDDLE)) ellmode = wxELLIPSIZE_MIDDLE;
     else if (HasFlag(wxSTB_ELLIPSIZE_END)) ellmode = wxELLIPSIZE_END;
 
-    if (ellmode == wxELLIPSIZE_NONE)
+    if (ellmode == (wxEllipsizeMode)-1)
     {
         // if we have the wxSTB_SHOW_TIPS we must set the ellipsized flag even if
         // we don't ellipsize the text but just truncate it
@@ -276,7 +273,7 @@ void wxStatusBarGeneric::DrawFieldText(wxDC& dc, const wxRect& rect, int i, int 
     // draw the text
     dc.DrawText(text, xpos, ypos);
 
-    if (ellmode == wxELLIPSIZE_NONE)
+    if (ellmode == (wxEllipsizeMode)-1)
         dc.DestroyClippingRegion();
 }
 

@@ -26,7 +26,7 @@ public:
                   const wxSize& size = wxDefaultSize,
                   long style = 0,
                   const wxValidator& validator = wxDefaultValidator,
-                  const wxString& name = wxASCII_STR(wxRadioButtonNameStr))
+                  const wxString& name = wxRadioButtonNameStr)
     {
         Init();
 
@@ -40,23 +40,23 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxRadioButtonNameStr));
+                const wxString& name = wxRadioButtonNameStr);
 
     // implement the radio button interface
     virtual void SetValue(bool value);
     virtual bool GetValue() const;
 
     // implementation only from now on
-    virtual bool MSWCommand(WXUINT param, WXWORD id) wxOVERRIDE;
-    virtual void Command(wxCommandEvent& event) wxOVERRIDE;
+    virtual bool MSWCommand(WXUINT param, WXWORD id);
+    virtual void Command(wxCommandEvent& event);
 
-    virtual bool HasTransparentBackground() wxOVERRIDE { return true; }
+    virtual bool HasTransparentBackground() { return true; }
 
-    virtual WXDWORD MSWGetStyle(long style, WXDWORD *exstyle) const wxOVERRIDE;
+    virtual WXDWORD MSWGetStyle(long style, WXDWORD *exstyle) const;
 
 protected:
-    virtual wxBorder GetDefaultBorder() const wxOVERRIDE { return wxBORDER_NONE; }
-    virtual wxSize DoGetBestSize() const wxOVERRIDE;
+    virtual wxBorder GetDefaultBorder() const { return wxBORDER_NONE; }
+    virtual wxSize DoGetBestSize() const;
 
     // Implement wxMSWOwnerDrawnButtonBase methods.
     virtual int MSWGetButtonStyle() const wxOVERRIDE;

@@ -3,7 +3,7 @@
 // Purpose:     various Win32 debug helpers
 // Author:      Vadim Zeitlin, Suzumizaki-kimitaka
 // Created:     2005-01-08 (extracted from crashrpt.cpp)
-// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -20,10 +20,6 @@
 #ifdef __BORLANDC__
     #pragma hdrstop
 #endif
-
-#ifndef WX_PRECOMP
-    #include "wx/wxcrt.h"
-#endif // WX_PRECOMP
 
 #include "wx/msw/debughlp.h"
 
@@ -66,7 +62,7 @@ class VarSizedStruct
 public:
     VarSizedStruct()
     {
-        ::ZeroMemory(m_buffer, sizeof(T) + MAX_NAME_LEN*sizeof(TCHAR));
+        ::ZeroMemory(m_buffer, sizeof(T) + MAX_NAME_LEN);
 
         (*this)->SizeOfStruct = sizeof(T);
         (*this)->MaxNameLen = MAX_NAME_LEN;
@@ -87,7 +83,7 @@ private:
     // if we wanted.
     enum { MAX_NAME_LEN = 1024 };
 
-    BYTE m_buffer[sizeof(T) + MAX_NAME_LEN*sizeof(TCHAR)];
+    BYTE m_buffer[sizeof(T) + MAX_NAME_LEN];
 };
 
 } // anonymous namespace
@@ -216,7 +212,7 @@ const wxString& wxDbgHelpDLL::GetErrorMessage()
 void wxDbgHelpDLL::LogError(const wxChar *func)
 {
     ::OutputDebugString(wxString::Format(wxT("dbghelp: %s() failed: %s\r\n"),
-                        func, wxSysErrorMsgStr(::GetLastError())).t_str());
+                        func, wxSysErrorMsg(::GetLastError())).t_str());
 }
 
 // ----------------------------------------------------------------------------
@@ -315,7 +311,7 @@ wxDbgHelpDLL::DumpBaseType(BasicType bt, DWORD64 length, PVOID pAddress)
 
         if ( bt == BASICTYPE_FLOAT )
         {
-            s.Printf(wxS("%f"), double(*(PFLOAT)pAddress));
+            s.Printf(wxT("%f"), *(PFLOAT)pAddress);
 
             handled = true;
         }

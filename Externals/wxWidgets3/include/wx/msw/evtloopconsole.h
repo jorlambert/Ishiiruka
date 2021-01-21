@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     2004-07-31
-// Copyright:   (c) 2003-2004 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2003-2004 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -18,8 +18,8 @@ public:
     virtual ~wxMSWEventLoopBase();
 
     // implement base class pure virtuals
-    virtual bool Pending() const wxOVERRIDE;
-    virtual void WakeUp() wxOVERRIDE;
+    virtual bool Pending() const;
+    virtual void WakeUp();
 
 #if wxUSE_THREADS
     // MSW-specific method to wait for the termination of the specified (by its
@@ -29,10 +29,6 @@ public:
     // if a message arrived with anything else indicating an error.
     WXDWORD MSWWaitForThread(WXHANDLE hThread);
 #endif // wxUSE_THREADS
-
-    // Return true if wake up was requested and not handled yet, i.e. if
-    // m_heventWake is signaled.
-    bool MSWIsWakeUpRequested();
 
 protected:
     // get the next message from queue and return true or return false if we
@@ -57,14 +53,14 @@ public:
     wxConsoleEventLoop() { }
 
     // override/implement base class virtuals
-    virtual bool Dispatch() wxOVERRIDE;
-    virtual int DispatchTimeout(unsigned long timeout) wxOVERRIDE;
+    virtual bool Dispatch();
+    virtual int DispatchTimeout(unsigned long timeout);
 
     // Windows-specific function to process a single message
     virtual void ProcessMessage(WXMSG *msg);
 
 protected:
-    virtual void DoYieldFor(long eventsToProcess) wxOVERRIDE;
+    virtual void DoYieldFor(long eventsToProcess);
 };
 
 #endif // wxUSE_CONSOLE_EVENTLOOP

@@ -41,7 +41,7 @@ public:
                      const wxString choices[] = NULL,
                      long style = 0,
                      const wxValidator& validator = wxDefaultValidator,
-                     const wxString& name = wxASCII_STR(wxBitmapComboBoxNameStr))
+                     const wxString& name = wxBitmapComboBoxNameStr)
         : wxOwnerDrawnComboBox(),
           wxBitmapComboBoxBase()
     {
@@ -59,7 +59,7 @@ public:
                      const wxArrayString& choices,
                      long style,
                      const wxValidator& validator = wxDefaultValidator,
-                     const wxString& name = wxASCII_STR(wxBitmapComboBoxNameStr));
+                     const wxString& name = wxBitmapComboBoxNameStr);
 
     bool Create(wxWindow *parent,
                 wxWindowID id,
@@ -70,7 +70,7 @@ public:
                 const wxString choices[],
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxBitmapComboBoxNameStr));
+                const wxString& name = wxBitmapComboBoxNameStr);
 
     bool Create(wxWindow *parent,
                 wxWindowID id,
@@ -80,7 +80,7 @@ public:
                 const wxArrayString& choices,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxBitmapComboBoxNameStr));
+                const wxString& name = wxBitmapComboBoxNameStr);
 
     virtual ~wxBitmapComboBox();
 

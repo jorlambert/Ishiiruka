@@ -162,7 +162,7 @@ void wxTextAttr::Init()
     m_fontSize = 12;
     m_fontStyle = wxFONTSTYLE_NORMAL;
     m_fontWeight = wxFONTWEIGHT_NORMAL;
-    m_fontUnderlineType = wxTEXT_ATTR_UNDERLINE_NONE;
+    m_fontUnderlined = false;
     m_fontStrikethrough = false;
     m_fontEncoding = wxFONTENCODING_DEFAULT;
     m_fontFamily = wxFONTFAMILY_DEFAULT;
@@ -175,7 +175,6 @@ void wxTextAttr::Init()
     m_textEffectFlags = wxTEXT_ATTR_EFFECT_NONE;
     m_outlineLevel = 0;
     m_bulletNumber = 0;
-    m_colUnderline = wxNullColour;
 }
 
 // Copy
@@ -193,8 +192,7 @@ void wxTextAttr::Copy(const wxTextAttr& attr)
     m_fontSize = attr.m_fontSize;
     m_fontStyle = attr.m_fontStyle;
     m_fontWeight = attr.m_fontWeight;
-    m_fontUnderlineType = attr.m_fontUnderlineType;
-    m_colUnderline = attr.m_colUnderline;
+    m_fontUnderlined = attr.m_fontUnderlined;
     m_fontStrikethrough = attr.m_fontStrikethrough;
     m_fontFaceName = attr.m_fontFaceName;
     m_fontEncoding = attr.m_fontEncoding;
@@ -259,7 +257,7 @@ bool wxTextAttr::operator== (const wxTextAttr& attr) const
             (!HasFontSize() || (GetFontSize() == attr.GetFontSize())) &&
             (!HasFontItalic() || (GetFontStyle() == attr.GetFontStyle())) &&
             (!HasFontWeight() || (GetFontWeight() == attr.GetFontWeight())) &&
-            (!HasFontUnderlined() || ((GetUnderlineType() == attr.GetUnderlineType()) && (GetUnderlineColour() == attr.GetUnderlineColour()) )) &&
+            (!HasFontUnderlined() || (GetFontUnderlined() == attr.GetFontUnderlined())) &&
             (!HasFontStrikethrough() || (GetFontStrikethrough() == attr.GetFontStrikethrough())) &&
             (!HasFontFaceName() || (GetFontFaceName() == attr.GetFontFaceName())) &&
             (!HasFontEncoding() || (GetFontEncoding() == attr.GetFontEncoding())) &&
@@ -329,8 +327,7 @@ bool wxTextAttr::EqPartial(const wxTextAttr& attr, bool weakTest) const
     if (HasFontItalic() && attr.HasFontItalic() && GetFontStyle() != attr.GetFontStyle())
         return false;
 
-    if (HasFontUnderlined() && attr.HasFontUnderlined() &&
-        ( (GetUnderlineType() != attr.GetUnderlineType()) || (GetUnderlineColour() != attr.GetUnderlineColour()) ))
+    if (HasFontUnderlined() && attr.HasFontUnderlined() && GetFontUnderlined() != attr.GetFontUnderlined())
         return false;
 
     if (HasFontStrikethrough() && attr.HasFontStrikethrough() && GetFontStrikethrough() != attr.GetFontStrikethrough())
@@ -505,7 +502,7 @@ bool wxTextAttr::GetFontAttributes(const wxFont& font, int flags)
         m_fontWeight = font.GetWeight();
 
     if (flags & wxTEXT_ATTR_FONT_UNDERLINE)
-        m_fontUnderlineType = font.GetUnderlined() ? wxTEXT_ATTR_UNDERLINE_SOLID : wxTEXT_ATTR_UNDERLINE_NONE;
+        m_fontUnderlined = font.GetUnderlined();
 
     if (flags & wxTEXT_ATTR_FONT_STRIKETHROUGH)
         m_fontStrikethrough = font.GetStrikethrough();
@@ -574,10 +571,8 @@ bool wxTextAttr::Apply(const wxTextAttr& style, const wxTextAttr* compareWith)
 
     if (style.HasFontUnderlined())
     {
-        if (!(compareWith && compareWith->HasFontUnderlined() &&
-                             compareWith->GetUnderlineType() == style.GetUnderlineType() &&
-                             compareWith->GetUnderlineColour() == style.GetUnderlineColour()))
-            destStyle.SetFontUnderlined(style.GetUnderlineType(), style.GetUnderlineColour());
+        if (!(compareWith && compareWith->HasFontUnderlined() && compareWith->GetFontUnderlined() == style.GetFontUnderlined()))
+            destStyle.SetFontUnderlined(style.GetFontUnderlined());
     }
 
     if (style.HasFontStrikethrough())
@@ -796,8 +791,6 @@ wxTextAttr wxTextAttr::Combine(const wxTextAttr& attr,
     }
 
     wxTextAttr newAttr(colFg, colBg, font);
-    if (attr.HasFontUnderlined())
-        newAttr.SetFontUnderlined(attr.GetUnderlineType(), attr.GetUnderlineColour());
 
     if (attr.HasAlignment())
         newAttr.SetAlignment(attr.GetAlignment());

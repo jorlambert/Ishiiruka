@@ -87,7 +87,10 @@ wxFileSystemWatcherBase::wxFileSystemWatcherBase() :
 wxFileSystemWatcherBase::~wxFileSystemWatcherBase()
 {
     RemoveAll();
-    delete m_service;
+    if (m_service)
+    {
+        delete m_service;
+    }
 }
 
 bool wxFileSystemWatcherBase::Add(const wxFileName& path, int events)

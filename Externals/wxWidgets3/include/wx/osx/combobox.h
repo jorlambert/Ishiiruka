@@ -47,7 +47,7 @@ class WXDLLIMPEXP_CORE wxComboBox :
            int n = 0, const wxString choices[] = NULL,
            long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+           const wxString& name = wxComboBoxNameStr)
     {
         Create(parent, id, value, pos, size, n, choices, style, validator, name);
     }
@@ -59,7 +59,7 @@ class WXDLLIMPEXP_CORE wxComboBox :
            const wxArrayString& choices,
            long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+           const wxString& name = wxComboBoxNameStr)
     {
         Create(parent, id, value, pos, size, choices, style, validator, name);
     }
@@ -71,7 +71,7 @@ class WXDLLIMPEXP_CORE wxComboBox :
            int n = 0, const wxString choices[] = NULL,
            long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+           const wxString& name = wxComboBoxNameStr);
 
     bool Create(wxWindow *parent, wxWindowID id,
            const wxString& value,
@@ -80,70 +80,61 @@ class WXDLLIMPEXP_CORE wxComboBox :
            const wxArrayString& choices,
            long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+           const wxString& name = wxComboBoxNameStr);
 
-    virtual int GetSelection() const wxOVERRIDE;
-    virtual void GetSelection(long *from, long *to) const wxOVERRIDE;
-    virtual void SetSelection(int n) wxOVERRIDE;
-    virtual void SetSelection(long from, long to) wxOVERRIDE;
-    virtual int FindString(const wxString& s, bool bCase = false) const wxOVERRIDE;
-    virtual wxString GetString(unsigned int n) const wxOVERRIDE;
-    virtual wxString GetStringSelection() const wxOVERRIDE;
-    virtual void SetString(unsigned int n, const wxString& s) wxOVERRIDE;
+    virtual int GetSelection() const;
+    virtual void GetSelection(long *from, long *to) const;
+    virtual void SetSelection(int n);
+    virtual void SetSelection(long from, long to);
+    virtual int FindString(const wxString& s, bool bCase = false) const;
+    virtual wxString GetString(unsigned int n) const;
+    virtual wxString GetStringSelection() const;
+    virtual void SetString(unsigned int n, const wxString& s);
 
-    virtual unsigned int GetCount() const wxOVERRIDE;
+    virtual unsigned int GetCount() const;
 
-    virtual void SetValue(const wxString& value) wxOVERRIDE;
+    virtual void SetValue(const wxString& value);
 // these methods are provided by wxTextEntry for the native impl.
 
 #if wxOSX_USE_COCOA
-    virtual void Popup() wxOVERRIDE;
-    virtual void Dismiss() wxOVERRIDE;
+    virtual void Popup();
+    virtual void Dismiss();
 #endif // wxOSX_USE_COCOA
 
 
-    virtual const wxTextEntry* WXGetTextEntry() const wxOVERRIDE { return this; }
-
     // osx specific event handling common for all osx-ports
 
-    virtual bool OSXHandleClicked(double timestampsec) wxOVERRIDE;
+    virtual bool        OSXHandleClicked( double timestampsec );
 
 #if wxOSX_USE_COCOA
     wxComboWidgetImpl* GetComboPeer() const;
 #endif
 protected:
     // List functions
-    virtual void DoDeleteOneItem(unsigned int n) wxOVERRIDE;
-    virtual void DoClear() wxOVERRIDE;
+    virtual void DoDeleteOneItem(unsigned int n);
+    virtual void DoClear();
 
     // wxTextEntry functions
-    virtual wxWindow *GetEditableWindow() wxOVERRIDE { return this; }
+    virtual wxWindow *GetEditableWindow() { return this; }
 
     // override the base class virtuals involved in geometry calculations
-    virtual wxSize DoGetBestSize() const wxOVERRIDE;
+    virtual wxSize DoGetBestSize() const;
 
     virtual int DoInsertItems(const wxArrayStringsAdapter& items,
                               unsigned int pos,
-                              void **clientData, wxClientDataType type) wxOVERRIDE;
+                              void **clientData, wxClientDataType type);
 
-    virtual void DoSetItemClientData(unsigned int n, void* clientData) wxOVERRIDE;
-    virtual void * DoGetItemClientData(unsigned int n) const wxOVERRIDE;
+    virtual void DoSetItemClientData(unsigned int n, void* clientData);
+    virtual void * DoGetItemClientData(unsigned int n) const;
 
 
-    virtual void EnableTextChangedEvents(bool enable) wxOVERRIDE;
-
-    // callbacks
-    void OnChar(wxKeyEvent& event); // Process 'enter' if required
-    void OnKeyDown(wxKeyEvent& event); // Process clipboard shortcuts
+    virtual void EnableTextChangedEvents(bool enable);
 
     // the subcontrols
     wxComboBoxText*     m_text;
     wxComboBoxChoice*   m_choice;
 
     wxComboBoxDataArray m_datas;
-
-private:
-    wxDECLARE_EVENT_TABLE();
 };
 
 #endif // _WX_COMBOBOX_H_

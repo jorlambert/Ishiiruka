@@ -49,8 +49,8 @@ public:
     }
 
     wxMimeTextFile(const wxString& fname)
-       : m_fname(fname)
     {
+       m_fname = fname;
     }
 
     bool Open()
@@ -61,7 +61,7 @@ public:
 
        size_t size = file.Length();
        wxCharBuffer buffer( size );
-       file.Read(buffer.data(), size);
+       file.Read( (void*) (const char*) buffer, size );
 
        // Check for valid UTF-8 here?
        wxString all = wxString::FromUTF8( buffer, size );
@@ -262,9 +262,7 @@ void wxMimeTypesManagerImpl::LoadXDGGlobs(const wxString& filename)
        wxArrayString exts;
        exts.Add( ext );
 
-       wxString icon = GetIconFromMimeType(mime);
-
-       AddToMimeData(mime, icon, NULL, exts, wxEmptyString, true );
+       AddToMimeData(mime, wxEmptyString, NULL, exts, wxEmptyString, true );
     }
 }
 
@@ -520,14 +518,6 @@ void wxMimeTypesManagerImpl::InitIfNeeded()
 }
 
 
-static bool AppendToPathIfExists(wxString& pathvar, const wxString& dir)
-{
-    if ( !wxFileName::DirExists(dir) )
-        return false;
-
-    pathvar << ":" << dir;
-    return true;
-}
 
 // read system and user mailcaps and other files
 void wxMimeTypesManagerImpl::Initialize(int mailcapStyles,
@@ -554,27 +544,10 @@ void wxMimeTypesManagerImpl::Initialize(int mailcapStyles,
         if ( xdgDataDirs.empty() )
         {
             xdgDataDirs = "/usr/local/share:/usr/share";
-
-            if ( mailcapStyles & wxMAILCAP_GNOME )
-            {
-                AppendToPathIfExists(xdgDataDirs, "/usr/share/gnome");
-                AppendToPathIfExists(xdgDataDirs, "/opt/gnome/share");
-            }
-
-            if ( mailcapStyles & wxMAILCAP_KDE )
-            {
-                for ( int kdeVer = 5; kdeVer >= 3; kdeVer-- )
-                {
-                    const wxString& kdeDir = wxString::Format("kde%d", kdeVer);
-                    if ( AppendToPathIfExists(xdgDataDirs, "/usr/share/" + kdeDir)
-                            || AppendToPathIfExists(xdgDataDirs, "/opt/" + kdeDir + "/share") )
-                    {
-                        // We don't need to use earlier versions if we found a
-                        // later one.
-                        break;
-                    }
-                }
-            }
+            if (mailcapStyles & wxMAILCAP_GNOME)
+                xdgDataDirs += ":/usr/share/gnome:/opt/gnome/share";
+            if (mailcapStyles & wxMAILCAP_KDE)
+                xdgDataDirs += ":/usr/share/kde3:/opt/kde3/share";
         }
         if ( !sExtraDir.empty() )
         {
@@ -583,7 +556,7 @@ void wxMimeTypesManagerImpl::Initialize(int mailcapStyles,
         }
 
         wxArrayString dirs;
-        wxStringTokenizer tokenizer(xdgDataDirs, ":", wxTOKEN_STRTOK);
+        wxStringTokenizer tokenizer(xdgDataDirs, ":");
         while ( tokenizer.HasMoreTokens() )
         {
             wxString p = tokenizer.GetNextToken();
@@ -712,11 +685,6 @@ wxFileType * wxMimeTypesManagerImpl::Associate(const wxFileTypeInfo& ftInfo)
         return NULL;
 
     return GetFileTypeFromMimeType(strType);
-}
-
-wxString wxMimeTypesManagerImpl::GetIconFromMimeType(const wxString& WXUNUSED(mime))
-{
-    return wxString();
 }
 
 bool wxMimeTypesManagerImpl::DoAssociation(const wxString& strType,
@@ -999,7 +967,7 @@ void wxMimeTypesManagerImpl::AddMimeTypeInfo(const wxString& strMimeType,
     // reading mailcap may find image/* , while
     // reading mime.types finds image/gif and no match is made
     // this means all the get functions don't work  fix this
-    const wxString strIcon = GetIconFromMimeType(strMimeType);
+    wxString strIcon;
     wxString sTmp = strExtensions;
 
     wxArrayString sExts;

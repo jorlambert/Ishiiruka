@@ -21,12 +21,9 @@
 // Preview with opacity is possible only if wxGCDC and wxStaticBitmap are
 // available and currently it only works in wxOSX and wxMSW as it uses wxBitmap
 // UseAlpha() and HasAlpha() methods which only these ports provide.
-#if ((wxUSE_GRAPHICS_CONTEXT && wxUSE_STATBMP) && \
+#define wxCLRDLGG_USE_PREVIEW_WITH_ALPHA \
+    ((wxUSE_GRAPHICS_CONTEXT && wxUSE_STATBMP) && \
      (defined(__WXMSW__) || defined(__WXOSX__)))
-    #define wxCLRDLGG_USE_PREVIEW_WITH_ALPHA 1
-#else
-    #define wxCLRDLGG_USE_PREVIEW_WITH_ALPHA 0
-#endif
 
 #if wxCLRDLGG_USE_PREVIEW_WITH_ALPHA
 class wxStaticBitmap;
@@ -37,10 +34,10 @@ class WXDLLIMPEXP_CORE wxGenericColourDialog : public wxDialog
 public:
     wxGenericColourDialog();
     wxGenericColourDialog(wxWindow *parent,
-                          const wxColourData *data = NULL);
+                          wxColourData *data = NULL);
     virtual ~wxGenericColourDialog();
 
-    bool Create(wxWindow *parent, const wxColourData *data = NULL);
+    bool Create(wxWindow *parent, wxColourData *data = NULL);
 
     wxColourData &GetColourData() { return m_colourData; }
 

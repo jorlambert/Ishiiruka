@@ -169,4 +169,3 @@ public:
 
 #endif
 //_WX_DND_H_
-

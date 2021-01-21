@@ -35,7 +35,6 @@
     #include "wx/textctrl.h"
     #include "wx/intl.h"
     #include "wx/sizer.h"
-    #include "wx/wxcrtvararg.h"
 #endif
 
 #if wxUSE_STATLINE

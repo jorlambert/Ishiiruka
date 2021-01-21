@@ -278,6 +278,8 @@ wxSize wxBitmapComboBox::DoGetBestSize() const
 
         if ( h2 > sz.y )
             sz.y = h2;
+
+        CacheBestSize(sz);
     }
 
     return sz;

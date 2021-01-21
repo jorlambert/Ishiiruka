@@ -27,17 +27,17 @@ public:
     wxBrush(const wxBitmap& stipple);
     virtual ~wxBrush();
 
-    virtual void SetColour(const wxColour& col) wxOVERRIDE;
-    virtual void SetColour(unsigned char r, unsigned char g, unsigned char b) wxOVERRIDE;
-    virtual void SetStyle(wxBrushStyle style) wxOVERRIDE;
-    virtual void SetStipple(const wxBitmap& stipple) wxOVERRIDE;
+    virtual void SetColour(const wxColour& col);
+    virtual void SetColour(unsigned char r, unsigned char g, unsigned char b);
+    virtual void SetStyle(wxBrushStyle style);
+    virtual void SetStipple(const wxBitmap& stipple);
 
     bool operator==(const wxBrush& brush) const;
     bool operator!=(const wxBrush& brush) const { return !(*this == brush); }
 
-    wxColour GetColour() const wxOVERRIDE;
-    wxBrushStyle GetStyle() const wxOVERRIDE;
-    wxBitmap *GetStipple() const wxOVERRIDE;
+    wxColour GetColour() const;
+    wxBrushStyle GetStyle() const;
+    wxBitmap *GetStipple() const;
 
 
     wxDEPRECATED_MSG("use wxBRUSHSTYLE_XXX constants")
@@ -47,11 +47,11 @@ public:
     void SetStyle(int style) { SetStyle((wxBrushStyle)style); }
 
     // return the HBRUSH for this brush
-    virtual WXHANDLE GetResourceHandle() const wxOVERRIDE;
+    virtual WXHANDLE GetResourceHandle() const;
 
 protected:
-    virtual wxGDIRefData *CreateGDIRefData() const wxOVERRIDE;
-    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const wxOVERRIDE;
+    virtual wxGDIRefData *CreateGDIRefData() const;
+    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const;
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxBrush);

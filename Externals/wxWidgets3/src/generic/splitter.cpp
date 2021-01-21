@@ -101,7 +101,7 @@ bool wxSplitterWindow::Create(wxWindow *parent, wxWindowID id,
 #if !defined(__WXGTK__) || defined(__WXGTK20__)
     // don't erase the splitter background, it's pointless as we overwrite it
     // anyhow
-    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    SetBackgroundStyle(wxBG_STYLE_CUSTOM);
 #endif
 
     return true;
@@ -120,6 +120,7 @@ void wxSplitterWindow::Init()
     m_sashPosition = 0;
     m_requestedSashPosition = INT_MAX;
     m_sashGravity = 0.0;
+    m_lastSize = wxSize(0,0);
     m_minimumPaneSize = 0;
     m_sashCursorWE = wxCursor(wxCURSOR_SIZEWE);
     m_sashCursorNS = wxCursor(wxCURSOR_SIZENS);
@@ -655,6 +656,8 @@ void wxSplitterWindow::SetSashPositionAndNotify(int sashPos)
 // including the edges next to the sash.
 void wxSplitterWindow::SizeWindows()
 {
+    int oldSashPosition = m_sashPosition;
+
     // check if we have delayed setting the real sash position
     if ( m_requestedSashPosition != INT_MAX )
     {
@@ -720,8 +723,11 @@ void wxSplitterWindow::SizeWindows()
         GetWindow1()->SetSize(border, border, w1, h1);
     }
 
-    wxClientDC dc(this);
-    DrawSash(dc);
+    if ( oldSashPosition != m_sashPosition )
+    {
+        wxClientDC dc(this);
+        DrawSash(dc);
+    }
 }
 
 // Set pane for unsplit window

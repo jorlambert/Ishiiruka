@@ -98,17 +98,10 @@ public:
     }
 
     // Convert from wxCursor
-    explicit wxBitmap(const wxCursor& cursor)
+    wxEXPLICIT wxBitmap(const wxCursor& cursor)
     {
         (void)CopyFromCursor(cursor, wxBitmapTransparency_Auto);
     }
-
-#if wxUSE_IMAGE
-    wxBitmap& operator=(const wxImage& image)
-    {
-        return *this = wxBitmap(image);
-    }
-#endif // wxUSE_IMAGE
 
     wxBitmap& operator=(const wxIcon& icon)
     {
@@ -205,23 +198,16 @@ public:
     // values in its alpha channel.
     void MSWUpdateAlpha();
 
-    // Blend mask with alpha channel and remove the mask
-    void MSWBlendMaskWithAlpha();
-
 public:
-#if WXWIN_COMPATIBILITY_3_0
-    wxDEPRECATED_INLINE(void SetHBITMAP(WXHBITMAP bmp), SetHandle((WXHANDLE)bmp); )
-#endif // WXWIN_COMPATIBILITY_3_0
+    void SetHBITMAP(WXHBITMAP bmp) { SetHandle((WXHANDLE)bmp); }
     WXHBITMAP GetHBITMAP() const { return (WXHBITMAP)GetHandle(); }
-    bool InitFromHBITMAP(WXHBITMAP bmp, int width, int height, int depth);
-    void ResetHBITMAP() { InitFromHBITMAP(NULL, 0, 0, 0); }
 
     void SetSelectedInto(wxDC *dc);
     wxDC *GetSelectedInto() const;
 
 protected:
-    virtual wxGDIImageRefData *CreateData() const wxOVERRIDE;
-    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const wxOVERRIDE;
+    virtual wxGDIImageRefData *CreateData() const;
+    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *data) const;
 
     // creates an uninitialized bitmap, called from Create()s above
     bool DoCreate(int w, int h, int depth, WXHDC hdc);
@@ -309,14 +295,14 @@ public:
     virtual bool Create(wxGDIImage *image,
                         const void* data,
                         wxBitmapType type,
-                        int width, int height, int depth = 1) wxOVERRIDE;
+                        int width, int height, int depth = 1);
     virtual bool Load(wxGDIImage *image,
                       const wxString& name,
                       wxBitmapType type,
-                      int desiredWidth, int desiredHeight) wxOVERRIDE;
+                      int desiredWidth, int desiredHeight);
     virtual bool Save(const wxGDIImage *image,
                       const wxString& name,
-                      wxBitmapType type) const wxOVERRIDE;
+                      wxBitmapType type) const;
 
 
     // make wxBitmapHandler compatible with the wxBitmapHandler interface

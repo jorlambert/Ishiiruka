@@ -39,10 +39,10 @@ class WXDLLIMPEXP_FWD_CORE wxFileDialogBase;
 class wxTestingModalHook;
 
 // This helper is used to construct the best possible name for the dialog of
-// the given type using either wxRTTI or C++ RTTI.
-inline
-wxString
-wxGetDialogClassDescription(const wxClassInfo *ci, const std::type_info& ti)
+// the given type using wxRTTI for this type, if any, and the C++ RTTI for
+// either the type T statically or the dynamic type of "dlg" if it's non-null.
+template <class T>
+wxString wxGetDialogClassDescription(const wxClassInfo *ci, T* dlg = NULL)
 {
     // We prefer to use the name from wxRTTI as it's guaranteed to be readable,
     // unlike the name returned by type_info::name() which may need to be
@@ -51,8 +51,8 @@ wxGetDialogClassDescription(const wxClassInfo *ci, const std::type_info& ti)
     // than a readable but useless "wxDialog".
     if ( ci == wxCLASSINFO(wxDialog) )
     {
-        return wxString::Format(wxASCII_STR("dialog of type \"%s\""),
-                                wxASCII_STR(ti.name()));
+        return wxString::Format("dialog of type \"%s\"",
+                                (dlg ? typeid(*dlg) : typeid(T)).name());
     }
 
     // We consider that an unmangled name is clear enough to be used on its own.
@@ -163,7 +163,7 @@ public:
     }
 
 protected:
-    virtual int Invoke(wxDialog *dlg) const wxOVERRIDE
+    virtual int Invoke(wxDialog *dlg) const
     {
         DialogType *t = dynamic_cast<DialogType*>(dlg);
         if ( t )
@@ -173,9 +173,9 @@ protected:
     }
 
     /// Returns description of the expected dialog (by default, its class).
-    virtual wxString GetDefaultDescription() const wxOVERRIDE
+    virtual wxString GetDefaultDescription() const
     {
-        return wxGetDialogClassDescription(wxCLASSINFO(T), typeid(T));
+        return wxGetDialogClassDescription<T>(wxCLASSINFO(T));
     }
 
     /**
@@ -220,7 +220,7 @@ public:
     }
 
 protected:
-    virtual int OnInvoked(T *WXUNUSED(dlg)) const wxOVERRIDE
+    virtual int OnInvoked(T *WXUNUSED(dlg)) const
     {
         return m_id;
     }
@@ -239,7 +239,7 @@ public:
     }
 
 protected:
-    virtual wxString GetDefaultDescription() const wxOVERRIDE
+    virtual wxString GetDefaultDescription() const
     {
         // It can be useful to show which buttons the expected message box was
         // supposed to have, in case there could have been several of them.
@@ -248,23 +248,23 @@ protected:
         {
             case wxID_YES:
             case wxID_NO:
-                details = wxASCII_STR("wxYES_NO style");
+                details = "wxYES_NO style";
                 break;
 
             case wxID_CANCEL:
-                details = wxASCII_STR("wxCANCEL style");
+                details = "wxCANCEL style";
                 break;
 
             case wxID_OK:
-                details = wxASCII_STR("wxOK style");
+                details = "wxOK style";
                 break;
 
             default:
-                details.Printf(wxASCII_STR("a button with ID=%d"), m_id);
+                details.Printf("a button with ID=%d", m_id);
                 break;
         }
 
-        return wxASCII_STR("wxMessageDialog with ") + details;
+        return "wxMessageDialog with " + details;
     }
 };
 
@@ -289,7 +289,7 @@ public:
     }
 
 protected:
-    virtual int OnInvoked(wxFileDialog *dlg) const wxOVERRIDE
+    virtual int OnInvoked(wxFileDialog *dlg) const
     {
         dlg->SetPath(m_path);
         return m_id;
@@ -321,7 +321,7 @@ public:
 
     // Called to verify that all expectations were met. This cannot be done in
     // the destructor, because ReportFailure() may throw (either because it's
-    // overridden or because wx's assertions handling is, globally). And
+    // overriden or because wx's assertions handling is, globally). And
     // throwing from the destructor would introduce all sort of problems,
     // including messing up the order of errors in some cases.
     void CheckUnmetExpectations()
@@ -337,7 +337,7 @@ public:
             (
                 wxString::Format
                 (
-                    wxASCII_STR("Expected %s was not shown."),
+                    "Expected %s was not shown.",
                     expect->GetDescription()
                 )
             );
@@ -351,7 +351,7 @@ public:
     }
 
 protected:
-    virtual int Enter(wxDialog *dlg) wxOVERRIDE
+    virtual int Enter(wxDialog *dlg)
     {
         while ( !m_expectations.empty() )
         {
@@ -370,7 +370,7 @@ protected:
                 (
                     wxString::Format
                     (
-                        wxASCII_STR("%s was shown unexpectedly, expected %s."),
+                        "%s was shown unexpectedly, expected %s.",
                         DescribeUnexpectedDialog(dlg),
                         expect->GetDescription()
                     )
@@ -384,7 +384,7 @@ protected:
         (
             wxString::Format
             (
-                wxASCII_STR("%s was shown unexpectedly."),
+                "%s was shown unexpectedly.",
                 DescribeUnexpectedDialog(dlg)
             )
         );
@@ -403,15 +403,15 @@ protected:
         {
             return wxString::Format
                    (
-                        wxASCII_STR("A message box \"%s\""),
+                        "A message box \"%s\"",
                         msgdlg->GetMessage()
                    );
         }
 
         return wxString::Format
                (
-                    wxASCII_STR("A %s with title \"%s\""),
-                    wxGetDialogClassDescription(dlg->GetClassInfo(), typeid(*dlg)),
+                    "A %s with title \"%s\"",
+                    wxGetDialogClassDescription(dlg->GetClassInfo(), dlg),
                     dlg->GetTitle()
                );
     }

@@ -26,4 +26,3 @@ public:
 };
 
 #endif //_WX_X11_DATAOBJ_H_
-

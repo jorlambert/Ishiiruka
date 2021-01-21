@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Name:        src/generic/bannerwindow.cpp
+// Name:        wx/bannerwindow.h
 // Purpose:     wxBannerWindow class implementation
 // Author:      Vadim Zeitlin
 // Created:     2011-08-16

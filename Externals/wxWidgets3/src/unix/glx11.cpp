@@ -3,7 +3,7 @@
 // Purpose:     code common to all X11-based wxGLCanvas implementations
 // Author:      Vadim Zeitlin
 // Created:     2007-04-15
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -25,7 +25,6 @@
 #endif //WX_PRECOMP
 
 #include "wx/glcanvas.h"
-#include <GL/glx.h>
 
 // IRIX headers call this differently
 #ifdef __SGI__
@@ -70,6 +69,11 @@
 #define GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB   0x20B2
 #endif
 
+/* Typedef for the GL 3.0 context creation function */
+typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC)
+    (Display * dpy, GLXFBConfig config, GLXContext share_context,
+    Bool direct, const int *attrib_list);
+
 #ifndef GLX_ARB_create_context
 #define GLX_ARB_create_context
 #define GLX_CONTEXT_MAJOR_VERSION_ARB      0x2091
@@ -77,11 +81,6 @@
 #define GLX_CONTEXT_FLAGS_ARB              0x2094
 #define GLX_CONTEXT_DEBUG_BIT_ARB          0x0001
 #define GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x0002
-
-/* Typedef for the GL 3.0 context creation function */
-typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC)
-    (Display * dpy, GLXFBConfig config, GLXContext share_context,
-    Bool direct, const int *attrib_list);
 #endif
 
 #ifndef GLX_ARB_create_context_profile
@@ -429,25 +428,18 @@ wxGLAttributes& wxGLAttributes::PlatformDefaults()
 
 wxGLAttributes& wxGLAttributes::Defaults()
 {
-    RGBA().DoubleBuffer().Depth(16).SampleBuffers(1).Samplers(4);
-    return *this;
-}
-
-void wxGLAttributes::AddDefaultsForWXBefore31()
-{
-    // ParseAttribList() will add EndList(), don't do it now
-    DoubleBuffer();
+    RGBA().DoubleBuffer();
     if ( wxGLCanvasX11::GetGLXVersion() < 13 )
-        RGBA().Depth(1).MinRGBA(1, 1, 1, 0);
-    // For GLX >= 1.3 its defaults (GLX_RGBA_BIT and GLX_WINDOW_BIT) are OK
+        Depth(1).MinRGBA(1, 1, 1, 0);
+    else
+        Depth(16).SampleBuffers(1).Samplers(4);
+    return *this;
 }
 
 
 // ============================================================================
 // wxGLContext implementation
 // ============================================================================
-
-static bool MakeCurrent(GLXDrawable drawable, GLXContext context);
 
 // Need this X error handler for the case context creation fails
 static bool g_ctxErrorOccurred = false;
@@ -489,26 +481,23 @@ wxGLContext::wxGLContext(wxGLCanvas *win,
     m_isOk = false;
 
     Display* dpy = wxGetX11Display();
-    XVisualInfo* vi = static_cast<XVisualInfo*>(win->GetXVisualInfo());
+    XVisualInfo *vi = win->GetXVisualInfo();
     wxCHECK_RET( vi, "invalid visual for OpenGL" );
 
     // We need to create a temporary context to get the
     // glXCreateContextAttribsARB function
-    GLXContext tempContext = glXCreateContext(dpy, vi, NULL, x11Direct);
+    GLXContext tempContext = glXCreateContext(dpy, vi, NULL,
+                                              win->GetGLCTXAttrs().x11Direct );
     wxCHECK_RET(tempContext, "glXCreateContext failed" );
 
-    GLXFBConfig* const fbc = win->GetGLXFBConfig();
-    PFNGLXCREATECONTEXTATTRIBSARBPROC wx_glXCreateContextAttribsARB = 0;
-    if (fbc)
-    {
-        wx_glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
-            glXGetProcAddress(reinterpret_cast<const GLubyte*>("glXCreateContextAttribsARB"));
-    }
+    PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB
+        = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
+        glXGetProcAddress((GLubyte *)"glXCreateContextAttribsARB");
 
     glXDestroyContext( dpy, tempContext );
 
     // The preferred way is using glXCreateContextAttribsARB, even for old context
-    if ( !wx_glXCreateContextAttribsARB && needsARB ) // OpenGL 3 context creation
+    if ( !glXCreateContextAttribsARB && needsARB ) // OpenGL 3 context creation
     {
         wxLogMessage(_("OpenGL 3.0 or later is not supported by the OpenGL driver."));
         return;
@@ -519,37 +508,29 @@ wxGLContext::wxGLContext(wxGLCanvas *win,
     g_ctxErrorOccurred = false;
     int (*oldHandler)(Display*, XErrorEvent*) = XSetErrorHandler(&CTXErrorHandler);
 
-    if ( wx_glXCreateContextAttribsARB )
+    if ( glXCreateContextAttribsARB )
     {
-        m_glContext = wx_glXCreateContextAttribsARB( dpy, fbc[0],
+        GLXFBConfig *fbc = win->GetGLXFBConfig();
+        wxCHECK_RET( fbc, "Invalid GLXFBConfig for OpenGL" );
+
+        m_glContext = glXCreateContextAttribsARB( dpy, fbc[0],
                                 other ? other->m_glContext : None,
                                 x11Direct, contextAttribs );
-
-        // Some old hardware may accept the use of this ARB, but may fail.
-        // In case of NULL attributes we'll try creating the context old-way.
-        XSync( dpy, False );
-        if ( g_ctxErrorOccurred && (!contextAttribs || !needsARB) )
-        {
-            g_ctxErrorOccurred = false; //Reset
-            m_glContext = NULL;
-        }
     }
-
-    if ( !g_ctxErrorOccurred && !m_glContext )
+    else if ( wxGLCanvas::GetGLXVersion() >= 13 )
     {
-        // Old-way, without context atributes. Up to GL 2.1
-        if (fbc)
-        {
-            m_glContext = glXCreateNewContext( dpy, fbc[0], renderType,
-                                               other ? other->m_glContext : None,
-                                               x11Direct );
-        }
-        else // GLX <= 1.2
-        {
-            m_glContext = glXCreateContext( dpy, vi,
-                                            other ? other->m_glContext : None,
-                                            x11Direct );
-        }
+        GLXFBConfig *fbc = win->GetGLXFBConfig();
+        wxCHECK_RET( fbc, "Invalid GLXFBConfig for OpenGL" );
+
+        m_glContext = glXCreateNewContext( dpy, fbc[0], renderType,
+                                           other ? other->m_glContext : None,
+                                           x11Direct );
+    }
+    else // GLX <= 1.2
+    {
+        m_glContext = glXCreateContext( dpy, vi,
+                                        other ? other->m_glContext : None,
+                                        x11Direct );
     }
 
     // Sync to ensure any errors generated are processed.
@@ -588,7 +569,8 @@ bool wxGLContext::SetCurrent(const wxGLCanvas& win) const
 
 // wrapper around glXMakeContextCurrent/glXMakeCurrent depending on GLX
 // version
-static bool MakeCurrent(GLXDrawable drawable, GLXContext context)
+/* static */
+bool wxGLContext::MakeCurrent(GLXDrawable drawable, GLXContext context)
 {
     if (wxGLCanvas::GetGLXVersion() >= 13)
         return glXMakeContextCurrent( wxGetX11Display(), drawable, drawable, context);
@@ -599,12 +581,6 @@ static bool MakeCurrent(GLXDrawable drawable, GLXContext context)
 // ============================================================================
 // wxGLCanvasX11 implementation
 // ============================================================================
-
-static GLXFBConfig* gs_glFBCInfo;
-static XVisualInfo* gs_glVisualInfo;
-
-static bool InitXVisualInfo(
-    const wxGLAttributes& dispAttrs, GLXFBConfig** pFBC, XVisualInfo** pXVisual);
 
 // ----------------------------------------------------------------------------
 // initialization methods and dtor
@@ -618,9 +594,7 @@ wxGLCanvasX11::wxGLCanvasX11()
 
 bool wxGLCanvasX11::InitVisual(const wxGLAttributes& dispAttrs)
 {
-    XVisualInfo* vi = NULL;
-    bool ret = InitXVisualInfo(dispAttrs, &m_fbc, &vi);
-    m_vi = vi;
+    bool ret = InitXVisualInfo(dispAttrs, &m_fbc, &m_vi);
     if ( !ret )
     {
         wxFAIL_MSG("Failed to get a XVisualInfo for the requested attributes.");
@@ -630,10 +604,10 @@ bool wxGLCanvasX11::InitVisual(const wxGLAttributes& dispAttrs)
 
 wxGLCanvasX11::~wxGLCanvasX11()
 {
-    if (m_fbc && m_fbc != gs_glFBCInfo)
+    if ( m_fbc && m_fbc != ms_glFBCInfo )
         XFree(m_fbc);
 
-    if (m_vi && m_vi != gs_glVisualInfo)
+    if ( m_vi && m_vi != ms_glVisualInfo )
         XFree(m_vi);
 }
 
@@ -661,7 +635,9 @@ bool wxGLCanvasX11::IsGLXMultiSampleAvailable()
     return s_isMultiSampleAvailable != 0;
 }
 
-static bool InitXVisualInfo(const wxGLAttributes& dispAttrs,
+
+/* static */
+bool wxGLCanvasX11::InitXVisualInfo(const wxGLAttributes& dispAttrs,
                                     GLXFBConfig** pFBC,
                                     XVisualInfo** pXVisual)
 {
@@ -675,7 +651,7 @@ static bool InitXVisualInfo(const wxGLAttributes& dispAttrs,
 
     Display* dpy = wxGetX11Display();
 
-    if (wxGLCanvasX11::GetGLXVersion() >= 13)
+    if ( GetGLXVersion() >= 13 )
     {
         int returned;
         *pFBC = glXChooseFBConfig(dpy, DefaultScreen(dpy), attrsListGLX, &returned);
@@ -695,7 +671,7 @@ static bool InitXVisualInfo(const wxGLAttributes& dispAttrs,
     {
         *pFBC = NULL;
         *pXVisual = glXChooseVisual(dpy, DefaultScreen(dpy),
-                                    const_cast<int*>(attrsListGLX) );
+                                   wx_const_cast(int*, attrsListGLX) );
     }
 
     return *pXVisual != NULL;
@@ -707,7 +683,7 @@ bool wxGLCanvasBase::IsDisplaySupported(const wxGLAttributes& dispAttrs)
     GLXFBConfig *fbc = NULL;
     XVisualInfo *vi = NULL;
 
-    bool isSupported = InitXVisualInfo(dispAttrs, &fbc, &vi);
+    bool isSupported = wxGLCanvasX11::InitXVisualInfo(dispAttrs, &fbc, &vi);
 
     if ( fbc )
         XFree(fbc);
@@ -730,19 +706,8 @@ bool wxGLCanvasBase::IsDisplaySupported(const int *attribList)
 // default visual management
 // ----------------------------------------------------------------------------
 
-static void FreeDefaultVisualInfo()
-{
-    if (gs_glFBCInfo)
-    {
-        XFree(gs_glFBCInfo);
-        gs_glFBCInfo = NULL;
-    }
-    if (gs_glVisualInfo)
-    {
-        XFree(gs_glVisualInfo);
-        gs_glVisualInfo = NULL;
-    }
-}
+XVisualInfo *wxGLCanvasX11::ms_glVisualInfo = NULL;
+GLXFBConfig *wxGLCanvasX11::ms_glFBCInfo = NULL;
 
 /* static */
 bool wxGLCanvasX11::InitDefaultVisualInfo(const int *attribList)
@@ -751,7 +716,23 @@ bool wxGLCanvasX11::InitDefaultVisualInfo(const int *attribList)
     wxGLAttributes dispAttrs;
     ParseAttribList(attribList, dispAttrs);
 
-    return InitXVisualInfo(dispAttrs, &gs_glFBCInfo, &gs_glVisualInfo);
+    return InitXVisualInfo(dispAttrs, &ms_glFBCInfo, &ms_glVisualInfo);
+}
+
+/* static */
+void wxGLCanvasX11::FreeDefaultVisualInfo()
+{
+    if ( ms_glFBCInfo )
+    {
+        XFree(ms_glFBCInfo);
+        ms_glFBCInfo = NULL;
+    }
+
+    if ( ms_glVisualInfo )
+    {
+        XFree(ms_glVisualInfo);
+        ms_glVisualInfo = NULL;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -791,25 +772,5 @@ bool wxGLCanvasX11::IsShownOnScreen() const
     return GetXWindow() && wxGLCanvasBase::IsShownOnScreen();
 }
 
-// ----------------------------------------------------------------------------
-// wxGLApp
-// ----------------------------------------------------------------------------
-
-bool wxGLApp::InitGLVisual(const int* attribList)
-{
-    return wxGLCanvasX11::InitDefaultVisualInfo(attribList);
-}
-
-void* wxGLApp::GetXVisualInfo()
-{
-    return gs_glVisualInfo;
-}
-
-int wxGLApp::OnExit()
-{
-    FreeDefaultVisualInfo();
-
-    return wxGLAppBase::OnExit();
-}
-
 #endif // wxUSE_GLCANVAS
+

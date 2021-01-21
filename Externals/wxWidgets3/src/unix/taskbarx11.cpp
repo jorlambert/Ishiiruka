@@ -64,11 +64,7 @@
 // ----------------------------------------------------------------------------
 
 #if defined(__WXGTK__)
-    #ifdef __WXGTK20__
-        #include "wx/gtk/private/wrapgtk.h"
-    #else // GTK+ 1.x
-        #include <gtk/gtk.h>
-    #endif
+    #include <gtk/gtk.h>
     #include <gdk/gdkx.h>
     #define GetDisplay()        GDK_DISPLAY()
     #define GetXWindow(wxwin)   GDK_WINDOW_XWINDOW((wxwin)->m_widget->window)
@@ -260,7 +256,8 @@ wxTaskBarIcon::~wxTaskBarIcon()
 {
     if (m_iconWnd)
     {
-        m_iconWnd->Unbind(wxEVT_DESTROY, &wxTaskBarIcon::OnDestroy, this);
+        m_iconWnd->Disconnect(wxEVT_DESTROY,
+            wxWindowDestroyEventHandler(wxTaskBarIcon::OnDestroy), NULL, this);
         RemoveIcon();
     }
 }
@@ -293,7 +290,9 @@ bool wxTaskBarIcon::SetIcon(const wxIcon& icon, const wxString& tooltip)
         m_iconWnd = new wxTaskBarIconArea(this, bmp);
         if (m_iconWnd->IsOk())
         {
-            m_iconWnd->Bind(wxEVT_DESTROY, &wxTaskBarIcon::OnDestroy, this);
+            m_iconWnd->Connect(wxEVT_DESTROY,
+                wxWindowDestroyEventHandler(wxTaskBarIcon::OnDestroy),
+                NULL, this);
             m_iconWnd->Show();
         }
         else

@@ -78,9 +78,6 @@ public :
 
         switch( size )
         {
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_16
-            case NSControlSizeLarge:
-#endif
             case NSRegularControlSize:
                 left = right = 2;
                 top = 0;

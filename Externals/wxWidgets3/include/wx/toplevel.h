@@ -24,6 +24,8 @@
 // the default names for various classes
 extern WXDLLIMPEXP_DATA_CORE(const char) wxFrameNameStr[];
 
+class WXDLLIMPEXP_FWD_CORE wxTopLevelWindowBase;
+
 // ----------------------------------------------------------------------------
 // constants
 // ----------------------------------------------------------------------------
@@ -238,35 +240,6 @@ public:
     wxWindow *SetTmpDefaultItem(wxWindow *win)
         { wxWindow *old = GetDefaultItem(); m_winTmpDefault = win; return old; }
 
-
-    // Class for saving/restoring fields describing the window geometry.
-    //
-    // This class is used by the functions below to allow saving the geometry
-    // of the window and restoring it later. The components describing geometry
-    // are platform-dependent, so there is no struct containing them and
-    // instead the methods of this class are used to save or [try to] restore
-    // whichever components are used under the current platform.
-    class GeometrySerializer
-    {
-    public:
-        virtual ~GeometrySerializer() {}
-
-        // If saving a field returns false, it's fatal error and SaveGeometry()
-        // will return false.
-        virtual bool SaveField(const wxString& name, int value) const = 0;
-
-        // If restoring a field returns false, it just means that the field is
-        // not present and RestoreToGeometry() still continues with restoring
-        // the other values.
-        virtual bool RestoreField(const wxString& name, int* value) = 0;
-    };
-
-    // Save the current window geometry using the provided serializer and
-    // restore the window to the previously saved geometry.
-    bool SaveGeometry(const GeometrySerializer& ser) const;
-    bool RestoreToGeometry(GeometrySerializer& ser);
-
-
     // implementation only from now on
     // -------------------------------
 
@@ -276,13 +249,9 @@ public:
     virtual bool IsTopNavigationDomain(NavigationKind kind) const wxOVERRIDE;
     virtual bool IsVisible() const { return IsShown(); }
 
-    // override to do TLW-specific layout: we resize our unique child to fill
-    // the entire client area
-    virtual bool Layout() wxOVERRIDE;
-
     // event handlers
     void OnCloseWindow(wxCloseEvent& event);
-    void OnSize(wxSizeEvent& WXUNUSED(event)) { Layout(); }
+    void OnSize(wxSizeEvent& WXUNUSED(event)) { DoLayout(); }
 
     // Get rect to be used to center top-level children
     virtual void GetRectForTopLevelChildren(int *x, int *y, int *w, int *h);
@@ -330,8 +299,9 @@ protected:
     // send the iconize event, return true if processed
     bool SendIconizeEvent(bool iconized = true);
 
-    // this method is only kept for compatibility, call Layout() instead.
-    void DoLayout() { Layout(); }
+    // do TLW-specific layout: we resize our unique child to fill the entire
+    // client area
+    void DoLayout();
 
     static int WidthDefault(int w) { return w == wxDefaultCoord ? GetDefaultSize().x : w; }
     static int HeightDefault(int h) { return h == wxDefaultCoord ? GetDefaultSize().y : h; }
@@ -394,7 +364,7 @@ protected:
                    const wxPoint& pos = wxDefaultPosition,
                    const wxSize& size = wxDefaultSize,
                    long style = wxDEFAULT_FRAME_STYLE,
-                   const wxString& name = wxASCII_STR(wxFrameNameStr))
+                   const wxString& name = wxFrameNameStr)
             : wxTopLevelWindowNative(parent, winid, title,
                                      pos, size, style, name)
         {

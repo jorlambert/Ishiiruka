@@ -47,7 +47,6 @@
 #include "wx/renderer.h"
 #include "wx/msw/private.h"
 #include "wx/msw/dc.h"
-#include "wx/msw/private/dcdynwrap.h"
 
 // ----------------------------------------------------------------------------
 // private functions
@@ -81,7 +80,7 @@ public:
     wxCheckListBoxItem(wxCheckListBox *parent);
 
     // drawing functions
-    virtual bool OnDrawItem(wxDC& dc, const wxRect& rc, wxODAction act, wxODStatus stat) wxOVERRIDE;
+    virtual bool OnDrawItem(wxDC& dc, const wxRect& rc, wxODAction act, wxODStatus stat);
 
     // simple accessors and operations
     wxCheckListBox *GetParent() const
@@ -90,7 +89,7 @@ public:
     int GetIndex() const
         { return m_parent->GetItemIndex(const_cast<wxCheckListBoxItem*>(this)); }
 
-    wxString GetName() const wxOVERRIDE
+    wxString GetName() const
         { return m_parent->GetString(GetIndex()); }
 
 
@@ -158,14 +157,7 @@ bool wxCheckListBoxItem::OnDrawItem(wxDC& dc, const wxRect& rc,
     int y = rc.GetY() + (rc.GetHeight() - size.GetHeight()) / 2;
 
     UINT uState = stat & wxOwnerDrawn::wxODSelected ? wxDSB_SELECTED : wxDSB_NORMAL;
-
-    // checkmarks should not be mirrored in RTL layout
-    DWORD oldLayout = wxDynLoadWrappers::GetLayout(hdc);
-    if ( oldLayout & LAYOUT_RTL )
-        ::SetLayout(hdc, oldLayout | LAYOUT_BITMAPORIENTATIONPRESERVED);
     wxDrawStateBitmap(hdc, hBmpCheck, x, y, uState);
-    if ( oldLayout & LAYOUT_RTL )
-        ::SetLayout(hdc, oldLayout);
 
     return true;
 }
@@ -246,29 +238,21 @@ bool wxCheckListBox::MSWOnMeasure(WXMEASUREITEMSTRUCT *item)
     {
         MEASUREITEMSTRUCT *pStruct = (MEASUREITEMSTRUCT *)item;
 
-        const wxSize size = MSWGetFullItemSize(pStruct->itemWidth,
-                                                 pStruct->itemHeight);
-        pStruct->itemWidth = size.x;
-        pStruct->itemHeight = size.y;
+        wxSize size = wxRendererNative::Get().GetCheckBoxSize(this);
+        size.x += 2 * CHECKMARK_EXTRA_SPACE;
+        size.y += 2 * CHECKMARK_EXTRA_SPACE;
+
+        // add place for the check mark
+        pStruct->itemWidth += size.GetWidth();
+
+        if ( pStruct->itemHeight < static_cast<unsigned int>(size.GetHeight()) )
+            pStruct->itemHeight = size.GetHeight();
 
         return true;
     }
 
     return false;
-}
-
-void wxCheckListBox::MSWUpdateFontOnDPIChange(const wxSize& newDPI)
-{
-    wxCheckListBoxBase::MSWUpdateFontOnDPIChange(newDPI);
-
-    wxSize size = wxRendererNative::Get().GetCheckBoxSize(this);
-    size.x += 2 * CHECKMARK_EXTRA_SPACE + CHECKMARK_LABEL_SPACE;
-
-    for ( unsigned int i = 0; i < GetCount(); ++i )
-    {
-        GetItem(i)->SetMarginWidth(size.GetWidth());
-    }
-}
+  }
 
 // check items
 // -----------
@@ -430,25 +414,21 @@ void wxCheckListBox::OnLeftClick(wxMouseEvent& event)
     }
 }
 
-wxSize wxCheckListBox::MSWGetFullItemSize(int w, int h) const
-{
-    wxSize size = wxRendererNative::Get().GetCheckBoxSize(const_cast<wxCheckListBox*>(this));
-    size.x += 2 * CHECKMARK_EXTRA_SPACE;
-    size.y += 2 * CHECKMARK_EXTRA_SPACE;
-
-    w += size.GetWidth();
-    if ( h < size.GetHeight() )
-        h = size.GetHeight();
-
-    return wxSize(w, h);
-}
-
 wxSize wxCheckListBox::DoGetBestClientSize() const
 {
     wxSize best = wxListBox::DoGetBestClientSize();
 
     // add room for the checkbox
-    return MSWGetFullItemSize(best.x, best.y);
+    wxSize size = wxRendererNative::Get().GetCheckBoxSize(const_cast<wxCheckListBox*>(this));
+    size.x += 2 * CHECKMARK_EXTRA_SPACE;
+    size.y += 2 * CHECKMARK_EXTRA_SPACE;
+
+    best.x += size.GetWidth();
+    if ( best.y < size.GetHeight() )
+        best.y = size.GetHeight();
+
+    CacheBestSize(best);
+    return best;
 }
 
 #endif // wxUSE_CHECKLISTBOX

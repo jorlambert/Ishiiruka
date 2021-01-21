@@ -18,7 +18,8 @@
 
 #include "wx/stockitem.h"
 
-#include "wx/gtk/private/wrapgtk.h"
+#include <gtk/gtk.h>
+#include "wx/gtk/private/gtk2-compat.h"
 
 // ----------------------------------------------------------------------------
 // GTK callbacks
@@ -69,13 +70,10 @@ wxgtk_button_released_callback(GtkWidget *WXUNUSED(widget), wxAnyButton *button)
 // wxAnyButton
 //-----------------------------------------------------------------------------
 
-void wxAnyButton::DoEnable(bool enable)
+bool wxAnyButton::Enable( bool enable )
 {
-    // See wxWindow::DoEnable()
-    if ( !m_widget )
-        return;
-
-    base_type::DoEnable(enable);
+    if (!base_type::Enable(enable))
+        return false;
 
     gtk_widget_set_sensitive(gtk_bin_get_child(GTK_BIN(m_widget)), enable);
 
@@ -83,6 +81,8 @@ void wxAnyButton::DoEnable(bool enable)
         GTKFixSensitivity();
 
     GTKUpdateBitmap();
+
+    return true;
 }
 
 GdkWindow *wxAnyButton::GTKGetWindow(wxArrayGdkWindows& WXUNUSED(windows)) const
@@ -356,13 +356,17 @@ void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
         case State_Focused:
             if ( bitmap.IsOk() )
             {
-                Bind(wxEVT_SET_FOCUS, &wxAnyButton::GTKOnFocus, this);
-                Bind(wxEVT_KILL_FOCUS, &wxAnyButton::GTKOnFocus, this);
+                Connect(wxEVT_SET_FOCUS,
+                        wxFocusEventHandler(wxAnyButton::GTKOnFocus));
+                Connect(wxEVT_KILL_FOCUS,
+                        wxFocusEventHandler(wxAnyButton::GTKOnFocus));
             }
             else // no valid focused bitmap
             {
-                Unbind(wxEVT_SET_FOCUS, &wxAnyButton::GTKOnFocus, this);
-                Unbind(wxEVT_KILL_FOCUS, &wxAnyButton::GTKOnFocus, this);
+                Disconnect(wxEVT_SET_FOCUS,
+                           wxFocusEventHandler(wxAnyButton::GTKOnFocus));
+                Disconnect(wxEVT_KILL_FOCUS,
+                           wxFocusEventHandler(wxAnyButton::GTKOnFocus));
             }
             break;
 
@@ -385,7 +389,7 @@ void wxAnyButton::DoSetBitmap(const wxBitmap& bitmap, State which)
 void wxAnyButton::DoSetBitmapPosition(wxDirection dir)
 {
 #ifdef __WXGTK210__
-    if ( wx_is_at_least_gtk2(10) )
+    if ( !gtk_check_version(2,10,0) )
     {
         GtkPositionType gtkpos;
         switch ( dir )

@@ -18,7 +18,7 @@ class WXDLLIMPEXP_CORE wxGenericMessageDialog : public wxMessageDialogBase
 public:
     wxGenericMessageDialog(wxWindow *parent,
                            const wxString& message,
-                           const wxString& caption = wxASCII_STR(wxMessageBoxCaptionStr),
+                           const wxString& caption = wxMessageBoxCaptionStr,
                            long style = wxOK|wxCENTRE,
                            const wxPoint& pos = wxDefaultPosition);
 

@@ -76,7 +76,7 @@
                 [m_textColor release];
                 m_textColor = [[self textColor] retain];
             }
-            [self setTextColor: [NSColor disabledControlTextColor]]; 
+            [self setTextColor: [NSColor disabledControlTextColor]];
         } 
     } 
 } 
@@ -93,8 +93,6 @@ public:
 
     virtual void SetLabel(const wxString& title, wxFontEncoding encoding) wxOVERRIDE
     {
-        wxMacAutoreleasePool autoreleasepool;
-
         wxCFStringRef text( title , encoding );
 
         NSMutableAttributedString *
@@ -106,7 +104,7 @@ public:
 #if wxUSE_MARKUP
     virtual void SetLabelMarkup( const wxString& markup) wxOVERRIDE
     {
-        wxMarkupToAttrString toAttr(GetWXPeer()->GetFont(), markup);
+        wxMarkupToAttrString toAttr(GetWXPeer(), markup);
 
         DoSetAttrString(toAttr.GetNSAttributedString());
     }

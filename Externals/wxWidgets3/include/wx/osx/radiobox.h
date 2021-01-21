@@ -11,14 +11,12 @@
 #ifndef _WX_RADIOBOX_H_
 #define _WX_RADIOBOX_H_
 
-#include "wx/containr.h"
-
 // List box item
 class WXDLLIMPEXP_FWD_CORE wxBitmap ;
 
 class WXDLLIMPEXP_FWD_CORE wxRadioButton ;
 
-class WXDLLIMPEXP_CORE wxRadioBox: public wxNavigationEnabled<wxControl>, public wxRadioBoxBase
+class WXDLLIMPEXP_CORE wxRadioBox: public wxControl, public wxRadioBoxBase
 {
     wxDECLARE_DYNAMIC_CLASS(wxRadioBox);
 public:
@@ -28,7 +26,7 @@ public:
              const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
              int n = 0, const wxString choices[] = NULL,
              int majorDim = 0, long style = wxRA_SPECIFY_COLS,
-             const wxValidator& val = wxDefaultValidator, const wxString& name = wxASCII_STR(wxRadioBoxNameStr))
+             const wxValidator& val = wxDefaultValidator, const wxString& name = wxRadioBoxNameStr)
         {
             Create(parent, id, title, pos, size, n, choices, majorDim, style, val, name);
         }
@@ -37,7 +35,7 @@ public:
              const wxArrayString& choices,
              int majorDim = 0, long style = wxRA_SPECIFY_COLS,
              const wxValidator& val = wxDefaultValidator,
-             const wxString& name = wxASCII_STR(wxRadioBoxNameStr))
+             const wxString& name = wxRadioBoxNameStr)
      {
          Create(parent, id, title, pos, size, choices,
                 majorDim, style, val, name);
@@ -47,13 +45,13 @@ public:
              const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
              int n = 0, const wxString choices[] = NULL,
              int majorDim = 0, long style = wxRA_SPECIFY_COLS,
-             const wxValidator& val = wxDefaultValidator, const wxString& name = wxASCII_STR(wxRadioBoxNameStr));
+             const wxValidator& val = wxDefaultValidator, const wxString& name = wxRadioBoxNameStr);
     bool Create(wxWindow *parent, wxWindowID id, const wxString& title,
              const wxPoint& pos, const wxSize& size,
              const wxArrayString& choices,
              int majorDim = 0, long style = wxRA_SPECIFY_COLS,
              const wxValidator& val = wxDefaultValidator,
-             const wxString& name = wxASCII_STR(wxRadioBoxNameStr));
+             const wxString& name = wxRadioBoxNameStr);
 
     // Enabling
     virtual bool Enable(bool enable = true) wxOVERRIDE;
@@ -73,6 +71,9 @@ public:
 
     virtual wxString GetString(unsigned int item) const wxOVERRIDE;
     virtual void SetString(unsigned int item, const wxString& label) wxOVERRIDE;
+
+    virtual wxString GetLabel() const wxOVERRIDE;
+    virtual void SetLabel(const wxString& label) wxOVERRIDE;
 
     // protect native font of box
     virtual bool SetFont( const wxFont &font ) wxOVERRIDE;

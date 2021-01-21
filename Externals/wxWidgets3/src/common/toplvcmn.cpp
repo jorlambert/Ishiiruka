@@ -31,8 +31,6 @@
 
 #include "wx/display.h"
 
-#include "wx/private/tlwgeom.h"
-
 // ----------------------------------------------------------------------------
 // event table
 // ----------------------------------------------------------------------------
@@ -107,10 +105,10 @@ bool wxTopLevelWindowBase::Destroy()
     // as we will be deleted anyhow during its destruction and the pointer
     // stored in wxPendingDelete would become invalid, so just delete ourselves
     // immediately in this case.
-    wxWindow* parent = GetParent();
-    if ( (parent && parent->IsBeingDeleted()) || !GetHandle() )
+    if ( wxWindow* parent = GetParent() )
     {
-        return wxNonOwnedWindow::Destroy();
+        if ( parent->IsBeingDeleted() )
+            return wxNonOwnedWindow::Destroy();
     }
 
     // delayed destruction: the frame will be deleted during the next idle
@@ -249,7 +247,8 @@ void wxTopLevelWindowBase::DoCentre(int dir)
     // we need the display rect anyhow so store it first: notice that we should
     // be centered on the same display as our parent window, the display of
     // this window itself is not really defined yet
-    wxDisplay dpy(GetParent() ? GetParent() : this);
+    int nDisplay = wxDisplay::GetFromWindow(GetParent() ? GetParent() : this);
+    wxDisplay dpy(nDisplay == wxNOT_FOUND ? 0 : nDisplay);
     const wxRect rectDisplay(dpy.GetClientArea());
 
     // what should we centre this window on?
@@ -309,28 +308,6 @@ void wxTopLevelWindowBase::DoCentre(int dir)
 
     // -1 could be valid coordinate here if there are several displays
     SetSize(rect, wxSIZE_ALLOW_MINUS_ONE);
-}
-
-// ----------------------------------------------------------------------------
-// Saving/restoring geometry
-// ----------------------------------------------------------------------------
-
-bool wxTopLevelWindowBase::SaveGeometry(const GeometrySerializer& ser) const
-{
-    wxTLWGeometry geom;
-    if ( !geom.GetFrom(static_cast<const wxTopLevelWindow*>(this)) )
-        return false;
-
-    return geom.Save(ser);
-}
-
-bool wxTopLevelWindowBase::RestoreToGeometry(GeometrySerializer& ser)
-{
-    wxTLWGeometry geom;
-    if ( !geom.Restore(ser) )
-        return false;
-
-    return geom.ApplyTo(static_cast<wxTopLevelWindow*>(this));
 }
 
 // ----------------------------------------------------------------------------
@@ -411,25 +388,20 @@ bool wxTopLevelWindowBase::IsTopNavigationDomain(NavigationKind kind) const
 
 // default resizing behaviour - if only ONE subwindow, resize to fill the
 // whole client area
-bool wxTopLevelWindowBase::Layout()
+void wxTopLevelWindowBase::DoLayout()
 {
     // We are called during the window destruction several times, e.g. as
     // wxFrame tries to adjust to its tool/status bars disappearing. But
     // actually doing the layout is pretty useless in this case as the window
     // will disappear anyhow -- so just don't bother.
     if ( IsBeingDeleted() )
-        return false;
+        return;
 
 
-    // if we're using sizers or constraints - do use them
-    if ( GetAutoLayout()
-            || GetSizer()
-#if wxUSE_CONSTRAINTS
-                    || GetConstraints()
-#endif
-                                        )
+    // if we're using constraints or sizers - do use them
+    if ( GetAutoLayout() )
     {
-        return wxNonOwnedWindow::Layout();
+        Layout();
     }
     else
     {
@@ -448,7 +420,7 @@ bool wxTopLevelWindowBase::Layout()
             {
                 if ( child )
                 {
-                    return false; // it's our second subwindow - nothing to do
+                    return;     // it's our second subwindow - nothing to do
                 }
 
                 child = win;
@@ -463,12 +435,8 @@ bool wxTopLevelWindowBase::Layout()
             DoGetClientSize(&clientW, &clientH);
 
             child->SetSize(0, 0, clientW, clientH);
-
-            return true;
         }
     }
-
-    return false;
 }
 
 // The default implementation for the close window event.

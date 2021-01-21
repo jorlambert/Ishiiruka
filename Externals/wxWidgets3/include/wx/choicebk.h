@@ -79,6 +79,11 @@ public:
     // returns the choice control
     wxChoice* GetChoiceCtrl() const { return (wxChoice*)m_bookctrl; }
 
+    // Override this to return true because the part of parent window
+    // background between our controlling wxChoice and the page area should
+    // show through.
+    virtual bool HasTransparentBackground() wxOVERRIDE { return true; }
+
 protected:
     virtual void DoSetWindowVariant(wxWindowVariant variant) wxOVERRIDE;
 
@@ -86,7 +91,8 @@ protected:
 
     void UpdateSelectedPage(size_t newsel) wxOVERRIDE
     {
-        GetChoiceCtrl()->Select(newsel);
+        m_selection = static_cast<int>(newsel);
+        GetChoiceCtrl()->Select(m_selection);
     }
 
     wxBookCtrlEvent* CreatePageChangingEvent() const wxOVERRIDE;

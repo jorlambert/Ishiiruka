@@ -134,8 +134,7 @@ public:
     wxString doc;
 
     wxExtHelpMapEntry(int iid, wxString const &iurl, wxString const &idoc)
-        : entryid(iid), url(iurl), doc(idoc)
-        { }
+        { entryid = iid; url = iurl; doc = idoc; }
 };
 
 void wxExtHelpController::DeleteList()
@@ -349,9 +348,9 @@ bool wxExtHelpController::DisplaySection(int sectionNo)
 
     wxBusyCursor b; // display a busy cursor
     wxList::compatibility_iterator node = m_MapList->GetFirst();
+    wxExtHelpMapEntry *entry;
     while (node)
     {
-        wxExtHelpMapEntry* entry;
         entry = (wxExtHelpMapEntry *)node->GetData();
         if (entry->entryid == sectionNo)
             return DisplayHelp(entry->url);
@@ -423,7 +422,7 @@ bool wxExtHelpController::KeywordSearch(const wxString& k,
                 // choices[idx] = (**i).doc.Contains((**i).doc.Before(WXEXTHELP_COMMENTCHAR));
                 //if (choices[idx].empty()) // didn't contain the ';'
                 //   choices[idx] = (**i).doc;
-                choices[idx].clear();
+                choices[idx] = wxEmptyString;
                 for (int j=0; ; j++)
                 {
                     wxChar targetChar = entry->doc.c_str()[j];

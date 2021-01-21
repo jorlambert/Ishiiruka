@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     2004-09-19
-// Copyright:   (c) 2004 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2004 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -62,8 +62,16 @@ public:
     //
     // Note that the conversion object should have the life time greater than
     // this stream.
-    explicit wxStringOutputStream(wxString *pString = NULL,
-                                  wxMBConv& conv = wxConvUTF8);
+    wxStringOutputStream(wxString *pString = NULL,
+                         wxMBConv& conv = wxConvUTF8)
+        : m_conv(conv)
+#if wxUSE_UNICODE
+        , m_unconv(0)
+#endif // wxUSE_UNICODE
+    {
+        m_str = pString ? pString : &m_strInternal;
+        m_pos = m_str->length() / sizeof(wxChar);
+    }
 
     // get the string containing current output
     const wxString& GetString() const { return *m_str; }

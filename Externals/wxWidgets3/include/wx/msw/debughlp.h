@@ -3,18 +3,15 @@
 // Purpose:     wraps dbghelp.h standard file
 // Author:      Vadim Zeitlin, Suzumizaki-kimitaka
 // Created:     2005-01-08 (extracted from msw/crashrpt.cpp)
-// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef _WX_MSW_DEBUGHLPH_H_
 #define _WX_MSW_DEBUGHLPH_H_
 
-#include "wx/defs.h"
-
-#if wxUSE_DBGHELP
-
 #include "wx/dynlib.h"
+
 #include "wx/msw/wrapwin.h"
 
 #ifdef __VISUALC__
@@ -33,6 +30,26 @@
 #endif
 
 #include "wx/msw/private.h"
+
+// wxUSE_DBGHELP can be predefined on the compiler command line to force using
+// dbghelp.dll even if it's not detected or, on the contrary, avoid using even
+// if it's available.
+#ifndef wxUSE_DBGHELP
+    // The only compiler which is known to have the necessary headers is MSVC.
+    #ifdef __VISUALC__
+        // MSVC7.1 shipped with API v9 and we don't support anything earlier
+        // anyhow.
+        #if API_VERSION_NUMBER >= 9
+            #define wxUSE_DBGHELP 1
+        #else
+            #define wxUSE_DBGHELP 0
+        #endif
+    #else
+        #define wxUSE_DBGHELP 0
+    #endif
+#endif
+
+#if wxUSE_DBGHELP
 
 /*
 
@@ -305,7 +322,7 @@ public:
     // suffix in some cases. These 2 helper macros call the macro with the
     // correct arguments in both cases.
     #define wxSYM_CALL(what, name)  what(name, name)
-#if defined(_M_AMD64) || defined(_M_ARM64)
+#if defined(_M_AMD64)
     #define wxSYM_CALL_64(what, name)  what(name, name ## 64)
 
     // Also undo all the "helpful" definitions done by imagehlp.h that map 32

@@ -46,7 +46,8 @@ public:
 
     wxPenRefData();
     wxPenRefData(const wxPenRefData& data);
-    wxPenRefData(const wxPenInfo& info);
+    wxPenRefData(const wxColour& col, int width, wxPenStyle style);
+    wxPenRefData(const wxBitmap& stipple, int width);
     virtual ~wxPenRefData();
 
     bool operator==(const wxPenRefData& data) const
@@ -158,7 +159,6 @@ wxPenRefData::wxPenRefData()
 
 wxPenRefData::wxPenRefData(const wxPenRefData& data)
              :wxGDIRefData()
-    , m_colour(data.m_colour)
 {
     m_style = data.m_style;
     m_width = data.m_width;
@@ -166,20 +166,28 @@ wxPenRefData::wxPenRefData(const wxPenRefData& data)
     m_cap = data.m_cap;
     m_nbDash = data.m_nbDash;
     m_dash = data.m_dash;
+    m_colour = data.m_colour;
     m_hPen = 0;
 }
 
-wxPenRefData::wxPenRefData(const wxPenInfo& info)
-    : m_stipple(info.GetStipple())
-    , m_colour(info.GetColour())
+wxPenRefData::wxPenRefData(const wxColour& col, int width, wxPenStyle style)
 {
     Init();
 
-    m_style = info.GetStyle();
-    m_width = info.GetWidth();
-    m_join = info.GetJoin();
-    m_cap = info.GetCap();
-    m_nbDash = info.GetDashes(&m_dash);
+    m_style = style;
+    m_width = width;
+
+    m_colour = col;
+}
+
+wxPenRefData::wxPenRefData(const wxBitmap& stipple, int width)
+{
+    Init();
+
+    m_style = wxPENSTYLE_STIPPLE;
+    m_width = width;
+
+    m_stipple = stipple;
 }
 
 wxPenRefData::~wxPenRefData()
@@ -205,7 +213,7 @@ static int ConvertPenStyle(wxPenStyle style)
 
         default:
             wxFAIL_MSG( wxT("unknown pen style") );
-            wxFALLTHROUGH;
+            // fall through
 
         case wxPENSTYLE_DOT:
             return PS_DOT;
@@ -241,7 +249,7 @@ static int ConvertJoinStyle(wxPenJoin join)
 
         default:
             wxFAIL_MSG( wxT("unknown pen join style") );
-            wxFALLTHROUGH;
+            // fall through
 
         case wxJOIN_ROUND:
             return PS_JOIN_ROUND;
@@ -260,7 +268,7 @@ static int ConvertCapStyle(wxPenCap cap)
 
         default:
             wxFAIL_MSG( wxT("unknown pen cap style") );
-            wxFALLTHROUGH;
+            // fall through
 
         case wxCAP_ROUND:
             return PS_ENDCAP_ROUND;
@@ -284,7 +292,9 @@ bool wxPenRefData::Alloc()
    // CreatePen()
    if ( m_join == wxJOIN_ROUND &&
             m_cap == wxCAP_ROUND &&
-                m_style == wxPENSTYLE_SOLID )
+                m_style != wxPENSTYLE_USER_DASH &&
+                    m_style != wxPENSTYLE_STIPPLE &&
+                        (m_width <= 1 || m_style == wxPENSTYLE_SOLID) )
    {
        m_hPen = ::CreatePen(ConvertPenStyle(m_style), m_width, col);
    }
@@ -356,10 +366,7 @@ bool wxPenRefData::Alloc()
            dash = NULL;
        }
 
-       // Note that width can't be 0 for ExtCreatePen(), unlike for CreatePen().
-       int width = m_width == 0 ? 1 : m_width;
-
-       m_hPen = ::ExtCreatePen(styleMSW, width, &lb, m_nbDash, (LPDWORD)dash);
+       m_hPen = ::ExtCreatePen(styleMSW, m_width, &lb, m_nbDash, (LPDWORD)dash);
 
        delete [] dash;
    }
@@ -394,25 +401,17 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxPen, wxGDIObject);
 
 wxPen::wxPen(const wxColour& col, int width, wxPenStyle style)
 {
-    m_refData = new wxPenRefData(wxPenInfo(col, width).Style(style));
+    m_refData = new wxPenRefData(col, width, style);
 }
 
 wxPen::wxPen(const wxColour& colour, int width, int style)
 {
-    m_refData = new wxPenRefData
-                    (
-                        wxPenInfo(colour, width).Style((wxPenStyle)style)
-                    );
+    m_refData = new wxPenRefData(colour, width, (wxPenStyle)style);
 }
 
 wxPen::wxPen(const wxBitmap& stipple, int width)
 {
-    m_refData = new wxPenRefData(wxPenInfo().Stipple(stipple).Width(width));
-}
-
-wxPen::wxPen(const wxPenInfo& info)
-{
-    m_refData = new wxPenRefData(info);
+    m_refData = new wxPenRefData(stipple, width);
 }
 
 bool wxPen::operator==(const wxPen& pen) const

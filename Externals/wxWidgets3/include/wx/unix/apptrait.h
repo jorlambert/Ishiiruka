@@ -64,6 +64,8 @@ public:
 
 #ifdef __WXGTK20__
     virtual wxString GetDesktopEnvironment() const wxOVERRIDE;
+    virtual wxString GetStandardCmdLineOptions(wxArrayString& names,
+                                               wxArrayString& desc) const wxOVERRIDE;
 #endif // __WXGTK20____
 
 #if defined(__WXGTK20__)

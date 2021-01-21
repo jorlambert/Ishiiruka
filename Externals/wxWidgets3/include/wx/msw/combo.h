@@ -45,7 +45,7 @@ public:
                    const wxSize& size = wxDefaultSize,
                    long style = 0,
                    const wxValidator& validator = wxDefaultValidator,
-                   const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+                   const wxString& name = wxComboBoxNameStr)
         : wxComboCtrlBase()
     {
         Init();
@@ -60,12 +60,12 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+                const wxString& name = wxComboBoxNameStr);
 
     virtual ~wxComboCtrl();
 
-    virtual void PrepareBackground( wxDC& dc, const wxRect& rect, int flags ) const wxOVERRIDE;
-    virtual bool IsKeyPopupToggle(const wxKeyEvent& event) const wxOVERRIDE;
+    virtual void PrepareBackground( wxDC& dc, const wxRect& rect, int flags ) const;
+    virtual bool IsKeyPopupToggle(const wxKeyEvent& event) const;
 
     static int GetFeatures() { return wxComboCtrlFeatures::All; }
 
@@ -75,23 +75,23 @@ public:
 protected:
     void DoTimerEvent();
 
-    virtual bool AnimateShow( const wxRect& rect, int flags ) wxOVERRIDE;
+    virtual bool AnimateShow( const wxRect& rect, int flags );
 #endif // wxUSE_COMBOCTRL_POPUP_ANIMATION
 
 protected:
 
     // Dummy method - we override all functions that call this
-    virtual WXHWND GetEditHWND() const wxOVERRIDE { return NULL; }
+    virtual WXHWND GetEditHWND() const { return NULL; }
 
     // customization
-    virtual void OnResize() wxOVERRIDE;
-    virtual wxCoord GetNativeTextIndent() const wxOVERRIDE;
+    virtual void OnResize();
+    virtual wxCoord GetNativeTextIndent() const;
 
     // event handlers
     void OnPaintEvent( wxPaintEvent& event );
     void OnMouseEvent( wxMouseEvent& event );
 
-    virtual bool HasTransparentBackground() wxOVERRIDE { return IsDoubleBuffered(); }
+    virtual bool HasTransparentBackground() { return IsDoubleBuffered(); }
 
 private:
     void Init();

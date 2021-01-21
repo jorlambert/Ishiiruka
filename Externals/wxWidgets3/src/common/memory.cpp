@@ -27,7 +27,6 @@
     #include "wx/app.h"
     #include "wx/hash.h"
     #include "wx/log.h"
-    #include "wx/wxcrtvararg.h" // for wxVsnprintf
 #endif
 
 #if wxUSE_THREADS
@@ -321,7 +320,7 @@ void wxMemStruct::PrintNode ()
       msg += wxT("object");
 
     wxString msg2;
-    msg2.Printf(wxT(" at %#zx, size %d"), wxPtrToUInt(GetActualData()), (int)RequestSize());
+    msg2.Printf(wxT(" at 0x%lX, size %d"), (long)GetActualData(), (int)RequestSize());
     msg += msg2;
 
     wxLogMessage(msg);
@@ -334,7 +333,7 @@ void wxMemStruct::PrintNode ()
       msg.Printf(wxT("%s(%d): "), m_fileName, (int)m_lineNum);
     msg += wxT("non-object data");
     wxString msg2;
-    msg2.Printf(wxT(" at %#zx, size %d\n"), wxPtrToUInt(GetActualData()), (int)RequestSize());
+    msg2.Printf(wxT(" at 0x%lX, size %d\n"), (long)GetActualData(), (int)RequestSize());
     msg += msg2;
 
     wxLogMessage(msg);
@@ -367,7 +366,7 @@ void wxMemStruct::Dump ()
       msg += wxT("unknown object class");
 
     wxString msg2;
-    msg2.Printf(wxT(" at %#zx, size %d"), wxPtrToUInt(GetActualData()), (int)RequestSize());
+    msg2.Printf(wxT(" at 0x%lX, size %d"), (long)GetActualData(), (int)RequestSize());
     msg += msg2;
 
     wxDebugContext::OutputDumpLine(msg.c_str());
@@ -379,7 +378,7 @@ void wxMemStruct::Dump ()
       msg.Printf(wxT("%s(%d): "), m_fileName, (int)m_lineNum);
 
     wxString msg2;
-    msg2.Printf(wxT("non-object data at %#zx, size %d"), wxPtrToUInt(GetActualData()), (int)RequestSize() );
+    msg2.Printf(wxT("non-object data at 0x%lX, size %d"), (long)GetActualData(), (int)RequestSize() );
     msg += msg2;
     wxDebugContext::OutputDumpLine(msg.c_str());
   }
@@ -455,11 +454,11 @@ int wxDebugContext::m_balignmask = (int)((char *)&markerCalc[1] - (char*)&marker
 // Pointer to global function to call at shutdown
 wxShutdownNotifyFunction wxDebugContext::sm_shutdownFn;
 
-wxDebugContext::wxDebugContext()
+wxDebugContext::wxDebugContext(void)
 {
 }
 
-wxDebugContext::~wxDebugContext()
+wxDebugContext::~wxDebugContext(void)
 {
 }
 
@@ -573,14 +572,14 @@ void wxDebugContext::TraverseList (PmSFV func, wxMemStruct *from)
 /*
   Print out the list.
   */
-bool wxDebugContext::PrintList()
+bool wxDebugContext::PrintList (void)
 {
   TraverseList ((PmSFV)&wxMemStruct::PrintNode, (checkPoint ? checkPoint->m_next : NULL));
 
   return true;
 }
 
-bool wxDebugContext::Dump()
+bool wxDebugContext::Dump(void)
 {
   {
     const wxChar* appName = wxT("application");
@@ -720,7 +719,7 @@ bool wxDebugContext::PrintStatistics(bool detailed)
   return true;
 }
 
-bool wxDebugContext::PrintClasses()
+bool wxDebugContext::PrintClasses(void)
 {
   {
     const wxChar* appName = wxT("application");

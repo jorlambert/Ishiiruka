@@ -27,7 +27,7 @@ public:
         const wxPoint& pos = wxDefaultPosition,
         const wxSize& size = wxDefaultSize,
         long style = wxDEFAULT_FRAME_STYLE|wxTINY_CAPTION,
-        const wxString& name = wxASCII_STR(wxFrameNameStr))
+        const wxString& name = wxFrameNameStr)
     {
         // Use wxFrame constructor in absence of more specific code.
         Create(parent, id, title, pos, size, style, name);

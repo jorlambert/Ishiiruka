@@ -22,7 +22,7 @@ public:
            const wxSize& size = wxDefaultSize,
            long style = wxSB_HORIZONTAL,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxScrollBarNameStr) )
+           const wxString& name = wxScrollBarNameStr )
     {
         Create( parent, id, pos, size, style, validator, name );
     }
@@ -31,7 +31,7 @@ public:
            const wxSize& size = wxDefaultSize,
            long style = wxSB_HORIZONTAL,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxScrollBarNameStr) );
+           const wxString& name = wxScrollBarNameStr );
     virtual ~wxScrollBar();
     int GetThumbPosition() const wxOVERRIDE;
     int GetThumbSize() const wxOVERRIDE;

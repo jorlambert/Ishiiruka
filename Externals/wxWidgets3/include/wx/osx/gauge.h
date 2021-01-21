@@ -25,7 +25,7 @@ class WXDLLIMPEXP_CORE wxGauge: public wxGaugeBase
            const wxSize& size = wxDefaultSize,
            long style = wxGA_HORIZONTAL,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxGaugeNameStr))
+           const wxString& name = wxGaugeNameStr)
   {
     Create(parent, id, range, pos, size, style, validator, name);
   }
@@ -36,14 +36,14 @@ class WXDLLIMPEXP_CORE wxGauge: public wxGaugeBase
            const wxSize& size = wxDefaultSize,
            long style = wxGA_HORIZONTAL,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxASCII_STR(wxGaugeNameStr));
+           const wxString& name = wxGaugeNameStr);
 
     // set gauge range/value
-    virtual void SetRange(int range) wxOVERRIDE;
-    virtual void SetValue(int pos) wxOVERRIDE;
-    virtual int  GetValue() const  wxOVERRIDE;
+    virtual void SetRange(int range);
+    virtual void SetValue(int pos);
+    virtual int  GetValue() const ;
 
-    void Pulse() wxOVERRIDE;
+    void Pulse();
 
  protected:
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxGauge);

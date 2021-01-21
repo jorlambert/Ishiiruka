@@ -29,7 +29,6 @@
 #include "wx/msw/taskbarbutton.h"
 #include "wx/scopedptr.h"
 #include "wx/msw/private/comptr.h"
-#include "wx/msw/private/cotaskmemptr.h"
 
 #include <shlwapi.h>
 #include <initguid.h>
@@ -397,7 +396,7 @@ bool AddShellLink(IObjectCollection *collection,
     }
 
     if ( item.GetType() == wxTASKBAR_JUMP_LIST_TASK ||
-         item.GetType() == wxTASKBAR_JUMP_LIST_DESTINATION )
+         item.GetType() == wxTASKBAR_JUMP_LIST_DESTIONATION )
     {
         if ( !item.GetFilePath().IsEmpty() )
             shellLink->SetPath(item.GetFilePath().wc_str());
@@ -422,7 +421,7 @@ bool AddShellLink(IObjectCollection *collection,
 
     PROPVARIANT pv;
     if ( item.GetType() == wxTASKBAR_JUMP_LIST_TASK ||
-         item.GetType() == wxTASKBAR_JUMP_LIST_DESTINATION )
+         item.GetType() == wxTASKBAR_JUMP_LIST_DESTIONATION )
     {
         hr = InitPropVariantFromString(item.GetTitle().wc_str(), &pv);
         if ( SUCCEEDED(hr) )
@@ -456,7 +455,7 @@ wxTaskBarJumpListItem* GetItemFromIShellLink(IShellLink* link)
         return NULL;
 
     wxTaskBarJumpListItem* item =
-        new wxTaskBarJumpListItem(NULL, wxTASKBAR_JUMP_LIST_DESTINATION);
+        new wxTaskBarJumpListItem(NULL, wxTASKBAR_JUMP_LIST_DESTIONATION);
 
     wxCOMPtr<IPropertyStore> linkProps;
     HRESULT hr = link->QueryInterface
@@ -497,11 +496,12 @@ wxTaskBarJumpListItem* GetItemFromIShellItem(IShellItem *shellItem)
         return NULL;
 
     wxTaskBarJumpListItem *item =
-        new wxTaskBarJumpListItem(NULL, wxTASKBAR_JUMP_LIST_DESTINATION);
+        new wxTaskBarJumpListItem(NULL, wxTASKBAR_JUMP_LIST_DESTIONATION);
 
-    wxCoTaskMemPtr<wchar_t> name;
+    wchar_t *name;
     shellItem->GetDisplayName(SIGDN_FILESYSPATH, &name);
     item->SetFilePath(wxString(name));
+    CoTaskMemFree(name);
     return item;
 }
 
@@ -577,7 +577,7 @@ private:
     bool BeginUpdate();
     bool CommitUpdate();
     void AddTasksToDestinationList();
-    void AddCustomCategoriesToDestinationList();
+    void AddCustomCategoriesToDestionationList();
     void LoadKnownCategory(const wxString& title);
 
     wxTaskBarJumpList *m_jumpList;
@@ -882,7 +882,20 @@ bool wxTaskBarButtonImpl::InsertThumbBarButton(size_t pos,
 wxThumbBarButton* wxTaskBarButtonImpl::RemoveThumbBarButton(
     wxThumbBarButton *button)
 {
-    return RemoveThumbBarButton(button->GetID());
+    for ( wxThumbBarButtons::iterator iter = m_thumbBarButtons.begin();
+          iter != m_thumbBarButtons.end();
+          ++iter )
+    {
+        if ( button == *iter )
+        {
+            m_thumbBarButtons.erase(iter);
+            button->SetParent(NULL);
+            InitOrUpdateThumbBarButtons();
+            return *iter;
+        }
+    }
+
+    return NULL;
 }
 
 wxThumbBarButton* wxTaskBarButtonImpl::RemoveThumbBarButton(int id)
@@ -891,13 +904,12 @@ wxThumbBarButton* wxTaskBarButtonImpl::RemoveThumbBarButton(int id)
           iter != m_thumbBarButtons.end();
           ++iter )
     {
-        wxThumbBarButton* button = *iter;
-        if ( id == button->GetID() )
+        if ( id == (*iter)->GetID() )
         {
             m_thumbBarButtons.erase(iter);
-            button->SetParent(NULL);
+            (*iter)->SetParent(NULL);
             InitOrUpdateThumbBarButtons();
-            return button;
+            return *iter;
         }
     }
 
@@ -1303,7 +1315,7 @@ void wxTaskBarJumpListImpl::Update()
         return;
 
     AddTasksToDestinationList();
-    AddCustomCategoriesToDestinationList();
+    AddCustomCategoriesToDestionationList();
     if ( m_recent_visible )
         m_destinationList->AppendKnownCategory(KDC_RECENT);
     if ( m_frequent_visible )
@@ -1379,11 +1391,10 @@ wxTaskBarJumpListImpl::RemoveCustomCategory(const wxString& title)
           it != m_customCategories.end();
           ++it )
     {
-        wxTaskBarJumpListCategory* tbJlCat = *it;
-        if ( tbJlCat->GetTitle() == title )
+        if ( (*it)->GetTitle() == title )
         {
             m_customCategories.erase(it);
-            return tbJlCat;
+            return *it;
         }
     }
 
@@ -1439,7 +1450,7 @@ void wxTaskBarJumpListImpl::AddTasksToDestinationList()
     m_destinationList->AddUserTasks(collection);
 }
 
-void wxTaskBarJumpListImpl::AddCustomCategoriesToDestinationList()
+void wxTaskBarJumpListImpl::AddCustomCategoriesToDestionationList()
 {
     for ( wxTaskBarJumpListCategories::iterator it = m_customCategories.begin();
           it != m_customCategories.end();
@@ -1455,7 +1466,7 @@ void wxTaskBarJumpListImpl::AddCustomCategoriesToDestinationList()
               ++iter )
         {
             wxASSERT_MSG(
-                (*iter)->GetType() == wxTASKBAR_JUMP_LIST_DESTINATION,
+                (*iter)->GetType() == wxTASKBAR_JUMP_LIST_DESTIONATION,
                 "Invalid category item." );
             AddShellLink(collection, *(*iter));
         }

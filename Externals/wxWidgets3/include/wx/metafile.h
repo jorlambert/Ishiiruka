@@ -32,7 +32,7 @@
         #else // also map all metafile classes to enh metafile
             typedef wxEnhMetaFile wxMetafile;
             typedef wxEnhMetaFileDC wxMetafileDC;
-            #if wxUSE_DATAOBJ
+            #if wxUSE_DRAG_AND_DROP
                 typedef wxEnhMetaFileDataObject wxMetafileDataObject;
             #endif
 

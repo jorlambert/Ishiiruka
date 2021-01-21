@@ -269,7 +269,8 @@ const wxClassInfo* wxMediaCtrl::NextBackend(wxClassInfo::const_iterator* it)
 //---------------------------------------------------------------------------
 wxMediaCtrl::~wxMediaCtrl()
 {
-    delete m_imp;
+    if (m_imp)
+        delete m_imp;
 }
 
 //---------------------------------------------------------------------------
@@ -525,7 +526,7 @@ void wxMediaBackendCommonBase::QueueStopEvent()
 
 //
 // Force link default backends in -
-// see https://wiki.wxwidgets.org/RTTI
+// see http://wiki.wxwidgets.org/wiki.pl?RTTI
 //
 #include "wx/html/forcelnk.h"
 

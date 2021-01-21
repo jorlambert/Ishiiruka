@@ -34,7 +34,8 @@
 #include "wx/private/eventloopsourcesmanager.h"
 #include "wx/apptrait.h"
 
-#include "wx/gtk/private/wrapgtk.h"
+#include <gtk/gtk.h>
+#include "wx/gtk/private/gtk2-compat.h"
 
 GdkWindow* wxGetTopLevelGDK();
 
@@ -380,26 +381,20 @@ void wxGUIEventLoop::DoYieldFor(long eventsToProcess)
     gdk_event_handler_set(wxgtk_main_do_event, this, NULL);
     while (Pending())   // avoid false positives from our idle source
         gtk_main_iteration();
-
-    wxGCC_WARNING_SUPPRESS_CAST_FUNCTION_TYPE()
     gdk_event_handler_set ((GdkEventFunc)gtk_main_do_event, NULL, NULL);
-    wxGCC_WARNING_RESTORE_CAST_FUNCTION_TYPE()
 
     wxEventLoopBase::DoYieldFor(eventsToProcess);
 
-    // put any unprocessed GDK events back in the queue
-    if ( !m_arrGdkEvents.IsEmpty() )
+    // put all unprocessed GDK events back in the queue
+    GdkDisplay* disp = gdk_window_get_display(wxGetTopLevelGDK());
+    for (size_t i=0; i<m_arrGdkEvents.GetCount(); i++)
     {
-        GdkDisplay* disp = gdk_window_get_display(wxGetTopLevelGDK());
-        for (size_t i=0; i<m_arrGdkEvents.GetCount(); i++)
-        {
-            GdkEvent* ev = (GdkEvent*)m_arrGdkEvents[i];
+        GdkEvent* ev = (GdkEvent*)m_arrGdkEvents[i];
 
-            // NOTE: gdk_display_put_event makes a copy of the event passed to it
-            gdk_display_put_event(disp, ev);
-            gdk_event_free(ev);
-        }
-
-        m_arrGdkEvents.Clear();
+        // NOTE: gdk_display_put_event makes a copy of the event passed to it
+        gdk_display_put_event(disp, ev);
+        gdk_event_free(ev);
     }
+
+    m_arrGdkEvents.Clear();
 }

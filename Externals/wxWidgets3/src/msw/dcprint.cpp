@@ -137,8 +137,9 @@ wxPrinterDC::wxPrinterDC(const wxString& driver_name,
 
 wxPrinterDCImpl::wxPrinterDCImpl( wxPrinterDC *owner, const wxPrintData& printData ) :
     wxMSWDCImpl( owner )
-    , m_printData(printData)
 {
+    m_printData = printData;
+
     m_isInteractive = false;
 
     m_hDC = wxGetPrinterDC(printData);

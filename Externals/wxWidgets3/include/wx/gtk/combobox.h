@@ -35,7 +35,7 @@ public:
                int n = 0, const wxString choices[] = NULL,
                long style = 0,
                const wxValidator& validator = wxDefaultValidator,
-               const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+               const wxString& name = wxComboBoxNameStr)
         : wxChoice(), wxTextEntry()
     {
         Init();
@@ -49,7 +49,7 @@ public:
                const wxArrayString& choices,
                long style = 0,
                const wxValidator& validator = wxDefaultValidator,
-               const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+               const wxString& name = wxComboBoxNameStr)
         : wxChoice(), wxTextEntry()
     {
         Init();
@@ -64,7 +64,7 @@ public:
                 int n = 0, const wxString choices[] = (const wxString *) NULL,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+                const wxString& name = wxComboBoxNameStr);
     bool Create(wxWindow *parent, wxWindowID id,
                 const wxString& value,
                 const wxPoint& pos,
@@ -72,7 +72,7 @@ public:
                 const wxArrayString& choices,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+                const wxString& name = wxComboBoxNameStr);
 
     // Set/GetSelection() from wxTextEntry and wxChoice
 
@@ -128,8 +128,6 @@ public:
     static wxVisualAttributes
     GetClassDefaultAttributes(wxWindowVariant variant = wxWINDOW_VARIANT_NORMAL);
 
-    virtual const wxTextEntry* WXGetTextEntry() const wxOVERRIDE { return this; }
-
 protected:
     // From wxWindowGTK:
     virtual GdkWindow *GTKGetWindow(wxArrayGdkWindows& windows) const wxOVERRIDE;
@@ -147,16 +145,13 @@ protected:
     virtual GtkEntry *GetEntry() const wxOVERRIDE
         { return m_entry; }
 
-    virtual int GTKIMFilterKeypress(GdkEventKey* event) const wxOVERRIDE
-        { return GTKEntryIMFilterKeypress(event); }
-
-
     GtkEntry*   m_entry;
 
 private:
     // From wxTextEntry:
     virtual wxWindow *GetEditableWindow() wxOVERRIDE { return this; }
     virtual GtkEditable *GetEditable() const wxOVERRIDE;
+    virtual void EnableTextChangedEvents(bool enable) wxOVERRIDE;
 
     void Init();
 

@@ -281,10 +281,10 @@ bool wxNotebook::DeletePage(size_t nPage)
 
     m_tabView->RemoveTab(GetPageId(m_tabView, pPage));
 
-    m_pages.erase(m_pages.begin() + nPage);
+    m_pages.Remove(pPage);
     delete pPage;
 
-    if (m_pages.empty())
+    if (m_pages.GetCount() == 0)
     {
         m_selection = -1;
         m_tabView->SetTabSelection(-1, false);
@@ -330,9 +330,9 @@ wxWindow* wxNotebook::DoRemovePage(size_t nPage)
 
     m_tabView->RemoveTab(GetPageId(m_tabView, pPage));
 
-    m_pages.erase(m_pages.begin() + nPage);
+    m_pages.Remove(pPage);
 
-    if (m_pages.empty())
+    if (m_pages.GetCount() == 0)
     {
       m_selection = -1;
       m_tabView->SetTabSelection(-1, true);
@@ -392,7 +392,7 @@ bool wxNotebook::DeleteAllPages()
     for ( nPage = 0; nPage < nPageCount; nPage++ )
         delete m_pages[nPage];
 
-    m_pages.clear();
+    m_pages.Clear();
 
     return true;
 }
@@ -413,7 +413,7 @@ bool wxNotebook::InsertPage(size_t nPage,
       pPage->Show(false);
 
     // save the pointer to the page
-    m_pages.insert(m_pages.begin() + nPage, pPage);
+    m_pages.Insert(pPage, nPage);
 
     if (bSelect)
     {
@@ -522,7 +522,7 @@ bool wxNotebook::RefreshLayout(bool force)
 
         // fit the notebook page to the tab control's display area
 
-        size_t nCount = m_pages.size();
+        size_t nCount = m_pages.Count();
         for ( size_t nPage = 0; nPage < nCount; nPage++ ) {
             wxNotebookPage *pPage = m_pages[nPage];
             wxRect clientRect = GetAvailableClientSize();

@@ -28,7 +28,7 @@ public:
                     const wxSize& size = wxDefaultSize,
                     long style = wxSL_HORIZONTAL,
                     const wxValidator& validator = wxDefaultValidator,
-                    const wxString& name = wxASCII_STR(wxSliderNameStr))
+                    const wxString& name = wxSliderNameStr)
     {
         Create(parent, id, value, minValue, maxValue, pos, size, style, validator, name);
     }
@@ -41,7 +41,7 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = wxSL_HORIZONTAL,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxSliderNameStr));
+                const wxString& name = wxSliderNameStr);
 
     virtual int GetValue() const wxOVERRIDE;
     virtual void SetValue(int) wxOVERRIDE;
@@ -81,6 +81,7 @@ protected:
 
     virtual wxSize DoGetBestSize() const wxOVERRIDE;
     virtual void   DoSetSize(int x, int y, int w, int h, int sizeFlags) wxOVERRIDE;
+    virtual void   DoMoveWindow(int x, int y, int w, int h) wxOVERRIDE;
 
     // set min/max size of the slider
     virtual void DoSetSizeHints( int minW, int minH,

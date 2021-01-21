@@ -216,10 +216,8 @@ public:
     wxVariant& operator=(const wxString& value);
     // these overloads are necessary to prevent the compiler from using bool
     // version instead of wxString one:
-#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
     wxVariant& operator=(const char* value)
         { return *this = wxString(value); }
-#endif // wxNO_IMPLICIT_WXSTRING_ENCODING
     wxVariant& operator=(const wchar_t* value)
         { return *this = wxString(value); }
     wxVariant& operator=(const wxCStrData& value)
@@ -232,7 +230,6 @@ public:
     wxString GetString() const;
 
 #if wxUSE_STD_STRING
-#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
     wxVariant(const std::string& val, const wxString& name = wxEmptyString);
     bool operator==(const std::string& value) const
         { return operator==(wxString(value)); }
@@ -241,7 +238,6 @@ public:
     wxVariant& operator=(const std::string& value)
         { return operator=(wxString(value)); }
     operator std::string() const { return (operator wxString()).ToStdString(); }
-#endif // wxNO_IMPLICIT_WXSTRING_ENCODING
 
     wxVariant(const wxStdWideString& val, const wxString& name = wxEmptyString);
     bool operator==(const wxStdWideString& value) const
@@ -489,7 +485,7 @@ class classname##VariantData: public wxVariantData \
 { \
 public:\
     classname##VariantData() {} \
-    classname##VariantData( const classname &value ) : m_value(value) { } \
+    classname##VariantData( const classname &value ) { m_value = value; } \
 \
     classname &GetValue() { return m_value; } \
 \

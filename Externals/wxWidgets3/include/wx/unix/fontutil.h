@@ -21,10 +21,10 @@
 
 // returns the handle of the nearest available font or 0
 extern wxNativeFont
-wxLoadQueryNearestFont(double pointSize,
+wxLoadQueryNearestFont(int pointSize,
                        wxFontFamily family,
                        wxFontStyle style,
-                       int weight,
+                       wxFontWeight weight,
                        bool underlined,
                        const wxString &facename,
                        wxFontEncoding encoding,

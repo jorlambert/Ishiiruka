@@ -32,8 +32,6 @@ class WXDLLIMPEXP_FWD_BASE wxString;
 // don't let the fact that the existing classes implement MB2WC/WC2MB() instead
 // confuse you.
 //
-// For many encodings you must override GetMaxCharLen().
-//
 // You also have to implement Clone() to allow copying the conversions
 // polymorphically.
 //
@@ -73,19 +71,11 @@ public:
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const;
 
 
-    // Convenience functions for translating NUL-terminated strings: return
-    // the buffer containing the converted string or empty buffer if the
+    // Convenience functions for translating NUL-terminated strings: returns
+    // the buffer containing the converted string or NULL pointer if the
     // conversion failed.
-    wxWCharBuffer cMB2WC(const char *in) const
-        { return DoConvertMB2WC(in, wxNO_LEN); }
-    wxCharBuffer cWC2MB(const wchar_t *in) const
-        { return DoConvertWC2MB(in, wxNO_LEN); }
-
-    wxWCharBuffer cMB2WC(const wxScopedCharBuffer& in) const
-        { return DoConvertMB2WC(in, in.length()); }
-    wxCharBuffer cWC2MB(const wxScopedWCharBuffer& in) const
-        { return DoConvertWC2MB(in, in.length()); }
-
+    const wxWCharBuffer cMB2WC(const char *in) const;
+    const wxCharBuffer cWC2MB(const wchar_t *in) const;
 
     // Convenience functions for converting strings which may contain embedded
     // NULs and don't have to be NUL-terminated.
@@ -102,27 +92,29 @@ public:
     // number of characters converted, whether the last one of them was NUL or
     // not. But if inLen == wxNO_LEN then outLen doesn't account for the last
     // NUL even though it is present.
-    wxWCharBuffer
+    const wxWCharBuffer
         cMB2WC(const char *in, size_t inLen, size_t *outLen) const;
-    wxCharBuffer
+    const wxCharBuffer
         cWC2MB(const wchar_t *in, size_t inLen, size_t *outLen) const;
+
+    // And yet more convenience functions for converting the entire buffers:
+    // these are the simplest and least error-prone as you never need to bother
+    // with lengths/sizes directly.
+    const wxWCharBuffer cMB2WC(const wxScopedCharBuffer& in) const;
+    const wxCharBuffer cWC2MB(const wxScopedWCharBuffer& in) const;
 
     // convenience functions for converting MB or WC to/from wxWin default
 #if wxUSE_UNICODE
-    wxWCharBuffer cMB2WX(const char *psz) const { return cMB2WC(psz); }
-    wxCharBuffer cWX2MB(const wchar_t *psz) const { return cWC2MB(psz); }
+    const wxWCharBuffer cMB2WX(const char *psz) const { return cMB2WC(psz); }
+    const wxCharBuffer cWX2MB(const wchar_t *psz) const { return cWC2MB(psz); }
     const wchar_t* cWC2WX(const wchar_t *psz) const { return psz; }
     const wchar_t* cWX2WC(const wchar_t *psz) const { return psz; }
 #else // ANSI
     const char* cMB2WX(const char *psz) const { return psz; }
     const char* cWX2MB(const char *psz) const { return psz; }
-    wxCharBuffer cWC2WX(const wchar_t *psz) const { return cWC2MB(psz); }
-    wxWCharBuffer cWX2WC(const char *psz) const { return cMB2WC(psz); }
+    const wxCharBuffer cWC2WX(const wchar_t *psz) const { return cWC2MB(psz); }
+    const wxWCharBuffer cWX2WC(const char *psz) const { return cMB2WC(psz); }
 #endif // Unicode/ANSI
-
-    // return the maximum number of bytes that can be required to encode a
-    // single character in this encoding, e.g. 4 for UTF-8
-    virtual size_t GetMaxCharLen() const { return 1; }
 
     // this function is used in the implementation of cMB2WC() to distinguish
     // between the following cases:
@@ -141,10 +133,12 @@ public:
     // encoding
     static size_t GetMaxMBNulLen() { return 4 /* for UTF-32 */; }
 
+#if wxUSE_UNICODE_UTF8
     // return true if the converter's charset is UTF-8, i.e. char* strings
     // decoded using this object can be directly copied to wxString's internal
     // storage without converting to WC and than back to UTF-8 MB string
     virtual bool IsUTF8() const { return false; }
+#endif
 
     // The old conversion functions. The existing classes currently mostly
     // implement these ones but we're in transition to using To/FromWChar()
@@ -170,12 +164,7 @@ public:
     virtual wxMBConv *Clone() const = 0;
 
     // virtual dtor for any base class
-    virtual ~wxMBConv() { }
-
-private:
-    // Common part of single argument cWC2MB() and cMB2WC() overloads above.
-    wxCharBuffer DoConvertWC2MB(const wchar_t* pwz, size_t srcLen) const;
-    wxWCharBuffer DoConvertMB2WC(const char* psz, size_t srcLen) const;
+    virtual ~wxMBConv();
 };
 
 // ----------------------------------------------------------------------------
@@ -191,7 +180,9 @@ public:
 
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvLibc; }
 
+#if wxUSE_UNICODE_UTF8
     virtual bool IsUTF8() const wxOVERRIDE { return wxLocaleIsUtf8; }
+#endif
 };
 
 #ifdef __UNIX__
@@ -230,7 +221,9 @@ public:
         return m_conv->GetMBNulLen();
     }
 
+#if wxUSE_UNICODE_UTF8
     virtual bool IsUTF8() const wxOVERRIDE { return m_conv->IsUTF8(); }
+#endif
 
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxConvBrokenFileNames(*this); }
 
@@ -260,8 +253,6 @@ public:
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
 
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
-
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF7; }
 
 private:
@@ -288,7 +279,7 @@ private:
 
     public:
         // the initial state is direct
-        DecoderState() { mode = Direct; accum = bit = msb = 0; isLSB = false; }
+        DecoderState() { mode = Direct; }
 
         // switch to/from shifted mode
         void ToDirect() { mode = Direct; }
@@ -317,7 +308,7 @@ private:
         Mode mode;
 
     public:
-        EncoderState() { mode = Direct; accum = bit = 0; }
+        EncoderState() { mode = Direct; }
 
         void ToDirect() { mode = Direct; }
         void ToShifted() { mode = Shifted; accum = bit = 0; }
@@ -349,13 +340,13 @@ public:
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
 
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
-
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvStrictUTF8(); }
 
+#if wxUSE_UNICODE_UTF8
     // NB: other mapping modes are not, strictly speaking, UTF-8, so we can't
     //     take the shortcut in that case
     virtual bool IsUTF8() const wxOVERRIDE { return true; }
+#endif
 };
 
 class WXDLLIMPEXP_BASE wxMBConvUTF8 : public wxMBConvStrictUTF8
@@ -375,13 +366,13 @@ public:
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
 
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
-
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF8(m_options); }
 
+#if wxUSE_UNICODE_UTF8
     // NB: other mapping modes are not, strictly speaking, UTF-8, so we can't
     //     take the shortcut in that case
     virtual bool IsUTF8() const wxOVERRIDE { return m_options == MAP_INVALID_UTF8_NOT; }
+#endif
 
 private:
     int m_options;
@@ -417,7 +408,6 @@ public:
                            const char *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF16LE; }
 };
 
@@ -432,7 +422,6 @@ public:
                            const char *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF16BE; }
 };
 
@@ -465,7 +454,6 @@ public:
                            const char *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF32LE; }
 };
 
@@ -480,7 +468,6 @@ public:
                            const char *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
     virtual size_t FromWChar(char *dst, size_t dstLen,
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxMBConvUTF32BE; }
 };
 
@@ -509,7 +496,9 @@ public:
                              const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
     virtual size_t GetMBNulLen() const wxOVERRIDE;
 
+#if wxUSE_UNICODE_UTF8
     virtual bool IsUTF8() const wxOVERRIDE;
+#endif
 
     virtual wxMBConv *Clone() const wxOVERRIDE { return new wxCSConv(*this); }
 
@@ -581,10 +570,6 @@ public:
     virtual size_t
     FromWChar(char *dst, size_t dstLen,
               const wchar_t *src, size_t srcLen = wxNO_LEN) const wxOVERRIDE;
-
-    // Use the value for UTF-8 here to make sure we try to decode up to 4 bytes
-    // as UTF-8 before giving up.
-    virtual size_t GetMaxCharLen() const wxOVERRIDE { return 4; }
 
     virtual wxMBConv *Clone() const wxOVERRIDE
     {
@@ -718,20 +703,6 @@ extern WXDLLIMPEXP_DATA_BASE(wxMBConv *) wxConvUI;
     #define wxSafeConvertMB2WX(s) (s)
     #define wxSafeConvertWX2MB(s) (s)
 #endif // Unicode/ANSI
-
-// Macro that indicates the default encoding for converting C strings
-// to wxString. It provides a default value for a const wxMBConv&
-// parameter (i.e. wxConvLibc) unless wxNO_IMPLICIT_WXSTRING_ENCODING
-// is defined.
-//
-// Intended use:
-// wxString(const char *data, ...,
-//          const wxMBConv &conv wxSTRING_DEFAULT_CONV_ARG);
-#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
-#define wxSTRING_DEFAULT_CONV_ARG = wxConvLibc
-#else
-#define wxSTRING_DEFAULT_CONV_ARG
-#endif
 
 #endif // _WX_STRCONV_H_
 

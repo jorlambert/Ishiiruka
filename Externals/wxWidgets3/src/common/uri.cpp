@@ -67,13 +67,13 @@ bool wxURI::Create(const wxString& uri)
 
 void wxURI::Clear()
 {
-    m_scheme.clear();
-    m_userinfo.clear();
-    m_server.clear();
-    m_port.clear();
-    m_path.clear();
-    m_query.clear();
-    m_fragment.clear();
+    m_scheme =
+    m_userinfo =
+    m_server =
+    m_port =
+    m_path =
+    m_query =
+    m_fragment = wxEmptyString;
 
     m_hostType = wxURI_REGNAME;
 
@@ -177,7 +177,7 @@ wxString wxURI::GetPassword() const
       size_t posColon = m_userinfo.find(':');
 
       if ( posColon == wxString::npos )
-          return wxString();
+          return "";
 
       return m_userinfo(posColon + 1, wxString::npos);
 }
@@ -532,21 +532,6 @@ const char* wxURI::ParsePath(const char* uri)
         return uri;
 
     const bool isAbs = *uri == '/';
-
-    // From RFC 3986: when authority is present, the path must either be empty
-    // or begin with a slash ("/") character. When authority is not present,
-    // the path cannot begin with two slashes.
-    if ( m_userinfo.empty() && m_server.empty() && m_port.empty() )
-    {
-        if ( isAbs && uri[1] == '/' )
-            return uri;
-    }
-    else
-    {
-        if ( !isAbs )
-            return uri;
-    }
-
     if ( isAbs )
         m_path += *uri++;
 
@@ -757,7 +742,7 @@ void wxURI::Resolve(const wxURI& base, int flags)
             // if we have an empty path it means we were constructed from a "."
             // string or something similar (e.g. "././././"), it should count
             // as (empty) segment
-            our.push_back(wxString());
+            our.push_back("");
         }
 
         const wxArrayString::const_iterator end = our.end();
@@ -768,7 +753,7 @@ void wxURI::Resolve(const wxURI& base, int flags)
                 // as in ParsePath(), while normally we ignore the empty
                 // segments, we need to take account of them at the end
                 if ( i == end - 1 )
-                    result.push_back(wxString());
+                    result.push_back("");
                 continue;
             }
 
@@ -779,7 +764,7 @@ void wxURI::Resolve(const wxURI& base, int flags)
                     result.pop_back();
 
                     if ( i == end - 1 )
-                        result.push_back(wxString());
+                        result.push_back("");
                 }
                 //else: just ignore, extra ".." don't accumulate
             }
@@ -788,7 +773,7 @@ void wxURI::Resolve(const wxURI& base, int flags)
                 if ( result.empty() )
                 {
                     // ensure that the resulting path will always be absolute
-                    result.push_back(wxString());
+                    result.push_back("");
                 }
 
                 result.push_back(*i);

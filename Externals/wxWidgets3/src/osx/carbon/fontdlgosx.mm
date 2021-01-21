@@ -61,11 +61,9 @@
 
 - (id)init
 {
-    if (self = [super init])
-    {
-        m_isUnderline = false;
-        m_isStrikethrough = false;
-    }
+    [super init];
+    m_isUnderline = false;
+    m_isStrikethrough = false;
     return self;
 }
 
@@ -80,6 +78,7 @@
     m_isUnderline = m_isStrikethrough = false;
     for (id key in attribs) {
         NSNumber *number = static_cast<NSNumber *>([attribs objectForKey:key]);
+        int i = [number intValue];
         if ([key isEqual:NSUnderlineStyleAttributeName]) {
             m_isUnderline = [number intValue] != NSUnderlineStyleNone;
         } else if ([key isEqual:NSStrikethroughStyleAttributeName]) {
@@ -120,38 +119,37 @@
 @implementation wxMacFontPanelAccView : NSView
 - (id)initWithFrame:(NSRect)rectBox
 {
-    if ( self = [super initWithFrame:rectBox] )
-    {
-        wxCFStringRef cfOkString( wxT("OK"), wxLocale::GetSystemEncoding() );
-        wxCFStringRef cfCancelString( wxT("Cancel"), wxLocale::GetSystemEncoding() );
+    [super initWithFrame:rectBox];
 
-        NSRect rectCancel = NSMakeRect( (CGFloat) 10.0 , (CGFloat)10.0 , (CGFloat)82  , (CGFloat)24 );
-        NSRect rectOK = NSMakeRect( (CGFloat)100.0 , (CGFloat)10.0 , (CGFloat)82  , (CGFloat)24 );
+    wxCFStringRef cfOkString( wxT("OK"), wxLocale::GetSystemEncoding() );
+    wxCFStringRef cfCancelString( wxT("Cancel"), wxLocale::GetSystemEncoding() );
 
-        NSButton* cancelButton = [[NSButton alloc] initWithFrame:rectCancel];
-        [cancelButton setTitle:(NSString*)wxCFRetain((CFStringRef)cfCancelString)];
-        [cancelButton setBezelStyle:NSRoundedBezelStyle];
-        [cancelButton setButtonType:NSMomentaryPushInButton];
-        [cancelButton setAction:@selector(cancelPressed:)];
-        [cancelButton setTarget:self];
-        m_cancelButton = cancelButton ;
+    NSRect rectCancel = NSMakeRect( (CGFloat) 10.0 , (CGFloat)10.0 , (CGFloat)82  , (CGFloat)24 );
+    NSRect rectOK = NSMakeRect( (CGFloat)100.0 , (CGFloat)10.0 , (CGFloat)82  , (CGFloat)24 );
 
-        NSButton* okButton = [[NSButton alloc] initWithFrame:rectOK];
-        [okButton setTitle:(NSString*)wxCFRetain((CFStringRef)cfOkString)];
-        [okButton setBezelStyle:NSRoundedBezelStyle];
-        [okButton setButtonType:NSMomentaryPushInButton];
-        [okButton setAction:@selector(okPressed:)];
-        [okButton setTarget:self];
-        // doesn't help either, the button is not highlighted after a color dialog has been used
-        // [okButton setKeyEquivalent:@"\r"];
-        m_okButton = okButton ;
+    NSButton* cancelButton = [[NSButton alloc] initWithFrame:rectCancel];
+    [cancelButton setTitle:(NSString*)wxCFRetain((CFStringRef)cfCancelString)];
+    [cancelButton setBezelStyle:NSRoundedBezelStyle];
+    [cancelButton setButtonType:NSMomentaryPushInButton];
+    [cancelButton setAction:@selector(cancelPressed:)];
+    [cancelButton setTarget:self];
+    m_cancelButton = cancelButton ;
+
+    NSButton* okButton = [[NSButton alloc] initWithFrame:rectOK];
+    [okButton setTitle:(NSString*)wxCFRetain((CFStringRef)cfOkString)];
+    [okButton setBezelStyle:NSRoundedBezelStyle];
+    [okButton setButtonType:NSMomentaryPushInButton];
+    [okButton setAction:@selector(okPressed:)];
+    [okButton setTarget:self];
+    // doesn't help either, the button is not highlighted after a color dialog has been used
+    // [okButton setKeyEquivalent:@"\r"];
+    m_okButton = okButton ;
 
 
-        [self addSubview:cancelButton];
-        [self addSubview:okButton];
+    [self addSubview:cancelButton];
+    [self addSubview:okButton];
 
-        [self resetFlags];
-    }
+    [self resetFlags];
     return self;
 }
 
@@ -274,8 +272,7 @@ int RunMixedFontDialog(wxFontDialog* dialog)
     if ( [accessoryView closedWithOk])
     {
 #if wxOSX_USE_COCOA
-        fontdata.m_chosenFont = wxFont(theFont);
-        // copy the attributes not contained in a native CTFont
+        fontdata.m_chosenFont = wxFont( theFont );
         fontdata.m_chosenFont.SetUnderlined(theFPDelegate->m_isUnderline);
         fontdata.m_chosenFont.SetStrikethrough(theFPDelegate->m_isStrikethrough);
 
@@ -322,11 +319,9 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxFontDialog, wxDialog);
 
 - (id)init
 {
-    if ( self = [super init] )
-    {
-        m_bIsClosed = false;
-    }
-    
+    [super init];
+    m_bIsClosed = false;
+
     return self;
 }
 
@@ -368,11 +363,10 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxFontDialog, wxDialog);
 
 - (id)init
 {
-    if ( self = [super init] )
-    {
-        m_bIsClosed = false;
-        m_bIsOpen = false;
-    }
+    [super init];
+    m_bIsClosed = false;
+    m_bIsOpen = false;
+
     return self;
 }
 
@@ -457,11 +451,31 @@ bool wxFontDialog::Create(wxWindow *parent)
     //NSFontDialog to that font
     if (thewxfont.IsOk())
     {
+        NSFontTraitMask theMask = 0;
+
+        if(thewxfont.GetStyle() == wxFONTSTYLE_ITALIC)
+            theMask |= NSItalicFontMask;
+
+        if(thewxfont.IsFixedWidth())
+            theMask |= NSFixedPitchFontMask;
+
+        NSFont* theDefaultFont =
+            [[NSFontManager sharedFontManager] fontWithFamily:
+                                                    wxNSStringWithWxString(thewxfont.GetFaceName())
+                                            traits:theMask
+                                            weight:thewxfont.GetWeight() == wxFONTWEIGHT_BOLD ? 9 :
+                                                    thewxfont.GetWeight() == wxFONTWEIGHT_LIGHT ? 0 : 5
+                                            size: (float)(thewxfont.GetPointSize())
+            ];
+
+        wxASSERT_MSG(theDefaultFont, wxT("Invalid default font for wxCocoaFontDialog!"));
+
         //Apple docs say to call NSFontManager::setSelectedFont
         //However, 10.3 doesn't seem to create the font panel
         //is this is done, so create it ourselves
-        [[NSFontPanel sharedFontPanel] setPanelFont:thewxfont.OSXGetNSFont() isMultiple:NO];
+        [[NSFontPanel sharedFontPanel] setPanelFont:theDefaultFont isMultiple:NO];
         [[NSFontManager sharedFontManager] setSelectedFont:theDefaultFont isMultiple:false];
+
     }
 
     if(m_fontData.m_fontColour.IsOk())
@@ -513,7 +527,7 @@ int wxFontDialog::ShowModal()
     //  the color panel until the color panel closes, switching
     //  back to the font panel modal loop once it does close.
     //
-    OSXBeginModalDialog();
+    wxDialog::OSXBeginModalDialog();
     do
     {
         //
@@ -552,7 +566,7 @@ int wxFontDialog::ShowModal()
         //out of its modal loop because the color panel was
         //opened) return the font panel modal loop
     }while([theFPDelegate isClosed] == NO);
-    OSXEndModalDialog();
+    wxDialog::OSXEndModalDialog();
     
     //free up the memory for the delegates - we don't need them anymore
     [theFPDelegate release];
@@ -560,11 +574,22 @@ int wxFontDialog::ShowModal()
 
     //Get the font the user selected
     NSFont* theFont = [theFontPanel panelConvertFont:[NSFont userFontOfSize:0]];
-    m_fontData.m_chosenFont = wxFont(theFont);
-    // copy the attributes not contained in a native CTFont
-    m_fontData.m_chosenFont.SetUnderlined(theFPDelegate->m_isUnderline);
-    m_fontData.m_chosenFont.SetStrikethrough(theFPDelegate->m_isStrikethrough);
-    
+
+    //Get more information about the user's chosen font
+    NSFontTraitMask theTraits = [[NSFontManager sharedFontManager] traitsOfFont:theFont];
+    int theFontWeight = [[NSFontManager sharedFontManager] weightOfFont:theFont];
+    int theFontSize = (int) [theFont pointSize];
+
+    //Set the wx font to the appropriate data
+    if(theTraits & NSFixedPitchFontMask)
+        m_fontData.m_chosenFont.SetFamily(wxTELETYPE);
+
+    m_fontData.m_chosenFont.SetFaceName(wxStringWithNSString([theFont familyName]));
+    m_fontData.m_chosenFont.SetPointSize(theFontSize);
+    m_fontData.m_chosenFont.SetStyle(theTraits & NSItalicFontMask ? wxFONTSTYLE_ITALIC : 0);
+    m_fontData.m_chosenFont.SetWeight(theFontWeight < 5 ? wxFONTWEIGHT_LIGHT :
+                                    theFontWeight >= 9 ? wxFONTWEIGHT_BOLD : wxFONTWEIGHT_NORMAL);
+
     //Get the shared color panel along with the chosen color and set the chosen color
     m_fontData.m_fontColour = wxColour([theColorPanel color]);
 

@@ -270,14 +270,6 @@ enum wxTextAttrLineSpacing
     wxTEXT_ATTR_LINE_SPACING_TWICE          = 20
 };
 
-enum wxTextAttrUnderlineType
-{
-     wxTEXT_ATTR_UNDERLINE_NONE,
-     wxTEXT_ATTR_UNDERLINE_SOLID,
-     wxTEXT_ATTR_UNDERLINE_DOUBLE,
-     wxTEXT_ATTR_UNDERLINE_SPECIAL
-};
-
 // ----------------------------------------------------------------------------
 // wxTextAttr: a structure containing the visual attributes of a text
 // ----------------------------------------------------------------------------
@@ -328,13 +320,7 @@ public:
     void SetFontStyle(wxFontStyle fontStyle) { m_fontStyle = fontStyle; m_flags |= wxTEXT_ATTR_FONT_ITALIC; }
     void SetFontWeight(wxFontWeight fontWeight) { m_fontWeight = fontWeight; m_flags |= wxTEXT_ATTR_FONT_WEIGHT; }
     void SetFontFaceName(const wxString& faceName) { m_fontFaceName = faceName; m_flags |= wxTEXT_ATTR_FONT_FACE; }
-    void SetFontUnderlined(bool underlined) { SetFontUnderlined(underlined ? wxTEXT_ATTR_UNDERLINE_SOLID : wxTEXT_ATTR_UNDERLINE_NONE); }
-    void SetFontUnderlined(wxTextAttrUnderlineType type, const wxColour& colour = wxNullColour)
-    {
-        m_flags |= wxTEXT_ATTR_FONT_UNDERLINE;
-        m_fontUnderlineType = type;
-        m_colUnderline = colour;
-    }
+    void SetFontUnderlined(bool underlined) { m_fontUnderlined = underlined; m_flags |= wxTEXT_ATTR_FONT_UNDERLINE; }
     void SetFontStrikethrough(bool strikethrough) { m_fontStrikethrough = strikethrough; m_flags |= wxTEXT_ATTR_FONT_STRIKETHROUGH; }
     void SetFontEncoding(wxFontEncoding encoding) { m_fontEncoding = encoding; m_flags |= wxTEXT_ATTR_FONT_ENCODING; }
     void SetFontFamily(wxFontFamily family) { m_fontFamily = family; m_flags |= wxTEXT_ATTR_FONT_FAMILY; }
@@ -373,9 +359,7 @@ public:
     int GetFontSize() const { return m_fontSize; }
     wxFontStyle GetFontStyle() const { return m_fontStyle; }
     wxFontWeight GetFontWeight() const { return m_fontWeight; }
-    bool GetFontUnderlined() const { return m_fontUnderlineType != wxTEXT_ATTR_UNDERLINE_NONE; }
-    wxTextAttrUnderlineType GetUnderlineType() const { return m_fontUnderlineType; }
-    const wxColour& GetUnderlineColour() const { return m_colUnderline; }
+    bool GetFontUnderlined() const { return m_fontUnderlined; }
     bool GetFontStrikethrough() const { return m_fontStrikethrough; }
     const wxString& GetFontFaceName() const { return m_fontFaceName; }
     wxFontEncoding GetFontEncoding() const { return m_fontEncoding; }
@@ -524,8 +508,7 @@ private:
     wxFontStyle         m_fontStyle;
     wxFontWeight        m_fontWeight;
     wxFontFamily        m_fontFamily;
-    wxTextAttrUnderlineType m_fontUnderlineType;
-    wxColour            m_colUnderline;
+    bool                m_fontUnderlined;
     bool                m_fontStrikethrough;
     wxString            m_fontFaceName;
 
@@ -758,8 +741,6 @@ public:
     {
         return GetCompositeControlsDefaultAttributes(variant);
     }
-
-    virtual const wxTextEntry* WXGetTextEntry() const wxOVERRIDE { return this; }
 
 protected:
     // Override wxEvtHandler method to check for a common problem of binding

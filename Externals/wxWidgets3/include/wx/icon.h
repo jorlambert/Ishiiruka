@@ -47,9 +47,8 @@
 #elif defined(__WXMAC__)
 #if wxOSX_USE_COCOA_OR_CARBON
   #define wxICON_DEFAULT_TYPE   wxBITMAP_TYPE_ICON_RESOURCE
-  #include "wx/generic/icon.h"
+  #include "wx/osx/icon.h"
 #else
-  // iOS and others
   #define wxICON_DEFAULT_TYPE   wxBITMAP_TYPE_PNG_RESOURCE
   #include "wx/generic/icon.h"
 #endif

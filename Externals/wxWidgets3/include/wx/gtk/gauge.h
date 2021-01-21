@@ -13,7 +13,7 @@
 // wxGauge
 //-----------------------------------------------------------------------------
 
-class WXDLLIMPEXP_CORE wxGauge: public wxGaugeBase
+class WXDLLIMPEXP_CORE wxGauge: public wxControl
 {
 public:
     wxGauge() { Init(); }
@@ -25,7 +25,7 @@ public:
              const wxSize& size = wxDefaultSize,
              long style = wxGA_HORIZONTAL,
              const wxValidator& validator = wxDefaultValidator,
-             const wxString& name = wxASCII_STR(wxGaugeNameStr) )
+             const wxString& name = wxGaugeNameStr )
     {
         Init();
 
@@ -38,16 +38,19 @@ public:
                  const wxSize& size = wxDefaultSize,
                  long style = wxGA_HORIZONTAL,
                  const wxValidator& validator = wxDefaultValidator,
-                 const wxString& name = wxASCII_STR(wxGaugeNameStr) );
+                 const wxString& name = wxGaugeNameStr );
 
-    // implement base class virtual methods
-    void SetRange(int range) wxOVERRIDE;
-    int GetRange() const wxOVERRIDE;
+    // determinate mode API
+    void SetRange( int r );
+    void SetValue( int pos );
 
-    void SetValue(int pos) wxOVERRIDE;
-    int GetValue() const wxOVERRIDE;
+    int GetRange() const;
+    int GetValue() const;
 
-    virtual void Pulse() wxOVERRIDE;
+    // indeterminate mode API
+    virtual void Pulse();
+
+    bool IsVertical() const { return HasFlag(wxGA_VERTICAL); }
 
     static wxVisualAttributes
     GetClassDefaultAttributes(wxWindowVariant variant = wxWINDOW_VARIANT_NORMAL);
@@ -64,6 +67,8 @@ public:
 protected:
     // set the gauge value to the value of m_gaugePos
     void DoSetGauge();
+
+    virtual wxSize DoGetBestSize() const wxOVERRIDE;
 
 private:
     void Init() { m_rangeMax = m_gaugePos = 0; }

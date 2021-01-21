@@ -1123,7 +1123,7 @@ wxULongLongWx wxULongLongWx::operator%(const wxULongLongWx& ll) const
 // ----------------------------------------------------------------------------
 
 // temporary - just for testing
-void *wxLongLongWx::asArray() const
+void *wxLongLongWx::asArray(void) const
 {
     static unsigned char temp[8];
 
@@ -1139,7 +1139,7 @@ void *wxLongLongWx::asArray() const
     return temp;
 }
 
-void *wxULongLongWx::asArray() const
+void *wxULongLongWx::asArray(void) const
 {
     static unsigned char temp[8];
 

@@ -24,7 +24,7 @@ public:
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
               long style = wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER,
-              const wxString& name = wxASCII_STR(wxFrameNameStr))
+              const wxString& name = wxFrameNameStr)
   {
       return wxFrame::Create(parent, id, title, pos, size,
                              style |
@@ -38,7 +38,7 @@ public:
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
               long style = wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER,
-              const wxString& name = wxASCII_STR(wxFrameNameStr))
+              const wxString& name = wxFrameNameStr)
   {
       Create(parent, id, title, pos, size, style, name);
   }

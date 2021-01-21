@@ -44,7 +44,7 @@ bool wxGenericStaticText::Create(wxWindow *parent,
 
     SetLabel(label);
     SetInitialSize(size);
-    Bind(wxEVT_PAINT, &wxGenericStaticText::OnPaint, this);
+    Connect(wxEVT_PAINT, wxPaintEventHandler(wxGenericStaticText::OnPaint));
     return true;
 }
 
@@ -100,9 +100,12 @@ wxSize wxGenericStaticText::DoGetBestClientSize() const
 void wxGenericStaticText::SetLabel(const wxString& label)
 {
     wxControl::SetLabel(label);
-    WXSetVisibleLabel(GetEllipsizedLabel());
+    DoSetLabel(GetEllipsizedLabel());
 
-    AutoResizeIfNecessary();
+    InvalidateBestSize();
+
+    if ( !IsEllipsized() )
+        AutoResizeIfNecessary();
 
 #if wxUSE_MARKUP
     if ( m_markupText )
@@ -115,7 +118,7 @@ void wxGenericStaticText::SetLabel(const wxString& label)
     Refresh();
 }
 
-void wxGenericStaticText::WXSetVisibleLabel(const wxString& label)
+void wxGenericStaticText::DoSetLabel(const wxString& label)
 {
     m_mnemonic = FindAccelIndex(label, &m_label);
 }

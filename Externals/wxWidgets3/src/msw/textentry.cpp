@@ -3,7 +3,7 @@
 // Purpose:     wxTextEntry implementation for wxMSW
 // Author:      Vadim Zeitlin
 // Created:     2007-09-26
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -24,9 +24,7 @@
 
 #ifndef WX_PRECOMP
     #include "wx/arrstr.h"
-    #include "wx/event.h"
     #include "wx/string.h"
-    #include "wx/textctrl.h"    // Only for wxTE_PROCESS_XXX constants
 #endif // WX_PRECOMP
 
 #if wxUSE_TEXTCTRL || wxUSE_COMBOBOX
@@ -36,8 +34,6 @@
 #include "wx/dynlib.h"
 
 #include "wx/msw/private.h"
-#include "wx/msw/private/winstyle.h"
-#include "wx/msw/private/cotaskmemptr.h"
 
 #if wxUSE_UXTHEME
     #include "wx/msw/uxtheme.h"
@@ -68,6 +64,10 @@
     #ifndef ACO_AUTOAPPEND
         #define ACO_AUTOAPPEND 0x02
     #endif
+#endif
+
+#ifndef ACO_UPDOWNKEYDROPSLIST
+    #define ACO_UPDOWNKEYDROPSLIST 0x20
 #endif
 
 #ifndef SHACF_FILESYS_ONLY
@@ -161,12 +161,9 @@ public:
         m_completer = completer;
     }
 
-    bool UpdatePrefix(const wxString& prefix)
+    void UpdatePrefix(const wxString& prefix)
     {
         CSLock lock(m_csRestart);
-
-        if ( prefix == m_prefix )
-            return false;
 
         // We simply store the prefix here and will really update during the
         // next call to our Next() method as we want to call Start() from the
@@ -174,13 +171,11 @@ public:
         // completions are generated.
         m_prefix = prefix;
         m_restart = TRUE;
-
-        return true;
     }
 
     virtual HRESULT STDMETHODCALLTYPE Next(ULONG celt,
                                            LPOLESTR *rgelt,
-                                           ULONG *pceltFetched) wxOVERRIDE
+                                           ULONG *pceltFetched)
     {
         if ( !rgelt || (!pceltFetched && celt > 1) )
             return E_POINTER;
@@ -208,13 +203,13 @@ public:
 
             const wxWX2WCbuf wcbuf = s.wc_str();
             const size_t size = (wcslen(wcbuf) + 1)*sizeof(wchar_t);
-            wxCoTaskMemPtr<wchar_t> olestr(size);
-
+            void *olestr = CoTaskMemAlloc(size);
             if ( !olestr )
                 return E_OUTOFMEMORY;
 
             memcpy(olestr, wcbuf, size);
-            *rgelt++ = olestr.release();
+
+            *rgelt++ = static_cast<LPOLESTR>(olestr);
 
             ++(*pceltFetched);
         }
@@ -222,7 +217,7 @@ public:
         return S_OK;
     }
 
-    virtual HRESULT STDMETHODCALLTYPE Skip(ULONG celt) wxOVERRIDE
+    virtual HRESULT STDMETHODCALLTYPE Skip(ULONG celt)
     {
         if ( !celt )
             return E_INVALIDARG;
@@ -244,7 +239,7 @@ public:
         return S_OK;
     }
 
-    virtual HRESULT STDMETHODCALLTYPE Reset() wxOVERRIDE
+    virtual HRESULT STDMETHODCALLTYPE Reset()
     {
         CSLock lock(m_csRestart);
 
@@ -253,7 +248,7 @@ public:
         return S_OK;
     }
 
-    virtual HRESULT STDMETHODCALLTYPE Clone(IEnumString **ppEnum) wxOVERRIDE
+    virtual HRESULT STDMETHODCALLTYPE Clone(IEnumString **ppEnum)
     {
         if ( !ppEnum )
             return E_POINTER;
@@ -563,71 +558,39 @@ private:
 
         const wxString prefix = m_entry->GetRange(0, from);
 
-        if ( m_enumStrings->UpdatePrefix(prefix) )
-            DoRefresh();
+        m_enumStrings->UpdatePrefix(prefix);
+
+        DoRefresh();
     }
 
     void OnAfterChar(wxKeyEvent& event)
     {
-        if ( m_customCompleter )
-        {
+        // Notice that we must not refresh the completions when the user
+        // presses Backspace as this would result in adding back the just
+        // erased character(s) because of ACO_AUTOAPPEND option we use.
+        if ( m_customCompleter && event.GetKeyCode() != WXK_BACK )
             UpdateStringsFromCustomCompleter();
-        }
 
         event.Skip();
     }
 
     void OnCharHook(wxKeyEvent& event)
     {
-        // We need to override the default handling of some keys here.
-        bool specialKey = false;
-        switch ( event.GetKeyCode() )
+        // If the autocomplete drop-down list is currently displayed when the
+        // user presses Escape, we need to dismiss it manually from here as
+        // Escape could be eaten by something else (e.g. EVT_CHAR_HOOK in the
+        // dialog that this control is found in) otherwise.
+        if ( event.GetKeyCode() == WXK_ESCAPE )
         {
-            case WXK_RETURN:
-            case WXK_NUMPAD_ENTER:
-                if ( m_win->HasFlag(wxTE_PROCESS_ENTER) )
-                    specialKey = true;
-                break;
-
-            case WXK_TAB:
-                if ( m_win->HasFlag(wxTE_PROCESS_TAB) )
-                    specialKey = true;
-                break;
-
-            case WXK_ESCAPE:
-                specialKey = true;
-                break;
-        }
-
-        if ( specialKey )
-        {
-            // Check if the drop down is currently open.
             DWORD dwFlags = 0;
             if ( SUCCEEDED(m_autoCompleteDropDown->GetDropDownStatus(&dwFlags,
                                                                      NULL))
                     && dwFlags == ACDD_VISIBLE )
             {
-                if ( event.GetKeyCode() == WXK_ESCAPE )
-                {
-                    // We need to dismiss the drop-down manually as Escape
-                    // could be eaten by something else (e.g. EVT_CHAR_HOOK in
-                    // the dialog that this control is found in) otherwise.
-                    ::SendMessage(GetHwndOf(m_win), WM_KEYDOWN, WXK_ESCAPE, 0);
+                ::SendMessage(GetHwndOf(m_win), WM_KEYDOWN, WXK_ESCAPE, 0);
 
-                    // Do not skip the event in this case, we've already handled it.
-                    return;
-                }
-            }
-            else // Drop down is not open.
-            {
-                // In this case we need to handle Return and Tab as both of
-                // them are simply eaten by the auto completer and never reach
-                // us at all otherwise.
-                if ( event.GetKeyCode() != WXK_ESCAPE )
-                {
-                    m_entry->MSWProcessSpecialKey(event);
-                    return;
-                }
+                // Do not skip the event in this case, we've already handled it.
+                return;
             }
         }
 
@@ -844,11 +807,6 @@ bool wxTextEntry::DoAutoCompleteFileNames(int flags)
 
 #endif // wxUSE_DYNLIB_CLASS
 
-void wxTextEntry::MSWProcessSpecialKey(wxKeyEvent& WXUNUSED(event))
-{
-    wxFAIL_MSG(wxS("Must be overridden if can be called"));
-}
-
 wxTextAutoCompleteData *wxTextEntry::GetOrCreateCompleter()
 {
     if ( !m_autoCompleteData )
@@ -959,7 +917,9 @@ void wxTextEntry::ForceUpper()
 {
     ConvertToUpperCase();
 
-    wxMSWWinStyleUpdater(GetEditHwnd()).TurnOn(ES_UPPERCASE);
+    const HWND hwnd = GetEditHwnd();
+    const LONG styleOld = ::GetWindowLong(hwnd, GWL_STYLE);
+    ::SetWindowLong(hwnd, GWL_STYLE, styleOld | ES_UPPERCASE);
 }
 
 // ----------------------------------------------------------------------------
@@ -975,7 +935,7 @@ void wxTextEntry::ForceUpper()
 
 bool wxTextEntry::SetHint(const wxString& hint)
 {
-    if ( wxGetWinVersion() >= wxWinVersion_Vista && wxUxThemeIsActive() )
+    if ( wxGetWinVersion() >= wxWinVersion_Vista && wxUxThemeEngine::GetIfActive() )
     {
         // notice that this message always works with Unicode strings
         //
@@ -992,7 +952,7 @@ bool wxTextEntry::SetHint(const wxString& hint)
 
 wxString wxTextEntry::GetHint() const
 {
-    if ( wxUxThemeIsActive() )
+    if ( wxUxThemeEngine::GetIfActive() )
     {
         wchar_t buf[256];
         if ( ::SendMessage(GetEditHwnd(), EM_GETCUEBANNER,
@@ -1039,17 +999,6 @@ wxPoint wxTextEntry::DoGetMargins() const
     int left = LOWORD(lResult);
     int top = -1;
     return wxPoint(left, top);
-}
-
-// ----------------------------------------------------------------------------
-// input handling
-// ----------------------------------------------------------------------------
-
-bool wxTextEntry::ClickDefaultButtonIfPossible()
-{
-    return !wxIsAnyModifierDown() &&
-                wxWindow::MSWClickButtonIfPossible(
-                    wxWindow::MSWGetDefaultButtonFor(GetEditableWindow()));
 }
 
 #endif // wxUSE_TEXTCTRL || wxUSE_COMBOBOX

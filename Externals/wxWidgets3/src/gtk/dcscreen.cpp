@@ -11,7 +11,7 @@
 
 #include "wx/gtk/dcscreen.h"
 
-#include "wx/gtk/private/wrapgtk.h"
+#include <gtk/gtk.h>
 
 //-----------------------------------------------------------------------------
 // wxScreenDCImpl
@@ -50,6 +50,8 @@ void wxScreenDCImpl::Init()
 
 wxScreenDCImpl::~wxScreenDCImpl()
 {
+    g_object_unref(m_context);
+
     gdk_gc_set_subwindow( m_penGC, GDK_CLIP_BY_CHILDREN );
     gdk_gc_set_subwindow( m_brushGC, GDK_CLIP_BY_CHILDREN );
     gdk_gc_set_subwindow( m_textGC, GDK_CLIP_BY_CHILDREN );

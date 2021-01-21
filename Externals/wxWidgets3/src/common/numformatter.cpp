@@ -122,15 +122,19 @@ wxChar wxNumberFormatter::GetDecimalSeparator()
     {
         const wxString
             s = wxLocale::GetInfo(wxLOCALE_DECIMAL_POINT, wxLOCALE_CAT_NUMBER);
-        if ( s.length() == 1 )
-        {
-            s_decimalSeparator = s[0];
-        }
-        else
+        if ( s.empty() )
         {
             // We really must have something for decimal separator, so fall
             // back to the C locale default.
             s_decimalSeparator = '.';
+        }
+        else
+        {
+            // To the best of my knowledge there are no locales like this.
+            wxASSERT_MSG( s.length() == 1,
+                          "Multi-character decimal separator?" );
+
+            s_decimalSeparator = s[0];
         }
     }
 
@@ -150,8 +154,11 @@ bool wxNumberFormatter::GetThousandsSeparatorIfUsed(wxChar *sep)
     {
         const wxString
             s = wxLocale::GetInfo(wxLOCALE_THOUSANDS_SEP, wxLOCALE_CAT_NUMBER);
-        if ( s.length() == 1 )
+        if ( !s.empty() )
         {
+            wxASSERT_MSG( s.length() == 1,
+                          "Multi-character thousands separator?" );
+
             s_thousandsSeparator = s[0];
         }
         //else: Unlike above it's perfectly fine for the thousands separator to

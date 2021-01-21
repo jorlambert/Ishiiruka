@@ -276,7 +276,7 @@ public:
                    const wxPoint& pos = wxDefaultPosition,
                    const wxSize& size = wxDefaultSize,
                    long windowStyle = wxDEFAULT_DIALOG_STYLE,
-                   const wxString& name = wxASCII_STR(wxDialogNameStr));
+                   const wxString& name = wxDialogNameStr);
     virtual ~wxTabbedDialog();
 
     wxTabView *GetTabView() const { return m_tabView; }
@@ -307,7 +307,7 @@ public:
                   const wxPoint& pos = wxDefaultPosition,
                   const wxSize& size = wxDefaultSize,
                   long windowStyle = 0,
-                  const wxString& name = wxASCII_STR(wxPanelNameStr));
+                  const wxString& name = wxPanelNameStr);
     virtual ~wxTabbedPanel();
 
     wxTabView *GetTabView() const { return m_tabView; }

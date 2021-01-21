@@ -18,14 +18,12 @@
 #include "wx/toplevel.h"      // the base class
 #include "wx/statusbr.h"
 
-// the default names for various classes
+// the default names for various classs
 extern WXDLLIMPEXP_DATA_CORE(const char) wxStatusLineNameStr[];
 extern WXDLLIMPEXP_DATA_CORE(const char) wxToolBarNameStr[];
 
 class WXDLLIMPEXP_FWD_CORE wxFrame;
-#if wxUSE_MENUBAR
 class WXDLLIMPEXP_FWD_CORE wxMenuBar;
-#endif
 class WXDLLIMPEXP_FWD_CORE wxMenuItem;
 class WXDLLIMPEXP_FWD_CORE wxStatusBar;
 class WXDLLIMPEXP_FWD_CORE wxToolBar;
@@ -66,7 +64,7 @@ public:
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
                  long style = wxDEFAULT_FRAME_STYLE,
-                 const wxString& name = wxASCII_STR(wxFrameNameStr));
+                 const wxString& name = wxFrameNameStr);
 
     // frame state
     // -----------
@@ -80,7 +78,6 @@ public:
     // ------------------
 
 #if wxUSE_MENUS
-#if wxUSE_MENUBAR
     virtual void SetMenuBar(wxMenuBar *menubar);
     virtual wxMenuBar *GetMenuBar() const { return m_frameMenuBar; }
 
@@ -88,7 +85,7 @@ public:
     // and exists mainly in order to be overridden in the MDI parent frame
     // which also looks at its active child menu bar
     virtual wxMenuItem *FindItemInMenuBar(int menuId) const;
-#endif
+
     // generate menu command corresponding to the given menu item
     //
     // returns true if processed
@@ -109,7 +106,7 @@ public:
     virtual wxStatusBar* CreateStatusBar(int number = 1,
                                          long style = wxSTB_DEFAULT_STYLE,
                                          wxWindowID winid = 0,
-                                         const wxString& name = wxASCII_STR(wxStatusLineNameStr));
+                                         const wxString& name = wxStatusLineNameStr);
     // return a new status bar
     virtual wxStatusBar *OnCreateStatusBar(int number,
                                            long style,
@@ -139,7 +136,7 @@ public:
     // create main toolbar bycalling OnCreateToolBar()
     virtual wxToolBar* CreateToolBar(long style = -1,
                                      wxWindowID winid = wxID_ANY,
-                                     const wxString& name = wxASCII_STR(wxToolBarNameStr));
+                                     const wxString& name = wxToolBarNameStr);
     // return a new toolbar
     virtual wxToolBar *OnCreateToolBar(long style,
                                        wxWindowID winid,
@@ -155,8 +152,8 @@ public:
 
     // event handlers
 #if wxUSE_MENUS
-    void OnMenuOpen(wxMenuEvent& event);
 #if wxUSE_STATUSBAR
+    void OnMenuOpen(wxMenuEvent& event);
     void OnMenuClose(wxMenuEvent& event);
     void OnMenuHighlight(wxMenuEvent& event);
 #endif // wxUSE_STATUSBAR
@@ -195,7 +192,7 @@ protected:
     // test whether this window makes part of the frame
     virtual bool IsOneOfBars(const wxWindow *win) const wxOVERRIDE;
 
-#if wxUSE_MENUBAR
+#if wxUSE_MENUS
     // override to update menu bar position when the frame size changes
     virtual void PositionMenuBar() { }
 
@@ -206,15 +203,13 @@ protected:
     // override to do something special when the menu bar is attached to the
     // frame
     virtual void AttachMenuBar(wxMenuBar *menubar);
-#endif // wxUSE_MENUBAR
 
     // Return true if we should update the menu item state from idle event
     // handler or false if we should delay it until the menu is opened.
     static bool ShouldUpdateMenuFromIdle();
 
-#if wxUSE_MENUBAR
     wxMenuBar *m_frameMenuBar;
-#endif // wxUSE_MENUBAR
+#endif // wxUSE_MENUS
 
 #if wxUSE_STATUSBAR && (wxUSE_MENUS || wxUSE_TOOLBAR)
     // the saved status bar text overwritten by DoGiveHelp()
@@ -248,9 +243,9 @@ protected:
     wxToolBar *m_frameToolBar;
 #endif // wxUSE_TOOLBAR
 
-#if wxUSE_MENUS
+#if wxUSE_MENUS && wxUSE_STATUSBAR
     wxDECLARE_EVENT_TABLE();
-#endif // wxUSE_MENUS
+#endif // wxUSE_MENUS && wxUSE_STATUSBAR
 
     wxDECLARE_NO_COPY_CLASS(wxFrameBase);
 };

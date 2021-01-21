@@ -15,7 +15,10 @@
 
 #if wxUSE_FSWATCHER
 
+#include <CoreServices/CoreServices.h>
 #include "wx/unix/fswatcher_kqueue.h"
+
+WX_DECLARE_STRING_HASH_MAP(FSEventStreamRef, FSEventStreamRefMap);
 
 /*
  The FSEvents watcher uses the newer FSEvents service
@@ -75,10 +78,8 @@ public:
 
 private:
 
-    // use the pImpl idiom to eliminate this header's dependency
-    // on CoreServices.h (and ultimately AssertMacros.h)
-    struct PrivateData;
-    PrivateData *m_pImpl;
+    // map of path => FSEventStreamRef
+    FSEventStreamRefMap m_streams;
 
 };
 

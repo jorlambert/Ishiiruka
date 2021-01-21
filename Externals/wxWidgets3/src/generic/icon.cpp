@@ -41,6 +41,6 @@ wxIcon::wxIcon() :  wxBitmap()
 
 void wxIcon::CopyFromBitmap(const wxBitmap& bmp)
 {
-    const wxIcon* icon = static_cast<const wxIcon*>(&bmp);
+    wxIcon *icon = (wxIcon*)(&bmp);
     *this = *icon;
 }

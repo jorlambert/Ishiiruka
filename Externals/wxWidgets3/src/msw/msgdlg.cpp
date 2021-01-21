@@ -136,7 +136,7 @@ wxMessageDialog::HookFunction(int code, WXWPARAM wParam, WXLPARAM lParam)
         wnd->m_hook = NULL;
         HookMap().erase(tid);
 
-        TempHWNDSetter set(wnd, (WXHWND)wParam);
+        wnd->SetHWND((HWND)wParam);
 
         // replace the static text with an edit control if the message box is
         // too big to fit the display
@@ -151,6 +151,9 @@ wxMessageDialog::HookFunction(int code, WXWPARAM wParam, WXLPARAM lParam)
         if ( wnd->GetMessageDialogStyle() & wxCENTER )
             wnd->Center(); // center on parent
         //else: default behaviour, center on screen
+
+        // there seems to be no reason to leave it set
+        wnd->SetHWND(NULL);
     }
 
     return rc;
@@ -159,7 +162,10 @@ wxMessageDialog::HookFunction(int code, WXWPARAM wParam, WXLPARAM lParam)
 void wxMessageDialog::ReplaceStaticWithEdit()
 {
     // check if the message box fits the display
-    const wxRect rectDisplay = wxDisplay(this).GetClientArea();
+    int nDisplay = wxDisplay::GetFromWindow(this);
+    if ( nDisplay == wxNOT_FOUND )
+        nDisplay = 0;
+    const wxRect rectDisplay = wxDisplay(nDisplay).GetClientArea();
 
     if ( rectDisplay.Contains(GetRect()) )
     {
@@ -193,8 +199,8 @@ void wxMessageDialog::ReplaceStaticWithEdit()
     // some space above and below it
     const int hText = (7*rectDisplay.height)/8 -
                       (
-                         2*wxGetSystemMetrics(SM_CYFIXEDFRAME, this) +
-                         wxGetSystemMetrics(SM_CYCAPTION, this) +
+                         2*::GetSystemMetrics(SM_CYFIXEDFRAME) +
+                         ::GetSystemMetrics(SM_CYCAPTION) +
                          5*GetCharHeight() // buttons + margins
                       );
     const int dh = (rc.bottom - rc.top) - hText; // vertical space we save
@@ -207,8 +213,8 @@ void wxMessageDialog::ReplaceStaticWithEdit()
     // NB: you would have thought that 2*SM_CXEDGE would be enough but it
     //     isn't, somehow, and the text control breaks lines differently from
     //     the static one so fudge by adding some extra space
-    const int dw = wxGetSystemMetrics(SM_CXVSCROLL, this) +
-                        4*wxGetSystemMetrics(SM_CXEDGE, this);
+    const int dw = ::GetSystemMetrics(SM_CXVSCROLL) +
+                        4*::GetSystemMetrics(SM_CXEDGE);
     rc.right += dw;
 
 
@@ -346,9 +352,9 @@ void wxMessageDialog::AdjustButtonLabels()
     // resize the message box to be wider if needed
     const int wBoxOld = wxGetClientRect(GetHwnd()).right;
 
-    const int CHAR_WIDTH_IN_PIXELS = GetCharWidth();
-    const int MARGIN_OUTER = 2*CHAR_WIDTH_IN_PIXELS;  // margin between box and buttons
-    const int MARGIN_INNER = CHAR_WIDTH_IN_PIXELS;    // margin between buttons
+    const int CHAR_WIDTH = GetCharWidth();
+    const int MARGIN_OUTER = 2*CHAR_WIDTH;  // margin between box and buttons
+    const int MARGIN_INNER = CHAR_WIDTH;    // margin between buttons
 
     RECT rcBox = wxGetWindowRect(GetHwnd());
 
@@ -396,11 +402,8 @@ void wxMessageDialog::AdjustButtonLabels()
 /* static */
 wxFont wxMessageDialog::GetMessageFont()
 {
-    const wxWindow* win = wxTheApp ? wxTheApp->GetTopWindow() : NULL;
-    const wxNativeFontInfo
-        info(wxMSWImpl::GetNonClientMetrics(win).lfMessageFont, win);
-
-    return info;
+    const NONCLIENTMETRICS& ncm = wxMSWImpl::GetNonClientMetrics();
+    return wxNativeFontInfo(ncm.lfMessageFont);
 }
 
 int wxMessageDialog::ShowMessageBox()
@@ -830,7 +833,7 @@ int wxMSWMessageDialog::MSWTranslateReturnCode(int msAns)
     {
         default:
             wxFAIL_MSG(wxT("unexpected return code"));
-            wxFALLTHROUGH;
+            // fall through
 
         case IDCANCEL:
             ans = wxID_CANCEL;

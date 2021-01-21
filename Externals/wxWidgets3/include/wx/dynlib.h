@@ -18,6 +18,11 @@
 #include "wx/string.h"
 #include "wx/dynarray.h"
 
+// note that we have our own dlerror() implementation under Darwin
+#if defined(HAVE_DLERROR) || defined(__DARWIN__)
+    #define wxHAVE_DYNLIB_ERROR
+#endif
+
 class WXDLLIMPEXP_FWD_BASE wxDynamicLibraryDetailsCreator;
 
 // ----------------------------------------------------------------------------
@@ -26,9 +31,15 @@ class WXDLLIMPEXP_FWD_BASE wxDynamicLibraryDetailsCreator;
 
 #if defined(__WINDOWS__)
     typedef WXHMODULE           wxDllType;
+#elif defined(__DARWIN__)
+    // Don't include dlfcn.h on Darwin, we may be using our own replacements.
+    typedef void               *wxDllType;
 #elif defined(HAVE_DLOPEN)
     #include <dlfcn.h>
     typedef void               *wxDllType;
+#elif defined(HAVE_SHL_LOAD)
+    #include <dl.h>
+    typedef shl_t               wxDllType;
 #elif defined(__WXMAC__)
     #include <CodeFragments.h>
     typedef CFragConnectionID   wxDllType;
@@ -220,9 +231,9 @@ public:
     // return the platform standard DLL extension (with leading dot)
     static wxString GetDllExt(wxDynamicLibraryCategory cat = wxDL_LIBRARY);
 
-    wxDynamicLibrary() : m_handle(NULL) { }
+    wxDynamicLibrary() : m_handle(0) { }
     wxDynamicLibrary(const wxString& libname, int flags = wxDL_DEFAULT)
-        : m_handle(NULL)
+        : m_handle(0)
     {
         Load(libname, flags);
     }
@@ -232,7 +243,7 @@ public:
     ~wxDynamicLibrary() { Unload(); }
 
     // return true if the library was loaded successfully
-    bool IsLoaded() const { return m_handle != NULL; }
+    bool IsLoaded() const { return m_handle != 0; }
 
     // load the library with the given name (full or not), return true if ok
     bool Load(const wxString& libname, int flags = wxDL_DEFAULT);
@@ -245,13 +256,13 @@ public:
     // detach the library object from its handle, i.e. prevent the object from
     // unloading the library in its dtor -- the caller is now responsible for
     // doing this
-    wxDllType Detach() { wxDllType h = m_handle; m_handle = NULL; return h; }
+    wxDllType Detach() { wxDllType h = m_handle; m_handle = 0; return h; }
 
     // unload the given library handle (presumably returned by Detach() before)
     static void Unload(wxDllType handle);
 
     // unload the library, also done automatically in dtor
-    void Unload() { if ( IsLoaded() ) { Unload(m_handle); m_handle = NULL; } }
+    void Unload() { if ( IsLoaded() ) { Unload(m_handle); m_handle = 0; } }
 
     // Return the raw handle from dlopen and friends.
     wxDllType GetLibHandle() const { return m_handle; }
@@ -352,11 +363,13 @@ public:
 
 protected:
     // common part of GetSymbol() and HasSymbol()
-    void* DoGetSymbol(const wxString& name, bool* success = NULL) const;
+    void *DoGetSymbol(const wxString& name, bool *success = 0) const;
 
-    // log the error after an OS dynamic library function failure
-    static void ReportError(const wxString& msg,
-                            const wxString& name = wxString());
+#ifdef wxHAVE_DYNLIB_ERROR
+    // log the error after a dlxxx() function failure
+    static void Error();
+#endif // wxHAVE_DYNLIB_ERROR
+
 
     // the handle to DLL or NULL
     wxDllType m_handle;

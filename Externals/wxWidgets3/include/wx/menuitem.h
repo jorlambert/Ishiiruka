@@ -21,15 +21,11 @@
 
 #include "wx/object.h"  // base class
 
-#include "wx/windowid.h"
-
 // ----------------------------------------------------------------------------
 // forward declarations
 // ----------------------------------------------------------------------------
 
-#if wxUSE_ACCEL
 class WXDLLIMPEXP_FWD_CORE wxAcceleratorEntry;
-#endif // wxUSE_ACCEL
 class WXDLLIMPEXP_FWD_CORE wxMenuItem;
 class WXDLLIMPEXP_FWD_CORE wxMenu;
 

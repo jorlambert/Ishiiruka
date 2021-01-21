@@ -68,13 +68,10 @@ protected:
     void DoSetRange(double min_val, double max_val);
     void DoSetIncrement(double inc);
 
-    void GtkDisableEvents();
-    void GtkEnableEvents();
+    void GtkDisableEvents() const;
+    void GtkEnableEvents() const;
 
-    // Update the width of the entry field to fit the current range (and also
-    // base or number of digits depending on the derived class).
-    virtual void GtkSetEntryWidth() = 0;
-
+    virtual wxSize DoGetBestSize() const wxOVERRIDE;
     virtual wxSize DoGetSizeFromTextSize(int xlen, int ylen = -1) const wxOVERRIDE;
     virtual GdkWindow *GTKGetWindow(wxArrayGdkWindows& windows) const wxOVERRIDE;
 
@@ -100,7 +97,7 @@ public:
                const wxString& value = wxEmptyString,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
-               long style = wxSP_ARROW_KEYS,
+               long style = wxSP_ARROW_KEYS | wxALIGN_RIGHT,
                int min = 0, int max = 100, int initial = 0,
                const wxString& name = wxS("wxSpinCtrl"))
     {
@@ -114,7 +111,7 @@ public:
                 const wxString& value = wxEmptyString,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
-                long style = wxSP_ARROW_KEYS,
+                long style = wxSP_ARROW_KEYS | wxALIGN_RIGHT,
                 int min = 0, int max = 100, int initial = 0,
                 const wxString& name = wxS("wxSpinCtrl"))
     {
@@ -136,9 +133,6 @@ public:
 
     virtual int GetBase() const wxOVERRIDE { return m_base; }
     virtual bool SetBase(int base) wxOVERRIDE;
-
-protected:
-    virtual void GtkSetEntryWidth() wxOVERRIDE;
 
 private:
     // Common part of all ctors.
@@ -165,7 +159,7 @@ public:
                      const wxString& value = wxEmptyString,
                      const wxPoint& pos = wxDefaultPosition,
                      const wxSize& size = wxDefaultSize,
-                     long style = wxSP_ARROW_KEYS,
+                     long style = wxSP_ARROW_KEYS | wxALIGN_RIGHT,
                      double min = 0, double max = 100, double initial = 0,
                      double inc = 1,
                      const wxString& name = wxS("wxSpinCtrlDouble"))
@@ -179,7 +173,7 @@ public:
                 const wxString& value = wxEmptyString,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
-                long style = wxSP_ARROW_KEYS,
+                long style = wxSP_ARROW_KEYS | wxALIGN_RIGHT,
                 double min = 0, double max = 100, double initial = 0,
                 double inc = 1,
                 const wxString& name = wxS("wxSpinCtrlDouble"))
@@ -204,9 +198,6 @@ public:
 
     virtual int GetBase() const wxOVERRIDE { return 10; }
     virtual bool SetBase(int WXUNUSED(base)) wxOVERRIDE { return false; }
-
-protected:
-    virtual void GtkSetEntryWidth() wxOVERRIDE;
 
     wxDECLARE_DYNAMIC_CLASS(wxSpinCtrlDouble);
 };

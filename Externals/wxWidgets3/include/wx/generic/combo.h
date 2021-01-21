@@ -16,8 +16,6 @@
 // Only define generic if native doesn't have all the features
 #if !defined(wxCOMBOCONTROL_FULLY_FEATURED)
 
-#include "wx/containr.h"
-
 // ----------------------------------------------------------------------------
 // Generic wxComboCtrl
 // ----------------------------------------------------------------------------
@@ -32,14 +30,15 @@
 
 #endif
 
+#include "wx/dcbuffer.h"
+
 extern WXDLLIMPEXP_DATA_CORE(const char) wxComboBoxNameStr[];
 
-class WXDLLIMPEXP_CORE wxGenericComboCtrl
-    : public wxNavigationEnabled<wxComboCtrlBase>
+class WXDLLIMPEXP_CORE wxGenericComboCtrl : public wxComboCtrlBase
 {
 public:
     // ctors and such
-    wxGenericComboCtrl() { Init(); }
+    wxGenericComboCtrl() : wxComboCtrlBase() { Init(); }
 
     wxGenericComboCtrl(wxWindow *parent,
                        wxWindowID id = wxID_ANY,
@@ -48,7 +47,8 @@ public:
                        const wxSize& size = wxDefaultSize,
                        long style = 0,
                        const wxValidator& validator = wxDefaultValidator,
-                       const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+                       const wxString& name = wxComboBoxNameStr)
+        : wxComboCtrlBase()
     {
         Init();
 
@@ -62,7 +62,7 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxComboBoxNameStr));
+                const wxString& name = wxComboBoxNameStr);
 
     virtual ~wxGenericComboCtrl();
 
@@ -91,12 +91,24 @@ protected:
     virtual GtkEditable *GetEditable() const wxOVERRIDE { return NULL; }
     virtual GtkEntry *GetEntry() const wxOVERRIDE { return NULL; }
 #endif
-#elif defined(__WXOSX__)
-    virtual wxTextWidgetImpl * GetTextPeer() const wxOVERRIDE;
+#elif defined(__WXMAC__)
+    // Looks like there's nothing we need to override here
 #endif
 
     // For better transparent background rendering
-    virtual bool HasTransparentBackground() wxOVERRIDE;
+    virtual bool HasTransparentBackground() wxOVERRIDE
+    {
+        #if wxALWAYS_NATIVE_DOUBLE_BUFFER
+          #ifdef __WXGTK__
+            // Sanity check for GTK+
+            return IsDoubleBuffered();
+          #else
+            return true;
+          #endif
+        #else
+            return false;
+        #endif
+    }
 
     // Mandatory virtuals
     virtual void OnResize() wxOVERRIDE;
@@ -131,7 +143,7 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxComboBoxNameStr))
+                const wxString& name = wxComboBoxNameStr)
         : wxGenericComboCtrl()
     {
         (void)Create(parent, id, value, pos, size, style, validator, name);

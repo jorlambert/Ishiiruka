@@ -19,7 +19,7 @@ public:
                           const wxPoint& pos = wxDefaultPosition,
                           const wxSize& size = wxDefaultSize,
                           long style = wxCAL_SHOW_HOLIDAYS,
-                          const wxString& name = wxASCII_STR(wxCalendarNameStr))
+                          const wxString& name = wxCalendarNameStr)
     {
         Create(parent, id, date, pos, size, style, name);
     }
@@ -30,7 +30,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxCAL_SHOW_HOLIDAYS,
-                const wxString& name = wxASCII_STR(wxCalendarNameStr));
+                const wxString& name = wxCalendarNameStr);
 
     virtual ~wxGtkCalendarCtrl() {}
 

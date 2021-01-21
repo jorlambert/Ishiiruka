@@ -48,7 +48,7 @@ public:
                      const wxPoint& pos = wxDefaultPosition,
                      const wxSize& size = wxDefaultSize,
                      long style = wxDEFAULT_FRAME_STYLE | wxVSCROLL | wxHSCROLL,
-                     const wxString& name = wxASCII_STR(wxFrameNameStr))
+                     const wxString& name = wxFrameNameStr)
     {
         Init();
 
@@ -61,7 +61,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE | wxVSCROLL | wxHSCROLL,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
     virtual ~wxGenericMDIParentFrame();
 
@@ -142,7 +142,7 @@ public:
                            const wxPoint& pos = wxDefaultPosition,
                            const wxSize& size = wxDefaultSize,
                            long style = wxDEFAULT_FRAME_STYLE,
-                           const wxString& name = wxASCII_STR(wxFrameNameStr))
+                           const wxString& name = wxFrameNameStr)
     {
         Init();
 
@@ -155,7 +155,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
     virtual ~wxGenericMDIChildFrame();
 
@@ -199,9 +199,7 @@ protected:
     void Init();
 
 private:
-#if wxUSE_MENUS
     void OnMenuHighlight(wxMenuEvent& event);
-#endif // wxUSE_MENUS
     void OnClose(wxCloseEvent& event);
 
     wxDECLARE_DYNAMIC_CLASS(wxGenericMDIChildFrame);

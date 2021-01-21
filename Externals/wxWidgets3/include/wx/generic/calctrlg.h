@@ -34,7 +34,7 @@ public:
                           const wxPoint& pos = wxDefaultPosition,
                           const wxSize& size = wxDefaultSize,
                           long style = wxCAL_SHOW_HOLIDAYS,
-                          const wxString& name = wxASCII_STR(wxCalendarNameStr));
+                          const wxString& name = wxCalendarNameStr);
 
     bool Create(wxWindow *parent,
                 wxWindowID id,
@@ -42,7 +42,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxCAL_SHOW_HOLIDAYS,
-                const wxString& name = wxASCII_STR(wxCalendarNameStr));
+                const wxString& name = wxCalendarNameStr);
 
     virtual ~wxGenericCalendarCtrl();
 
@@ -202,13 +202,13 @@ private:
     // get the first/last days of the week corresponding to the current style
     wxDateTime::WeekDay GetWeekStart() const
     {
-        return WeekStartsOnMonday() ? wxDateTime::Mon
+        return HasFlag(wxCAL_MONDAY_FIRST) ? wxDateTime::Mon
                                            : wxDateTime::Sun;
     }
 
     wxDateTime::WeekDay GetWeekEnd() const
     {
-        return WeekStartsOnMonday() ? wxDateTime::Sun
+        return HasFlag(wxCAL_MONDAY_FIRST) ? wxDateTime::Sun
                                            : wxDateTime::Sat;
     }
 

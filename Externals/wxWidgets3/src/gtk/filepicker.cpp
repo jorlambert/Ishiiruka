@@ -25,6 +25,7 @@
 #include "wx/filepicker.h"
 #include "wx/tooltip.h"
 
+#include <gtk/gtk.h>
 #include "wx/gtk/private.h"
 
 // ============================================================================
@@ -88,7 +89,9 @@ bool wxFileButton::Create( wxWindow *parent, wxWindowID id,
         // we need to know when the dialog has been dismissed clicking OK...
         // NOTE: the "clicked" signal is not available for a GtkFileChooserButton
         //       thus we are forced to use wxFileDialog's event
-        m_dialog->Bind(wxEVT_BUTTON, &wxFileButton::OnDialogOK, this);
+        m_dialog->Connect(wxEVT_BUTTON,
+                wxCommandEventHandler(wxFileButton::OnDialogOK),
+                NULL, this);
 
         m_parent->DoAddChild( this );
 
@@ -155,9 +158,6 @@ void wxFileButton::SetInitialDirectory(const wxString& dir)
         wxGenericFileButton::SetInitialDirectory(dir);
 }
 
-void wxFileButton::DoApplyWidgetStyle(GtkRcStyle*)
-{
-}
 #endif // wxUSE_FILEPICKERCTRL
 
 #if wxUSE_DIRPICKERCTRL
@@ -331,7 +331,4 @@ void wxDirButton::SetInitialDirectory(const wxString& dir)
         wxGenericDirButton::SetInitialDirectory(dir);
 }
 
-void wxDirButton::DoApplyWidgetStyle(GtkRcStyle*)
-{
-}
 #endif // wxUSE_DIRPICKERCTRL

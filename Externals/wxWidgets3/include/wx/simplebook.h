@@ -146,19 +146,10 @@ public:
         return NO_IMAGE;
     }
 
-    // Override some wxWindow methods too.
-    virtual void SetFocus() wxOVERRIDE
-    {
-        wxWindow* const page = GetCurrentPage();
-        if ( page )
-            page->SetFocus();
-    }
-
 protected:
-    virtual void UpdateSelectedPage(size_t WXUNUSED(newsel)) wxOVERRIDE
+    virtual void UpdateSelectedPage(size_t newsel) wxOVERRIDE
     {
-        // Nothing to do here, but must be overridden to avoid the assert in
-        // the base class version.
+        m_selection = (int)newsel;
     }
 
     virtual wxBookCtrlEvent* CreatePageChangingEvent() const wxOVERRIDE

@@ -94,7 +94,7 @@ public:
                const wxSize &size = wxDefaultSize,
                long style = 0,
                const wxValidator& validator = wxDefaultValidator,
-               const wxString &name = wxASCII_STR(wxTextCtrlNameStr));
+               const wxString &name = wxTextCtrlNameStr);
     virtual ~wxTextCtrl();
 
     bool Create(wxWindow *parent,
@@ -104,7 +104,7 @@ public:
                 const wxSize &size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString &name = wxASCII_STR(wxTextCtrlNameStr));
+                const wxString &name = wxTextCtrlNameStr);
 
     // required for scrolling with wxScrollHelper
     // ------------------------------------------
@@ -382,4 +382,3 @@ protected:
 // wxUSE_UNIV_TEXTCTRL
 
 #endif // __X11TEXTCTRLH__
-

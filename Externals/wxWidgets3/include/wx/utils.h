@@ -154,7 +154,7 @@ WXDLLIMPEXP_BASE bool wxIsPlatformLittleEndian();
 WXDLLIMPEXP_BASE bool wxIsPlatform64Bit();
 
 #ifdef __LINUX__
-// Get linux-distro information
+// Get linux-distro informations
 WXDLLIMPEXP_BASE wxLinuxDistributionInfo wxGetLinuxDistributionInfo();
 #endif
 
@@ -178,7 +178,7 @@ WXDLLIMPEXP_CORE bool wxGetKeyState(wxKeyCode key);
 // in wxMSW.
 WXDLLIMPEXP_CORE bool wxSetDetectableAutoRepeat( bool flag );
 
-// Returns the current state of the mouse position, buttons and modifiers
+// Returns the current state of the mouse position, buttons and modifers
 WXDLLIMPEXP_CORE wxMouseState wxGetMouseState();
 
 #endif // wxUSE_GUI
@@ -197,7 +197,7 @@ WXDLLIMPEXP_CORE wxMouseState wxGetMouseState();
  * A custom platform symbol:
  *
  *  #define stPDA 100
- *  #ifdef __WXMSW__
+ *  #ifdef __WXWINCE__
  *      wxPlatform::AddPlatform(stPDA);
  *  #endif
  *
@@ -274,13 +274,13 @@ inline bool wxPlatformIs(int platform) { return wxPlatform::Is(platform); }
 // ----------------------------------------------------------------------------
 
 // Ensure subsequent IDs don't clash with this one
-WXDLLIMPEXP_BASE void wxRegisterId(wxWindowID id);
+WXDLLIMPEXP_BASE void wxRegisterId(int id);
 
 // Return the current ID
-WXDLLIMPEXP_BASE wxWindowID wxGetCurrentId();
+WXDLLIMPEXP_BASE int wxGetCurrentId();
 
 // Generate a unique ID
-WXDLLIMPEXP_BASE wxWindowID wxNewId();
+WXDLLIMPEXP_BASE int wxNewId();
 
 // ----------------------------------------------------------------------------
 // Various conversions
@@ -296,30 +296,22 @@ inline int wxHexToDec(const char* buf)
 
     if (buf[0] >= 'A')
         firstDigit = buf[0] - 'A' + 10;
-    else if (buf[0] >= '0')
-        firstDigit = buf[0] - '0';
     else
-        firstDigit = -1;
-
-    wxCHECK_MSG( firstDigit >= 0 && firstDigit <= 15, -1, wxS("Invalid argument") );
+        firstDigit = buf[0] - '0';
 
     if (buf[1] >= 'A')
         secondDigit = buf[1] - 'A' + 10;
-    else if (buf[1] >= '0')
-        secondDigit = buf[1] - '0';
     else
-        secondDigit = -1;
+        secondDigit = buf[1] - '0';
 
-    wxCHECK_MSG( secondDigit >= 0 && secondDigit <= 15, -1, wxS("Invalid argument") );
-
-    return firstDigit * 16 + secondDigit;
+    return (firstDigit & 0xF) * 16 + (secondDigit & 0xF );
 }
 
 
 // Convert decimal integer to 2-character hex string
-WXDLLIMPEXP_BASE void wxDecToHex(unsigned char dec, wxChar *buf);
-WXDLLIMPEXP_BASE void wxDecToHex(unsigned char dec, char* ch1, char* ch2);
-WXDLLIMPEXP_BASE wxString wxDecToHex(unsigned char dec);
+WXDLLIMPEXP_BASE void wxDecToHex(int dec, wxChar *buf);
+WXDLLIMPEXP_BASE void wxDecToHex(int dec, char* ch1, char* ch2);
+WXDLLIMPEXP_BASE wxString wxDecToHex(int dec);
 
 // ----------------------------------------------------------------------------
 // Process management
@@ -389,12 +381,12 @@ WXDLLIMPEXP_BASE long wxExecute(const wxString& command,
                                 int flags = wxEXEC_ASYNC,
                                 wxProcess *process = NULL,
                                 const wxExecuteEnv *env = NULL);
-WXDLLIMPEXP_BASE long wxExecute(const char* const* argv,
+WXDLLIMPEXP_BASE long wxExecute(char **argv,
                                 int flags = wxEXEC_ASYNC,
                                 wxProcess *process = NULL,
                                 const wxExecuteEnv *env = NULL);
 #if wxUSE_UNICODE
-WXDLLIMPEXP_BASE long wxExecute(const wchar_t* const* argv,
+WXDLLIMPEXP_BASE long wxExecute(wchar_t **argv,
                                 int flags = wxEXEC_ASYNC,
                                 wxProcess *process = NULL,
                                 const wxExecuteEnv *env = NULL);
@@ -603,11 +595,6 @@ WXDLLIMPEXP_BASE bool wxGetDiskSpace(const wxString& path,
 
 
 
-// See wx/vector.h for more about this hack.
-#ifndef wxQSORT_DECLARED
-
-#define wxQSORT_DECLARED
-
 typedef int (*wxSortCallback)(const void* pItem1,
                               const void* pItem2,
                               const void* user_data);
@@ -616,8 +603,6 @@ typedef int (*wxSortCallback)(const void* pItem1,
 WXDLLIMPEXP_BASE void wxQsort(void* pbase, size_t total_elems,
                               size_t size, wxSortCallback cmp,
                               const void* user_data);
-
-#endif // !wxQSORT_DECLARED
 
 
 #if wxUSE_GUI // GUI only things from now on
@@ -652,18 +637,8 @@ enum
     // strip everything after '\t'
     wxStrip_Accel = 2,
 
-    // strip mnemonics of the form "(&X)" appended to the string (used in CJK
-    // translations)
-    wxStrip_CJKMnemonics = 4,
-
-    // strip everything (this doesn't include wxStrip_CJKMnemonics for
-    // compatibility)
-    wxStrip_All = wxStrip_Mnemonics | wxStrip_Accel,
-
-    // strip everything including CJK mnemonics, suitable for menu items labels
-    // only (despite its name, wxStripMenuCodes() is currently used for control
-    // labels too)
-    wxStrip_Menu = wxStrip_All | wxStrip_CJKMnemonics
+    // strip everything (this is the default)
+    wxStrip_All = wxStrip_Mnemonics | wxStrip_Accel
 };
 
 // strip mnemonics and/or accelerators from the label
@@ -802,7 +777,7 @@ inline struct _XDisplay *wxGetX11Display()
 // wxYield(): these functions are obsolete, please use wxApp methods instead!
 // ----------------------------------------------------------------------------
 
-// avoid redeclaring this function here if it had been already declared by
+// avoid redeclaring this function here if it had been already declated by
 // wx/app.h, this results in warnings from g++ with -Wredundant-decls
 #ifndef wx_YIELD_DECLARED
 #define wx_YIELD_DECLARED
@@ -839,7 +814,7 @@ WXDLLIMPEXP_CORE bool wxYieldIfNeeded();
                        size_t *outLen,
                        const wxString& resourceName,
                        const wxChar* resourceType = wxUserResourceStr,
-                       WXHINSTANCE module = NULL);
+                       WXHINSTANCE module = 0);
 
     // This function allocates a new buffer and makes a copy of the resource
     // data, remember to delete[] the buffer. And avoid using it entirely if
@@ -850,7 +825,7 @@ WXDLLIMPEXP_CORE bool wxYieldIfNeeded();
     wxLoadUserResource(const wxString& resourceName,
                        const wxChar* resourceType = wxUserResourceStr,
                        int* pLen = NULL,
-                       WXHINSTANCE module = NULL);
+                       WXHINSTANCE module = 0);
 #endif // __WINDOWS__
 
 #endif

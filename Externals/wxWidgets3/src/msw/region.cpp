@@ -94,40 +94,22 @@ wxRegion::wxRegion(WXHRGN hRegion)
     M_REGION = (HRGN) hRegion;
 }
 
-static HRGN CreateRectRgnMSW(wxCoord x, wxCoord y, wxCoord w, wxCoord h)
-{
-    // (x,y) has to represent the left-top corner of the region
-    // so if size values are negative we need to recalculate
-    // parameters of the region to get (x,y) at this corner.
-    if ( w < 0 )
-    {
-        w = -w;
-        x -= (w - 1);
-    }
-    if ( h < 0 )
-    {
-        h = -h;
-        y -= (h - 1);
-    }
-    return ::CreateRectRgn(x, y, x + w, y + h);
-}
-
 wxRegion::wxRegion(wxCoord x, wxCoord y, wxCoord w, wxCoord h)
 {
     m_refData = new wxRegionRefData;
-    M_REGION = CreateRectRgnMSW(x, y, w, h);
+    M_REGION = ::CreateRectRgn(x, y, x + w, y + h);
 }
 
 wxRegion::wxRegion(const wxPoint& topLeft, const wxPoint& bottomRight)
 {
     m_refData = new wxRegionRefData;
-    M_REGION = CreateRectRgnMSW(topLeft.x, topLeft.y, bottomRight.x-topLeft.x, bottomRight.y-topLeft.y);
+    M_REGION = ::CreateRectRgn(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
 }
 
 wxRegion::wxRegion(const wxRect& rect)
 {
     m_refData = new wxRegionRefData;
-    M_REGION = CreateRectRgnMSW(rect.x, rect.y, rect.width, rect.height);
+    M_REGION = ::CreateRectRgn(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
 }
 
 wxRegion::wxRegion(size_t n, const wxPoint *points, wxPolygonFillMode fillStyle)
@@ -135,7 +117,7 @@ wxRegion::wxRegion(size_t n, const wxPoint *points, wxPolygonFillMode fillStyle)
     m_refData = new wxRegionRefData;
     M_REGION = ::CreatePolygonRgn
                (
-                    reinterpret_cast<const POINT*>(points),
+                    (POINT*)points,
                     n,
                     fillStyle == wxODDEVEN_RULE ? ALTERNATE : WINDING
                );
@@ -153,7 +135,7 @@ wxGDIRefData *wxRegion::CreateGDIRefData() const
 
 wxGDIRefData *wxRegion::CloneGDIRefData(const wxGDIRefData *data) const
 {
-    return new wxRegionRefData(*static_cast<const wxRegionRefData*>(data));
+    return new wxRegionRefData(*(wxRegionRefData *)data);
 }
 
 // ----------------------------------------------------------------------------
@@ -206,7 +188,7 @@ bool wxRegion::DoCombine(const wxRegion& rgn, wxRegionOp op)
 
             default:
                 wxFAIL_MSG( wxT("unknown region operation") );
-                wxFALLTHROUGH;
+                // fall through
 
             case wxRGN_AND:
             case wxRGN_DIFF:
@@ -239,7 +221,7 @@ bool wxRegion::DoCombine(const wxRegion& rgn, wxRegionOp op)
 
             default:
                 wxFAIL_MSG( wxT("unknown region operation") );
-                wxFALLTHROUGH;
+                // fall through
 
             case wxRGN_COPY:
                 mode = RGN_COPY;
@@ -359,9 +341,6 @@ wxRegionIterator::wxRegionIterator(const wxRegion& region)
 
 wxRegionIterator& wxRegionIterator::operator=(const wxRegionIterator& ri)
 {
-    if (this == &ri)
-        return *this;
-
     delete [] m_rects;
 
     m_current = ri.m_current;

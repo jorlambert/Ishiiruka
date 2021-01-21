@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     19.08.03
-// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -146,7 +146,9 @@ wxSize wxBookCtrlBase::DoGetBestSize() const
 
     // convert display area to window area, adding the size necessary for the
     // tabs
-    return CalcSizeFromPage(bestSize);
+    wxSize best = CalcSizeFromPage(bestSize);
+    CacheBestSize(best);
+    return best;
 }
 
 wxRect wxBookCtrlBase::GetPageRect() const
@@ -241,8 +243,8 @@ void wxBookCtrlBase::DoSize()
 
     // resize all pages to fit the new control size
     const wxRect pageRect = GetPageRect();
-    const size_t pagesCount = m_pages.size();
-    for ( size_t i = 0; i < pagesCount; ++i )
+    const unsigned pagesCount = m_pages.GetCount();
+    for ( unsigned int i = 0; i < pagesCount; ++i )
     {
         wxWindow * const page = m_pages[i];
         if ( !page )
@@ -310,7 +312,7 @@ void wxBookCtrlBase::OnHelp(wxHelpEvent& event)
         source = source->GetParent();
     }
 
-    if ( source && FindPage(source) == wxNOT_FOUND )
+    if ( source && m_pages.Index(source) == wxNOT_FOUND )
     {
         // this event is for the book control itself, redirect it to the
         // corresponding page
@@ -368,7 +370,7 @@ wxBookCtrlBase::InsertPage(size_t nPage,
     wxCHECK_MSG( nPage <= m_pages.size(), false,
                  wxT("invalid page index in wxBookCtrlBase::InsertPage()") );
 
-    m_pages.insert(m_pages.begin() + nPage, page);
+    m_pages.Insert(page, nPage);
     if ( page )
         page->SetSize(GetPageRect());
 
@@ -395,7 +397,7 @@ wxWindow *wxBookCtrlBase::DoRemovePage(size_t nPage)
                  wxT("invalid page index in wxBookCtrlBase::DoRemovePage()") );
 
     wxWindow *pageRemoved = m_pages[nPage];
-    m_pages.erase(m_pages.begin() + nPage);
+    m_pages.RemoveAt(nPage);
     DoInvalidateBestSize();
 
     return pageRemoved;
@@ -479,7 +481,7 @@ int wxBookCtrlBase::DoSetSelection(size_t n, int flags)
     if ( n != (size_t)oldSel )
     {
         wxBookCtrlEvent *event = CreatePageChangingEvent();
-        bool allowed = true;
+        bool allowed = false;
 
         if ( flags & SetSelection_SendEvent )
         {
@@ -490,24 +492,16 @@ int wxBookCtrlBase::DoSetSelection(size_t n, int flags)
             allowed = !GetEventHandler()->ProcessEvent(*event) || event->IsAllowed();
         }
 
-        if ( allowed )
+        if ( !(flags & SetSelection_SendEvent) || allowed)
         {
             if ( oldSel != wxNOT_FOUND )
-            {
-                if ( wxWindow* const oldPage = TryGetNonNullPage(oldSel) )
-                {
-                    DoShowPage(oldPage, false);
-                }
-            }
+                DoShowPage(m_pages[oldSel], false);
 
-            if ( wxWindow* const page = TryGetNonNullPage(n) )
-            {
-                page->SetSize(GetPageRect());
-                DoShowPage(page, true);
-            }
+            wxWindow *page = m_pages[n];
+            page->SetSize(GetPageRect());
+            DoShowPage(page, true);
 
             // change selection now to ignore the selection change event
-            m_selection = n;
             UpdateSelectedPage(n);
 
             if ( flags & SetSelection_SendEvent )
@@ -515,15 +509,6 @@ int wxBookCtrlBase::DoSetSelection(size_t n, int flags)
                 // program allows the page change
                 MakeChangedEvent(*event);
                 (void)GetEventHandler()->ProcessEvent(*event);
-            }
-        }
-        else
-        {
-            // Selection in the control might have already had changed.
-            if ( oldSel != wxNOT_FOUND )
-            {
-                m_selection = oldSel;
-                UpdateSelectedPage(oldSel);
             }
         }
 

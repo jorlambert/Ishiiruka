@@ -35,8 +35,7 @@ wxTextInputStream::wxTextInputStream(wxInputStream &s,
                                      const wxMBConv& conv)
   : m_input(s), m_separators(sep), m_conv(conv.Clone())
 {
-    m_validBegin =
-    m_validEnd = 0;
+    memset((void*)m_lastBytes, 0, 10);
 
 #if SIZEOF_WCHAR_T == 2
     m_lastWChar = 0;
@@ -46,10 +45,7 @@ wxTextInputStream::wxTextInputStream(wxInputStream &s,
 wxTextInputStream::wxTextInputStream(wxInputStream &s, const wxString &sep)
   : m_input(s), m_separators(sep)
 {
-    m_validBegin =
-    m_validEnd = 0;
-
-    m_lastBytes[0] = 0;
+    memset((void*)m_lastBytes, 0, 10);
 }
 #endif
 
@@ -62,16 +58,14 @@ wxTextInputStream::~wxTextInputStream()
 
 void wxTextInputStream::UngetLast()
 {
-    if ( m_validEnd )
-    {
-        m_input.Ungetch(m_lastBytes, m_validEnd);
-
-        m_validBegin =
-        m_validEnd = 0;
-    }
+    size_t byteCount = 0;
+    while(m_lastBytes[byteCount]) // pseudo ANSI strlen (even for Unicode!)
+        byteCount++;
+    m_input.Ungetch(m_lastBytes, byteCount);
+    memset((void*)m_lastBytes, 0, 10);
 }
 
-wxChar wxTextInputStream::GetChar()
+wxChar wxTextInputStream::NextChar()
 {
 #if wxUSE_UNICODE
 #if SIZEOF_WCHAR_T == 2
@@ -83,37 +77,17 @@ wxChar wxTextInputStream::GetChar()
         m_lastWChar = 0;
         return wc;
     }
-#endif // SIZEOF_WCHAR_T
+#endif // !SWIG_ONLY_SCRIPT_API
 
-    // If we have any non-decoded bytes left from the last call, shift them to
-    // be at the beginning of the buffer.
-    if ( m_validBegin < m_validEnd )
+    wxChar wbuf[2];
+    memset((void*)m_lastBytes, 0, 10);
+    for(size_t inlen = 0; inlen < 9; inlen++)
     {
-        m_validEnd -= m_validBegin;
-        memmove(m_lastBytes, m_lastBytes + m_validBegin, m_validEnd);
-    }
-    else // All bytes were already decoded and consumed.
-    {
-        m_validEnd = 0;
-    }
+        // actually read the next character
+        m_lastBytes[inlen] = m_input.GetC();
 
-    // We may need to decode up to 4 characters if we have input starting with
-    // 3 BOM-like bytes, but not actually containing a BOM, as decoding it will
-    // only succeed when 4 bytes are read -- and will yield 4 wide characters.
-    wxChar wbuf[4];
-    for(size_t inlen = 0; inlen < sizeof(m_lastBytes); inlen++)
-    {
-        if ( inlen >= m_validEnd )
-        {
-            // actually read the next character
-            m_lastBytes[inlen] = m_input.GetC();
-
-            if (m_input.LastRead() == 0)
-                return 0;
-
-            m_validEnd++;
-        }
-        //else: Retry decoding what we already have in the buffer.
+        if(m_input.LastRead() <= 0)
+            return wxEOT;
 
         switch ( m_conv->ToWChar(wbuf, WXSIZEOF(wbuf), m_lastBytes, inlen + 1) )
         {
@@ -129,17 +103,12 @@ wxChar wxTextInputStream::GetChar()
                 break;
 
             default:
-                // If we couldn't decode a single character during the last
-                // loop iteration, but decoded more than one of them with just
-                // one extra byte, the only explanation is that we were using a
-                // wxConvAuto conversion recognizing the initial BOM and that
-                // it couldn't detect the presence or absence of BOM so far,
-                // but now finally has enough data to see that there is none.
-                // As we must have fallen back to Latin-1 in this case, return
-                // just the first byte and keep the other ones for the next
-                // time.
-                m_validBegin = 1;
-                return wbuf[0];
+                // if we couldn't decode a single character during the last
+                // loop iteration we shouldn't be able to decode 2 or more of
+                // them with an extra single byte, something fishy is going on
+                // (except if we use UTF-16, see below)
+                wxFAIL_MSG("unexpected decoding result");
+                return wxEOT;
 
 #if SIZEOF_WCHAR_T == 2
             case 2:
@@ -149,37 +118,25 @@ wxChar wxTextInputStream::GetChar()
                 // remember the second one for the next call, as there is no
                 // way to fit both of them into a single wxChar in this case.
                 m_lastWChar = wbuf[1];
-#endif // SIZEOF_WCHAR_T == 2
+#endif // !SWIG_ONLY_SCRIPT_API
                 wxFALLTHROUGH;
 
             case 1:
-                m_validBegin = inlen + 1;
 
                 // we finally decoded a character
                 return wbuf[0];
         }
     }
 
-    // There should be no encoding which requires more than 10 bytes to decode
-    // at least one character (the most actually seems to be 7: 3 for the
-    // initial BOM, which is ignored, and 4 for the longest possible encoding
-    // of a Unicode character in UTF-8), so something must be wrong with our
-    // conversion but we have no way to signal it from here and just return 0
-    // as if we reached the end of the stream.
-    m_validBegin = 0;
-    m_validEnd = sizeof(m_lastBytes);
-
-    return 0;
+    // there should be no encoding which requires more than nine bytes for one
+    // character so something must be wrong with our conversion but we have no
+    // way to signal it from here
+    return wxEOT;
 #else
     m_lastBytes[0] = m_input.GetC();
 
     if(m_input.LastRead() <= 0)
-    {
-        m_validEnd = 0;
-        return 0;
-    }
-
-    m_validEnd = 1;
+        return wxEOT;
 
     return m_lastBytes[0];
 #endif
@@ -190,9 +147,8 @@ wxChar wxTextInputStream::NextNonSeparators()
 {
     for (;;)
     {
-        wxChar c = GetChar();
-        if (!c)
-            return c;
+        wxChar c = NextChar();
+        if (c == wxEOT) return (wxChar) 0;
 
         if (c != wxT('\n') &&
             c != wxT('\r') &&
@@ -208,8 +164,8 @@ bool wxTextInputStream::EatEOL(const wxChar &c)
 
     if (c == wxT('\r')) // eat on both Mac and DOS
     {
-        wxChar c2 = GetChar();
-        if (!c2) return true; // end of stream reached, had enough :-)
+        wxChar c2 = NextChar();
+        if(c2 == wxEOT) return true; // end of stream reached, had enough :-)
 
         if (c2 != wxT('\n')) UngetLast(); // Don't eat on Mac
         return true;
@@ -303,23 +259,11 @@ wxString wxTextInputStream::ReadLine()
 {
     wxString line;
 
-    for ( ;; )
+    while ( !m_input.Eof() )
     {
-        wxChar c = GetChar();
-        if ( m_input.Eof() )
+        wxChar c = NextChar();
+        if(c == wxEOT)
             break;
-
-        if (!c)
-        {
-            // If we failed to get a character and the stream is not at EOF, it
-            // can only mean that decoding the stream contents using our
-            // conversion object failed. In this case, we must signal an error
-            // at the stream level, as otherwise the code using this function
-            // would never know that something went wrong and would continue
-            // calling it again and again, resulting in an infinite loop.
-            m_input.Reset(wxSTREAM_READ_ERROR);
-            break;
-        }
 
         if (EatEOL(c))
             break;
@@ -345,8 +289,8 @@ wxString wxTextInputStream::ReadWord()
 
     while ( !m_input.Eof() )
     {
-        c = GetChar();
-        if (!c)
+        c = NextChar();
+        if(c == wxEOT)
             break;
 
         if (m_separators.Find(c) >= 0)
@@ -370,7 +314,7 @@ wxTextInputStream& wxTextInputStream::operator>>(wxString& word)
 wxTextInputStream& wxTextInputStream::operator>>(char& c)
 {
     c = m_input.GetC();
-    if (m_input.LastRead() == 0) c = 0;
+    if(m_input.LastRead() <= 0) c = 0;
 
     if (EatEOL(c))
         c = '\n';

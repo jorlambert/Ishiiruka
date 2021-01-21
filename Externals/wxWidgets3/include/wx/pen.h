@@ -12,34 +12,51 @@
 #define _WX_PEN_H_BASE_
 
 #include "wx/gdiobj.h"
-#include "wx/peninfobase.h"
+#include "wx/gdicmn.h"
 
-// ----------------------------------------------------------------------------
-// wxPenInfo contains all parameters describing a wxPen
-// ----------------------------------------------------------------------------
-
-class wxPenInfo : public wxPenInfoBase<wxPenInfo>
+enum wxPenStyle
 {
-public:
-    explicit wxPenInfo(const wxColour& colour = wxColour(),
-                       int width = 1,
-                       wxPenStyle style = wxPENSTYLE_SOLID)
-        : wxPenInfoBase<wxPenInfo>(colour, style)
-    {
-        m_width = width;
-    }
+    wxPENSTYLE_INVALID = -1,
 
-    // Setters
+    wxPENSTYLE_SOLID = wxSOLID,
+    wxPENSTYLE_DOT = wxDOT,
+    wxPENSTYLE_LONG_DASH = wxLONG_DASH,
+    wxPENSTYLE_SHORT_DASH = wxSHORT_DASH,
+    wxPENSTYLE_DOT_DASH = wxDOT_DASH,
+    wxPENSTYLE_USER_DASH = wxUSER_DASH,
 
-    wxPenInfo& Width(int width)
-        { m_width = width; return *this; }
+    wxPENSTYLE_TRANSPARENT = wxTRANSPARENT,
 
-    // Accessors
+    wxPENSTYLE_STIPPLE_MASK_OPAQUE = wxSTIPPLE_MASK_OPAQUE,
+    wxPENSTYLE_STIPPLE_MASK = wxSTIPPLE_MASK,
+    wxPENSTYLE_STIPPLE = wxSTIPPLE,
 
-    int GetWidth() const { return m_width; }
+    wxPENSTYLE_BDIAGONAL_HATCH = wxHATCHSTYLE_BDIAGONAL,
+    wxPENSTYLE_CROSSDIAG_HATCH = wxHATCHSTYLE_CROSSDIAG,
+    wxPENSTYLE_FDIAGONAL_HATCH = wxHATCHSTYLE_FDIAGONAL,
+    wxPENSTYLE_CROSS_HATCH = wxHATCHSTYLE_CROSS,
+    wxPENSTYLE_HORIZONTAL_HATCH = wxHATCHSTYLE_HORIZONTAL,
+    wxPENSTYLE_VERTICAL_HATCH = wxHATCHSTYLE_VERTICAL,
+    wxPENSTYLE_FIRST_HATCH = wxHATCHSTYLE_FIRST,
+    wxPENSTYLE_LAST_HATCH = wxHATCHSTYLE_LAST
+};
 
-private:
-    int m_width;
+enum wxPenJoin
+{
+    wxJOIN_INVALID = -1,
+
+    wxJOIN_BEVEL = 120,
+    wxJOIN_MITER,
+    wxJOIN_ROUND
+};
+
+enum wxPenCap
+{
+    wxCAP_INVALID = -1,
+
+    wxCAP_ROUND = 130,
+    wxCAP_PROJECTING,
+    wxCAP_BUTT
 };
 
 

@@ -72,16 +72,12 @@ int wxMacPrintDialog::ShowModal()
     [dict setValue:[NSNumber numberWithInt:m_printDialogData.GetMinPage()] forKey:@"com_apple_print_PrintSettings_PMFirstPage"];
     [dict setValue:[NSNumber numberWithInt:m_printDialogData.GetMaxPage()] forKey:@"com_apple_print_PrintSettings_PMLastPage"];
 
-    OSXBeginModalDialog();
-
-    if ( (NSInteger)[panel runModalWithPrintInfo:printInfo] == NSModalResponseOK )
+    if ( (NSInteger)[panel runModalWithPrintInfo:printInfo] == NSOKButton )
     {
         result = wxID_OK;
         m_printDialogData.GetPrintData().ConvertFromNative();
         ((wxOSXPrintData*)m_printDialogData.GetPrintData().GetNativeData())->TransferTo( &m_printDialogData );
     }
-    
-    OSXEndModalDialog();
 
     return result;
 }
@@ -97,18 +93,13 @@ int wxMacPageSetupDialog::ShowModal()
 
     NSPageLayout *pageLayout = [NSPageLayout pageLayout];
     NSPrintInfo* printInfo = ((wxOSXCocoaPrintData*)m_pageSetupData.GetPrintData().GetNativeData())->GetNSPrintInfo();
-    
-    OSXBeginModalDialog();
-
-    if ( [pageLayout runModalWithPrintInfo:printInfo] == NSModalResponseOK )
+    if ( [pageLayout runModalWithPrintInfo:printInfo] == NSOKButton )
     {
         result = wxID_OK;
         m_pageSetupData.GetPrintData().ConvertFromNative();
         m_pageSetupData.SetPaperSize( m_pageSetupData.GetPrintData().GetPaperSize() );
     }
 
-    OSXEndModalDialog();
-    
     return result;
 }
 

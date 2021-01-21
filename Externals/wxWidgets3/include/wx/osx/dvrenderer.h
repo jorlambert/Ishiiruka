@@ -76,7 +76,6 @@ public:
 
     void SetNativeData(wxDataViewRendererNativeData* newNativeDataPtr);
 
-    void OSXUpdateAlignment();
 
 #if wxOSX_USE_COCOA
     // called when a value was edited by user
@@ -92,8 +91,6 @@ protected:
     void SetAttr(const wxDataViewItemAttr& WXUNUSED(attr)) wxOVERRIDE { };
     void SetEnabled(bool WXUNUSED(enabled)) wxOVERRIDE { };
 #endif
-
-    virtual bool IsHighlighted() const wxOVERRIDE;
 
 private:
     // contains the alignment flags

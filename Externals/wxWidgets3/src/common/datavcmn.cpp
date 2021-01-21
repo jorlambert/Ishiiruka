@@ -26,14 +26,10 @@
 #endif
 
 #include "wx/datectrl.h"
-#include "wx/except.h"
 #include "wx/spinctrl.h"
 #include "wx/choice.h"
 #include "wx/imaglist.h"
 #include "wx/renderer.h"
-#if wxUSE_ACCESSIBILITY
-    #include "wx/access.h"
-#endif // wxUSE_ACCESSIBILITY
 
 const char wxDataViewCtrlNameStr[] = "dataviewCtrl";
 
@@ -62,8 +58,6 @@ protected:
     void OnIdle( wxIdleEvent &event );
 
 private:
-    bool IsEditorSubControl(wxWindow* win) const;
-
     wxDataViewRenderer     *m_owner;
     wxWindow               *m_editorCtrl;
     bool                    m_finished;
@@ -89,8 +83,6 @@ wxFont wxDataViewItemAttr::GetEffectiveFont(const wxFont& font) const
         f.MakeBold();
     if ( GetItalic() )
         f.MakeItalic();
-    if ( GetStrikethrough() )
-        f.MakeStrikethrough();
     return f;
 }
 
@@ -98,6 +90,9 @@ wxFont wxDataViewItemAttr::GetEffectiveFont(const wxFont& font) const
 // ---------------------------------------------------------
 // wxDataViewModelNotifier
 // ---------------------------------------------------------
+
+#include "wx/listimpl.cpp"
+WX_DEFINE_LIST(wxDataViewModelNotifiers)
 
 bool wxDataViewModelNotifier::ItemsAdded( const wxDataViewItem &parent, const wxDataViewItemArray &items )
 {
@@ -135,15 +130,7 @@ bool wxDataViewModelNotifier::ItemsChanged( const wxDataViewItemArray &items )
 
 wxDataViewModel::wxDataViewModel()
 {
-}
-
-wxDataViewModel::~wxDataViewModel()
-{
-    wxDataViewModelNotifiers::const_iterator iter;
-    for (iter = m_notifiers.begin(); iter != m_notifiers.end(); ++iter)
-    {
-        delete *iter;
-    }
+    m_notifiers.DeleteContents( true );
 }
 
 bool wxDataViewModel::ItemAdded( const wxDataViewItem &parent, const wxDataViewItem &item )
@@ -314,33 +301,15 @@ void wxDataViewModel::AddNotifier( wxDataViewModelNotifier *notifier )
 
 void wxDataViewModel::RemoveNotifier( wxDataViewModelNotifier *notifier )
 {
-    wxDataViewModelNotifiers::iterator iter;
-    for (iter = m_notifiers.begin(); iter != m_notifiers.end(); ++iter)
-    {
-        if ( *iter == notifier )
-        {
-            delete notifier;
-            m_notifiers.erase(iter);
-
-            // Skip the assert below.
-            return;
-        }
-    }
-
-    wxFAIL_MSG(wxS("Removing non-registered notifier"));
+    m_notifiers.DeleteObject( notifier );
 }
 
 int wxDataViewModel::Compare( const wxDataViewItem &item1, const wxDataViewItem &item2,
                               unsigned int column, bool ascending ) const
 {
     wxVariant value1,value2;
-
-    // Avoid calling GetValue() for the cells that are not supposed to have any
-    // value, this might be unexpected.
-    if ( HasValue(item1, column) )
-        GetValue( value1, item1, column );
-    if ( HasValue(item2, column) )
-        GetValue( value2, item2, column );
+    GetValue( value1, item1, column );
+    GetValue( value2, item2, column );
 
     if (!ascending)
     {
@@ -404,12 +373,6 @@ int wxDataViewModel::Compare( const wxDataViewItem &item1, const wxDataViewItem 
         int res = iconText1.GetText().Cmp(iconText2.GetText());
         if (res != 0)
           return res;
-    }
-    else
-    {
-        int res = DoCompareValues(value1, value2);
-        if (res != 0)
-            return res;
     }
 
 
@@ -688,17 +651,15 @@ wxIMPLEMENT_ABSTRACT_CLASS(wxDataViewRendererBase, wxObject);
 wxDataViewRendererBase::wxDataViewRendererBase( const wxString &varianttype,
                                                 wxDataViewCellMode WXUNUSED(mode),
                                                 int WXUNUSED(align) )
-    : m_variantType(varianttype)
 {
+    m_variantType = varianttype;
     m_owner = NULL;
-    m_valueAdjuster = NULL;
 }
 
 wxDataViewRendererBase::~wxDataViewRendererBase()
 {
     if ( m_editorCtrl )
         DestroyEditControl();
-    delete m_valueAdjuster;
 }
 
 wxDataViewCtrl* wxDataViewRendererBase::GetView() const
@@ -708,17 +669,17 @@ wxDataViewCtrl* wxDataViewRendererBase::GetView() const
 
 bool wxDataViewRendererBase::StartEditing( const wxDataViewItem &item, wxRect labelRect )
 {
-    wxDataViewColumn* const column = GetOwner();
-    wxDataViewCtrl* const dv_ctrl = column->GetOwner();
+    wxDataViewCtrl* dv_ctrl = GetOwner()->GetOwner();
 
     // Before doing anything we send an event asking if editing of this item is really wanted.
-    wxDataViewEvent event(wxEVT_DATAVIEW_ITEM_START_EDITING, dv_ctrl, column, item);
-    dv_ctrl->GetEventHandler()->ProcessEvent( event );
-    if( !event.IsAllowed() )
+    wxDataViewEvent start_event( wxEVT_DATAVIEW_ITEM_START_EDITING, dv_ctrl->GetId() );
+    start_event.SetDataViewColumn( GetOwner() );
+    start_event.SetModel( dv_ctrl->GetModel() );
+    start_event.SetItem( item );
+    start_event.SetEventObject( dv_ctrl );
+    dv_ctrl->GetEventHandler()->ProcessEvent( start_event );
+    if( !start_event.IsAllowed() )
         return false;
-
-    // Remember the item being edited for use in FinishEditing() later.
-    m_item = item;
 
     unsigned int col = GetOwner()->GetModelColumn();
     const wxVariant& value = CheckedGetValue(dv_ctrl->GetModel(), item, col);
@@ -727,17 +688,14 @@ bool wxDataViewRendererBase::StartEditing( const wxDataViewItem &item, wxRect la
 
     // there might be no editor control for the given item
     if(!m_editorCtrl)
-    {
-        m_item = wxDataViewItem();
         return false;
-    }
 
     wxDataViewEditorCtrlEvtHandler *handler =
         new wxDataViewEditorCtrlEvtHandler( m_editorCtrl, (wxDataViewRenderer*) this );
 
     m_editorCtrl->PushEventHandler( handler );
 
-#if defined(__WXGTK20__) && !defined(wxHAS_GENERIC_DATAVIEWCTRL)
+#if defined(__WXGTK20__) && !defined(wxUSE_GENERICDATAVIEWCTRL)
     handler->SetFocusOnIdle();
 #else
     m_editorCtrl->SetFocus();
@@ -748,10 +706,17 @@ bool wxDataViewRendererBase::StartEditing( const wxDataViewItem &item, wxRect la
 
 void wxDataViewRendererBase::NotifyEditingStarted(const wxDataViewItem& item)
 {
+    // Remember the item being edited for use in FinishEditing() later.
+    m_item = item;
+
     wxDataViewColumn* const column = GetOwner();
     wxDataViewCtrl* const dv_ctrl = column->GetOwner();
 
-    wxDataViewEvent event(wxEVT_DATAVIEW_ITEM_EDITING_STARTED, dv_ctrl, column, item);
+    wxDataViewEvent event( wxEVT_DATAVIEW_ITEM_EDITING_STARTED, dv_ctrl->GetId() );
+    event.SetDataViewColumn( column );
+    event.SetModel( dv_ctrl->GetModel() );
+    event.SetItem( item );
+    event.SetEventObject( dv_ctrl );
     dv_ctrl->GetEventHandler()->ProcessEvent( event );
 }
 
@@ -775,10 +740,10 @@ void wxDataViewRendererBase::DestroyEditControl()
 
 void wxDataViewRendererBase::CancelEditing()
 {
-    if ( m_editorCtrl )
-        DestroyEditControl();
+    if (!m_editorCtrl)
+        return;
 
-    DoHandleEditingDone(NULL);
+    DestroyEditControl();
 }
 
 bool wxDataViewRendererBase::FinishEditing()
@@ -786,55 +751,38 @@ bool wxDataViewRendererBase::FinishEditing()
     if (!m_editorCtrl)
         return true;
 
-    bool gotValue = false;
-
+    // Try to get the value, normally we should succeed but if we fail, don't
+    // return immediately, we still need to destroy the edit control.
     wxVariant value;
-    if ( GetValueFromEditorCtrl(m_editorCtrl, value) )
-    {
-        // This is the normal case and we will use this value below (if it
-        // passes validation).
-        gotValue = true;
-    }
-    //else: Not really supposed to happen, but still proceed with
-    //      destroying the edit control if it does.
+    const bool gotValue = GetValueFromEditorCtrl(m_editorCtrl, value);
+
+    wxDataViewCtrl* dv_ctrl = GetOwner()->GetOwner();
 
     DestroyEditControl();
 
-    GetView()->GetMainWindow()->SetFocus();
+    dv_ctrl->GetMainWindow()->SetFocus();
 
-    return DoHandleEditingDone(gotValue ? &value : NULL);
-}
+    if ( !gotValue )
+        return false;
 
-bool
-wxDataViewRendererBase::DoHandleEditingDone(wxVariant* value)
-{
-    if ( value )
-    {
-        if ( !Validate(*value) )
-        {
-            // Invalid value can't be used, so if it's the same as if we hadn't
-            // got it in the first place.
-            value = NULL;
-        }
-    }
-
-    wxDataViewColumn* const column = GetOwner();
-    wxDataViewCtrl* const dv_ctrl = column->GetOwner();
-    unsigned int col = column->GetModelColumn();
+    bool isValid = Validate(value);
+    unsigned int col = GetOwner()->GetModelColumn();
 
     // Now we should send Editing Done event
-    wxDataViewEvent event(wxEVT_DATAVIEW_ITEM_EDITING_DONE, dv_ctrl, column, m_item);
-    if ( value )
-        event.SetValue(*value);
-    else
-        event.SetEditCancelled();
-
+    wxDataViewEvent event( wxEVT_DATAVIEW_ITEM_EDITING_DONE, dv_ctrl->GetId() );
+    event.SetDataViewColumn( GetOwner() );
+    event.SetModel( dv_ctrl->GetModel() );
+    event.SetItem( m_item );
+    event.SetValue( value );
+    event.SetColumn( col );
+    event.SetEditCanceled( !isValid );
+    event.SetEventObject( dv_ctrl );
     dv_ctrl->GetEventHandler()->ProcessEvent( event );
 
     bool accepted = false;
-    if ( value && event.IsAllowed() )
+    if ( isValid && event.IsAllowed() )
     {
-        dv_ctrl->GetModel()->ChangeValue(*value, m_item, col);
+        dv_ctrl->GetModel()->ChangeValue(value, m_item, col);
         accepted = true;
     }
 
@@ -849,11 +797,7 @@ wxDataViewRendererBase::CheckedGetValue(const wxDataViewModel* model,
                                         unsigned column) const
 {
     wxVariant value;
-    // Avoid calling GetValue() if the model isn't supposed to have any values
-    // in this cell (e.g. a non-first column of a container item), this could
-    // be unexpected.
-    if ( model->HasValue(item, column) )
-        model->GetValue(value, item, column);
+    model->GetValue(value, item, column);
 
     // We always allow the cell to be null, regardless of the renderer type.
     if ( !value.IsNull() )
@@ -882,22 +826,10 @@ wxDataViewRendererBase::PrepareForItem(const wxDataViewModel *model,
                                        const wxDataViewItem& item,
                                        unsigned column)
 {
-    // This method is called by the native control, so we shouldn't allow
-    // exceptions to escape from it.
-    wxTRY
-    {
-
     // Now check if we have a value and remember it for rendering it later.
     // Notice that we do it even if it's null, as the cell should be empty then
     // and not show the last used value.
-    wxVariant value = CheckedGetValue(model, item, column);
-
-    if ( m_valueAdjuster )
-    {
-        if ( IsHighlighted() )
-            value = m_valueAdjuster->MakeHighlighted(value);
-    }
-
+    const wxVariant& value = CheckedGetValue(model, item, column);
     SetValue(value);
 
     if ( !value.IsNull() )
@@ -910,16 +842,20 @@ wxDataViewRendererBase::PrepareForItem(const wxDataViewModel *model,
 
     // Finally determine the enabled/disabled state and apply it, even to the
     // empty cells.
-    SetEnabled(model->IsEnabled(item, column));
+    bool enabled = true;
+    switch ( GetMode() )
+    {
+        case wxDATAVIEW_CELL_INERT:
+            enabled = false;
+            break;
 
+        case wxDATAVIEW_CELL_ACTIVATABLE:
+        case wxDATAVIEW_CELL_EDITABLE:
+            enabled = model->IsEnabled(item, column);
+            break;
     }
-    wxCATCH_ALL
-    (
-        // There is not much we can do about it here, just log it and don't
-        // show anything in this cell.
-        wxLogDebug("Retrieving the value from the model threw an exception");
-        SetValue(wxVariant());
-    )
+
+    SetEnabled(enabled);
 
     return true;
 }
@@ -927,24 +863,13 @@ wxDataViewRendererBase::PrepareForItem(const wxDataViewModel *model,
 
 int wxDataViewRendererBase::GetEffectiveAlignment() const
 {
-    int alignment = GetEffectiveAlignmentIfKnown();
-    wxASSERT( alignment != wxDVR_DEFAULT_ALIGNMENT );
-    return alignment;
-}
-
-
-int wxDataViewRendererBase::GetEffectiveAlignmentIfKnown() const
-{
     int alignment = GetAlignment();
 
     if ( alignment == wxDVR_DEFAULT_ALIGNMENT )
     {
-        if ( GetOwner() != NULL )
-        {
-            // if we don't have an explicit alignment ourselves, use that of the
-            // column in horizontal direction and default vertical alignment
-            alignment = GetOwner()->GetAlignment() | wxALIGN_CENTRE_VERTICAL;
-        }
+        // if we don't have an explicit alignment ourselves, use that of the
+        // column in horizontal direction and default vertical alignment
+        alignment = GetOwner()->GetAlignment() | wxALIGN_CENTRE_VERTICAL;
     }
 
     return alignment;
@@ -1073,21 +998,16 @@ wxDataViewCustomRendererBase::RenderText(const wxString& text,
 
     int flags = 0;
     if ( state & wxDATAVIEW_CELL_SELECTED )
-        flags |= wxCONTROL_SELECTED;
-    if ( !(GetOwner()->GetOwner()->IsEnabled() && GetEnabled()) )
+        flags |= wxCONTROL_SELECTED | wxCONTROL_FOCUSED;
+    if ( !GetOwner()->GetOwner()->IsEnabled() )
         flags |= wxCONTROL_DISABLED;
 
-    // Notice that we intentionally don't use any alignment here: it is not
-    // necessary because the cell rectangle had been already adjusted to
-    // account for the alignment in WXCallRender() and using the alignment here
-    // results in problems with ellipsization when using native MSW renderer,
-    // see https://trac.wxwidgets.org/ticket/17363, so just don't do it.
     wxRendererNative::Get().DrawItemText(
         GetOwner()->GetOwner(),
         *dc,
         text,
         rectText,
-        wxALIGN_NOT,
+        GetEffectiveAlignment(),
         flags,
         GetEllipsizeMode());
 }
@@ -1120,13 +1040,8 @@ void wxDataViewEditorCtrlEvtHandler::OnIdle( wxIdleEvent &event )
     if (m_focusOnIdle)
     {
         m_focusOnIdle = false;
-
-        // Ignore focused items within the compound editor control
-        wxWindow* win = wxWindow::FindFocus();
-        if ( !IsEditorSubControl(win) )
-        {
+        if (wxWindow::FindFocus() != m_editorCtrl)
             m_editorCtrl->SetFocus();
-        }
     }
 
     event.Skip();
@@ -1163,14 +1078,6 @@ void wxDataViewEditorCtrlEvtHandler::OnChar( wxKeyEvent &event )
 
 void wxDataViewEditorCtrlEvtHandler::OnKillFocus( wxFocusEvent &event )
 {
-    // Ignore focus changes within the compound editor control
-    wxWindow* win = event.GetWindow();
-    if ( IsEditorSubControl(win) )
-    {
-        event.Skip();
-        return;
-    }
-
     if (!m_finished)
     {
         m_finished = true;
@@ -1178,23 +1085,6 @@ void wxDataViewEditorCtrlEvtHandler::OnKillFocus( wxFocusEvent &event )
     }
 
     event.Skip();
-}
-
-bool wxDataViewEditorCtrlEvtHandler::IsEditorSubControl(wxWindow* win) const
-{
-    // Checks whether the given window belongs to the editor control
-    // (is either the editor itself or a child of the compound editor).
-    while ( win )
-    {
-        if ( win == m_editorCtrl )
-        {
-            return true;
-        }
-
-        win = win->GetParent();
-    }
-
-    return false;
 }
 
 // ---------------------------------------------------------
@@ -1264,13 +1154,6 @@ const wxDataViewModel* wxDataViewCtrlBase::GetModel() const
     return m_model;
 }
 
-void wxDataViewCtrlBase::Expand(const wxDataViewItem& item)
-{
-    ExpandAncestors(item);
-
-    DoExpand(item);
-}
-
 void wxDataViewCtrlBase::ExpandAncestors( const wxDataViewItem & item )
 {
     if (!m_model) return;
@@ -1290,7 +1173,7 @@ void wxDataViewCtrlBase::ExpandAncestors( const wxDataViewItem & item )
     // then we expand the parents, starting at the root
     while (!parentChain.empty())
     {
-         DoExpand(parentChain.back());
+         Expand(parentChain.back());
          parentChain.pop_back();
     }
 }
@@ -1703,30 +1586,6 @@ wxDEFINE_EVENT( wxEVT_DATAVIEW_ITEM_BEGIN_DRAG, wxDataViewEvent );
 wxDEFINE_EVENT( wxEVT_DATAVIEW_ITEM_DROP_POSSIBLE, wxDataViewEvent );
 wxDEFINE_EVENT( wxEVT_DATAVIEW_ITEM_DROP, wxDataViewEvent );
 
-// Common part of non-copy ctors.
-void wxDataViewEvent::Init(wxDataViewCtrlBase* dvc,
-                           wxDataViewColumn* column,
-                           const wxDataViewItem& item)
-{
-    m_item = item;
-    m_col = column ? column->GetModelColumn() : -1;
-    m_model = dvc ? dvc->GetModel() : NULL;
-    m_column = column;
-    m_pos = wxDefaultPosition;
-    m_cacheFrom = 0;
-    m_cacheTo = 0;
-    m_editCancelled = false;
-#if wxUSE_DRAG_AND_DROP
-    m_dataObject = NULL;
-    m_dataBuffer = NULL;
-    m_dataSize = 0;
-    m_dragFlags = 0;
-    m_dropEffect = wxDragNone;
-    m_proposedDropIndex = -1;
-#endif // wxUSE_DRAG_AND_DROP
-
-    SetEventObject(dvc);
-}
 
 #if wxUSE_SPINCTRL
 
@@ -1780,7 +1639,7 @@ wxSize wxDataViewSpinRenderer::GetSize() const
     // Allow some space for the spin buttons, which is approximately the size
     // of a scrollbar (and getting pixel-exact value would be complicated).
     // Also add some whitespace between the text and the button:
-    sz.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_editorCtrl);
+    sz.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
     sz.x += GetTextExtent("M").x;
 
     return sz;
@@ -1797,13 +1656,6 @@ bool wxDataViewSpinRenderer::GetValue( wxVariant &value ) const
     value = m_data;
     return true;
 }
-
-#if wxUSE_ACCESSIBILITY
-wxString wxDataViewSpinRenderer::GetAccessibleDescription() const
-{
-    return wxString::Format(wxS("%li"), m_data);
-}
-#endif // wxUSE_ACCESSIBILITY
 
 #endif // wxUSE_SPINCTRL
 
@@ -1858,7 +1710,7 @@ wxSize wxDataViewChoiceRenderer::GetSize() const
     // Allow some space for the right-side button, which is approximately the
     // size of a scrollbar (and getting pixel-exact value would be complicated).
     // Also add some whitespace between the text and the button:
-    sz.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, m_editorCtrl);
+    sz.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
     sz.x += GetTextExtent("M").x;
 
     return sz;
@@ -1876,13 +1728,6 @@ bool wxDataViewChoiceRenderer::GetValue( wxVariant &value ) const
     return true;
 }
 
-#if wxUSE_ACCESSIBILITY
-wxString wxDataViewChoiceRenderer::GetAccessibleDescription() const
-{
-    return m_data;
-}
-#endif // wxUSE_ACCESSIBILITY
-
 // ----------------------------------------------------------------------------
 // wxDataViewChoiceByIndexRenderer
 // ----------------------------------------------------------------------------
@@ -1891,7 +1736,6 @@ wxDataViewChoiceByIndexRenderer::wxDataViewChoiceByIndexRenderer( const wxArrayS
                                   wxDataViewCellMode mode, int alignment ) :
       wxDataViewChoiceRenderer( choices, mode, alignment )
 {
-    m_variantType = wxS("long");
 }
 
 wxWindow* wxDataViewChoiceByIndexRenderer::CreateEditorCtrl( wxWindow *parent, wxRect labelRect, const wxVariant &value )
@@ -1927,18 +1771,7 @@ bool wxDataViewChoiceByIndexRenderer::GetValue( wxVariant &value ) const
     return true;
 }
 
-#if wxUSE_ACCESSIBILITY
-wxString wxDataViewChoiceByIndexRenderer::GetAccessibleDescription() const
-{
-    wxVariant strVal;
-    if ( wxDataViewChoiceRenderer::GetValue(strVal) )
-        return strVal;
-
-    return wxString::Format(wxS("%li"), (long)GetChoices().Index(strVal.GetString()));
-}
-#endif // wxUSE_ACCESSIBILITY
-
-#endif // wxHAS_GENERIC_DATAVIEWCTRL
+#endif
 
 // ---------------------------------------------------------
 // wxDataViewDateRenderer
@@ -1984,13 +1817,6 @@ bool wxDataViewDateRenderer::GetValue(wxVariant& value) const
     return true;
 }
 
-#if wxUSE_ACCESSIBILITY
-wxString wxDataViewDateRenderer::GetAccessibleDescription() const
-{
-    return m_date.FormatDate();
-}
-#endif // wxUSE_ACCESSIBILITY
-
 bool wxDataViewDateRenderer::Render(wxRect cell, wxDC* dc, int state)
 {
     wxString tmp = m_date.FormatDate();
@@ -2004,204 +1830,6 @@ wxSize wxDataViewDateRenderer::GetSize() const
 }
 
 #endif // (defined(wxHAS_GENERIC_DATAVIEWCTRL) || defined(__WXGTK__)) && wxUSE_DATEPICKCTRL
-
-// ----------------------------------------------------------------------------
-// wxDataViewCheckIconTextRenderer implementation
-// ----------------------------------------------------------------------------
-
-#if defined(wxHAS_GENERIC_DATAVIEWCTRL) || !defined(__WXOSX__)
-
-IMPLEMENT_VARIANT_OBJECT_EXPORTED(wxDataViewCheckIconText, WXDLLIMPEXP_ADV)
-
-wxIMPLEMENT_CLASS(wxDataViewCheckIconText, wxDataViewIconText);
-
-wxIMPLEMENT_CLASS(wxDataViewCheckIconTextRenderer, wxDataViewRenderer);
-
-wxDataViewCheckIconTextRenderer::wxDataViewCheckIconTextRenderer
-                                 (
-                                      wxDataViewCellMode mode,
-                                      int align
-                                 )
-    : wxDataViewCustomRenderer(GetDefaultType(), mode, align)
-{
-    m_allow3rdStateForUser = false;
-}
-
-void wxDataViewCheckIconTextRenderer::Allow3rdStateForUser(bool allow)
-{
-    m_allow3rdStateForUser = allow;
-}
-
-bool wxDataViewCheckIconTextRenderer::SetValue(const wxVariant& value)
-{
-    m_value << value;
-    return true;
-}
-
-bool wxDataViewCheckIconTextRenderer::GetValue(wxVariant& value) const
-{
-    value << m_value;
-    return true;
-}
-
-#if wxUSE_ACCESSIBILITY
-wxString wxDataViewCheckIconTextRenderer::GetAccessibleDescription() const
-{
-    wxString text = m_value.GetText();
-    if ( !text.empty() )
-    {
-        text += wxS(" ");
-    }
-
-    switch ( m_value.GetCheckedState() )
-    {
-        case wxCHK_CHECKED:
-            /* TRANSLATORS: Checkbox state name */
-            text += _("checked");
-            break;
-        case wxCHK_UNCHECKED:
-            /* TRANSLATORS: Checkbox state name */
-            text += _("unchecked");
-            break;
-        case wxCHK_UNDETERMINED:
-            /* TRANSLATORS: Checkbox state name */
-            text += _("undetermined");
-            break;
-    }
-
-    return text;
-}
-#endif // wxUSE_ACCESSIBILITY
-
-wxSize wxDataViewCheckIconTextRenderer::GetSize() const
-{
-    wxSize size = GetCheckSize();
-    size.x += MARGIN_CHECK_ICON;
-
-    if ( m_value.GetIcon().IsOk() )
-    {
-        const wxSize sizeIcon = m_value.GetIcon().GetSize();
-        if ( sizeIcon.y > size.y )
-            size.y = sizeIcon.y;
-
-        size.x += sizeIcon.x + MARGIN_ICON_TEXT;
-    }
-
-    wxString text = m_value.GetText();
-    if ( text.empty() )
-        text = "Dummy";
-
-    const wxSize sizeText = GetTextExtent(text);
-    if ( sizeText.y > size.y )
-        size.y = sizeText.y;
-
-    size.x += sizeText.x;
-
-    return size;
-}
-
-bool wxDataViewCheckIconTextRenderer::Render(wxRect cell, wxDC* dc, int state)
-{
-    // Draw the checkbox first.
-    int renderFlags = 0;
-    switch ( m_value.GetCheckedState() )
-    {
-        case wxCHK_UNCHECKED:
-            break;
-
-        case wxCHK_CHECKED:
-            renderFlags |= wxCONTROL_CHECKED;
-            break;
-
-        case wxCHK_UNDETERMINED:
-            renderFlags |= wxCONTROL_UNDETERMINED;
-            break;
-    }
-
-    if ( state & wxDATAVIEW_CELL_PRELIT )
-        renderFlags |= wxCONTROL_CURRENT;
-
-    const wxSize sizeCheck = GetCheckSize();
-
-    wxRect rectCheck(cell.GetPosition(), sizeCheck);
-    rectCheck = rectCheck.CentreIn(cell, wxVERTICAL);
-
-    wxRendererNative::Get().DrawCheckBox
-                            (
-                                GetView(), *dc, rectCheck, renderFlags
-                            );
-
-    // Then the icon, if any.
-    int xoffset = sizeCheck.x + MARGIN_CHECK_ICON;
-
-    const wxIcon& icon = m_value.GetIcon();
-    if ( icon.IsOk() )
-    {
-        const wxSize sizeIcon = icon.GetSize();
-        wxRect rectIcon(cell.GetPosition(), sizeIcon);
-        rectIcon.x += xoffset;
-        rectIcon = rectIcon.CentreIn(cell, wxVERTICAL);
-
-        dc->DrawIcon(icon, rectIcon.GetPosition());
-
-        xoffset += sizeIcon.x + MARGIN_ICON_TEXT;
-    }
-
-    // Finally the text.
-    RenderText(m_value.GetText(), xoffset, cell, dc, state);
-
-    return true;
-}
-
-bool
-wxDataViewCheckIconTextRenderer::ActivateCell(const wxRect& WXUNUSED(cell),
-                                              wxDataViewModel *model,
-                                              const wxDataViewItem & item,
-                                              unsigned int col,
-                                              const wxMouseEvent *mouseEvent)
-{
-    if ( mouseEvent )
-    {
-        if ( !wxRect(GetCheckSize()).Contains(mouseEvent->GetPosition()) )
-            return false;
-    }
-
-    // If the 3rd state is user-settable then the cycle is
-    // unchecked->checked->undetermined.
-    wxCheckBoxState checkedState = m_value.GetCheckedState();
-    switch ( checkedState )
-    {
-        case wxCHK_CHECKED:
-            checkedState = m_allow3rdStateForUser ? wxCHK_UNDETERMINED
-                                                  : wxCHK_UNCHECKED;
-            break;
-
-        case wxCHK_UNDETERMINED:
-            // Whether 3rd state is user-settable or not, the next state is
-            // unchecked.
-            checkedState = wxCHK_UNCHECKED;
-            break;
-
-        case wxCHK_UNCHECKED:
-            checkedState = wxCHK_CHECKED;
-            break;
-    }
-
-    m_value.SetCheckedState(checkedState);
-
-    wxVariant value;
-    value << m_value;
-
-    model->ChangeValue(value, item, col);
-    return true;
-}
-
-wxSize wxDataViewCheckIconTextRenderer::GetCheckSize() const
-{
-    return wxRendererNative::Get().GetCheckBoxSize(GetView());
-}
-
-#endif // ! native __WXOSX__
 
 //-----------------------------------------------------------------------------
 // wxDataViewListStore
@@ -2253,7 +1881,6 @@ wxString wxDataViewListStore::GetColumnType( unsigned int pos ) const
 
 void wxDataViewListStore::AppendItem( const wxVector<wxVariant> &values, wxUIntPtr data )
 {
-    wxCHECK_RET( values.size() == GetColumnCount(), "wrong number of values" );
     wxDataViewListStoreLine *line = new wxDataViewListStoreLine( data );
     line->m_values = values;
     m_data.push_back( line );
@@ -2263,7 +1890,6 @@ void wxDataViewListStore::AppendItem( const wxVector<wxVariant> &values, wxUIntP
 
 void wxDataViewListStore::PrependItem( const wxVector<wxVariant> &values, wxUIntPtr data )
 {
-    wxCHECK_RET( values.size() == GetColumnCount(), "wrong number of values" );
     wxDataViewListStoreLine *line = new wxDataViewListStoreLine( data );
     line->m_values = values;
     m_data.insert( m_data.begin(), line );
@@ -2274,7 +1900,6 @@ void wxDataViewListStore::PrependItem( const wxVector<wxVariant> &values, wxUInt
 void wxDataViewListStore::InsertItem(  unsigned int row, const wxVector<wxVariant> &values,
                                        wxUIntPtr data )
 {
-    wxCHECK_RET( values.size() == GetColumnCount(), "wrong number of values" );
     wxDataViewListStoreLine *line = new wxDataViewListStoreLine( data );
     line->m_values = values;
     m_data.insert( m_data.begin()+row, line );
@@ -2481,54 +2106,34 @@ void wxDataViewListCtrl::OnSize( wxSizeEvent &event )
 wxDataViewTreeStoreNode::wxDataViewTreeStoreNode(
         wxDataViewTreeStoreNode *parent,
         const wxString &text, const wxIcon &icon, wxClientData *data )
-    : m_text(text)
-    , m_icon(icon)
 {
     m_parent = parent;
+    m_text = text;
+    m_icon = icon;
     m_data = data;
 }
 
 wxDataViewTreeStoreNode::~wxDataViewTreeStoreNode()
 {
-    delete m_data;
+    if (m_data)
+        delete m_data;
 }
+
+#include "wx/listimpl.cpp"
+WX_DEFINE_LIST(wxDataViewTreeStoreNodeList)
 
 wxDataViewTreeStoreContainerNode::wxDataViewTreeStoreContainerNode(
         wxDataViewTreeStoreNode *parent, const wxString &text,
-        const wxIcon &icon, const wxIcon &expanded, wxClientData *data )
-    : wxDataViewTreeStoreNode( parent, text, icon, data )
-    , m_iconExpanded(expanded)
+        const wxIcon &icon, const wxIcon &expanded, wxClientData *data ) :
+    wxDataViewTreeStoreNode( parent, text, icon, data )
 {
+    m_iconExpanded = expanded;
     m_isExpanded = false;
+    m_children.DeleteContents(true);
 }
 
 wxDataViewTreeStoreContainerNode::~wxDataViewTreeStoreContainerNode()
 {
-    DestroyChildren();
-}
-
-wxDataViewTreeStoreNodes::iterator
-wxDataViewTreeStoreContainerNode::FindChild(wxDataViewTreeStoreNode* node)
-{
-    wxDataViewTreeStoreNodes::iterator iter;
-    for (iter = m_children.begin(); iter != m_children.end(); ++iter)
-    {
-        if ( *iter == node )
-            break;
-    }
-
-    return iter;
-}
-
-void wxDataViewTreeStoreContainerNode::DestroyChildren()
-{
-    wxDataViewTreeStoreNodes::const_iterator iter;
-    for (iter = m_children.begin(); iter != m_children.end(); ++iter)
-    {
-        delete *iter;
-    }
-
-    m_children.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -2551,7 +2156,7 @@ wxDataViewItem wxDataViewTreeStore::AppendItem( const wxDataViewItem& parent,
 
     wxDataViewTreeStoreNode *node =
         new wxDataViewTreeStoreNode( parent_node, text, icon, data );
-    parent_node->GetChildren().push_back( node );
+    parent_node->GetChildren().Append( node );
 
     return node->GetItem();
 }
@@ -2564,8 +2169,7 @@ wxDataViewItem wxDataViewTreeStore::PrependItem( const wxDataViewItem& parent,
 
     wxDataViewTreeStoreNode *node =
         new wxDataViewTreeStoreNode( parent_node, text, icon, data );
-    wxDataViewTreeStoreNodes& children = parent_node->GetChildren();
-    children.insert(children.begin(), node);
+    parent_node->GetChildren().Insert( node );
 
     return node->GetItem();
 }
@@ -2581,13 +2185,12 @@ wxDataViewTreeStore::InsertItem(const wxDataViewItem& parent,
     if (!parent_node) return wxDataViewItem(0);
 
     wxDataViewTreeStoreNode *previous_node = FindNode( previous );
-    wxDataViewTreeStoreNodes& children = parent_node->GetChildren();
-    const wxDataViewTreeStoreNodes::iterator iter = parent_node->FindChild( previous_node );
-    if (iter == children.end()) return wxDataViewItem(0);
+    int pos = parent_node->GetChildren().IndexOf( previous_node );
+    if (pos == wxNOT_FOUND) return wxDataViewItem(0);
 
     wxDataViewTreeStoreNode *node =
         new wxDataViewTreeStoreNode( parent_node, text, icon, data );
-    children.insert(iter, node);
+    parent_node->GetChildren().Insert( (size_t) pos, node );
 
     return node->GetItem();
 }
@@ -2601,8 +2204,7 @@ wxDataViewItem wxDataViewTreeStore::PrependContainer( const wxDataViewItem& pare
 
     wxDataViewTreeStoreContainerNode *node =
         new wxDataViewTreeStoreContainerNode( parent_node, text, icon, expanded, data );
-    wxDataViewTreeStoreNodes& children = parent_node->GetChildren();
-    children.insert(children.begin(), node);
+    parent_node->GetChildren().Insert( node );
 
     return node->GetItem();
 }
@@ -2619,7 +2221,7 @@ wxDataViewTreeStore::AppendContainer(const wxDataViewItem& parent,
 
     wxDataViewTreeStoreContainerNode *node =
         new wxDataViewTreeStoreContainerNode( parent_node, text, icon, expanded, data );
-    parent_node->GetChildren().push_back( node );
+    parent_node->GetChildren().Append( node );
 
     return node->GetItem();
 }
@@ -2636,13 +2238,12 @@ wxDataViewTreeStore::InsertContainer(const wxDataViewItem& parent,
     if (!parent_node) return wxDataViewItem(0);
 
     wxDataViewTreeStoreNode *previous_node = FindNode( previous );
-    wxDataViewTreeStoreNodes& children = parent_node->GetChildren();
-    const wxDataViewTreeStoreNodes::iterator iter = parent_node->FindChild( previous_node );
-    if (iter == children.end()) return wxDataViewItem(0);
+    int pos = parent_node->GetChildren().IndexOf( previous_node );
+    if (pos == wxNOT_FOUND) return wxDataViewItem(0);
 
     wxDataViewTreeStoreContainerNode *node =
         new wxDataViewTreeStoreContainerNode( parent_node, text, icon, expanded, data );
-    children.insert(iter, node);
+    parent_node->GetChildren().Insert( (size_t) pos, node );
 
     return node->GetItem();
 }
@@ -2660,9 +2261,9 @@ wxDataViewItem wxDataViewTreeStore::GetNthChild( const wxDataViewItem& parent, u
     wxDataViewTreeStoreContainerNode *parent_node = FindContainerNode( parent );
     if (!parent_node) return wxDataViewItem(0);
 
-    wxDataViewTreeStoreNode* const node = parent_node->GetChildren()[pos];
+    wxDataViewTreeStoreNodeList::compatibility_iterator node = parent_node->GetChildren().Item( pos );
     if (node)
-        return node->GetItem();
+        return wxDataViewItem(node->GetData());
 
     return wxDataViewItem(0);
 }
@@ -2676,7 +2277,7 @@ int wxDataViewTreeStore::GetChildCount( const wxDataViewItem& parent ) const
         return 0;
 
     wxDataViewTreeStoreContainerNode *container_node = (wxDataViewTreeStoreContainerNode*) node;
-    return (int) container_node->GetChildren().size();
+    return (int) container_node->GetChildren().GetCount();
 }
 
 void wxDataViewTreeStore::SetItemText( const wxDataViewItem& item, const wxString &text )
@@ -2752,13 +2353,7 @@ void wxDataViewTreeStore::DeleteItem( const wxDataViewItem& item )
     wxDataViewTreeStoreContainerNode *parent_node = FindContainerNode( parent_item );
     if (!parent_node) return;
 
-    const wxDataViewTreeStoreNodes::iterator
-        iter = parent_node->FindChild(FindNode(item));
-    if ( iter != parent_node->GetChildren().end() )
-    {
-        delete *iter;
-        parent_node->GetChildren().erase(iter);
-    }
+    parent_node->GetChildren().DeleteObject( FindNode(item) );
 }
 
 void wxDataViewTreeStore::DeleteChildren( const wxDataViewItem& item )
@@ -2766,7 +2361,7 @@ void wxDataViewTreeStore::DeleteChildren( const wxDataViewItem& item )
     wxDataViewTreeStoreContainerNode *node = FindContainerNode( item );
     if (!node) return;
 
-    node->DestroyChildren();
+    node->GetChildren().clear();
 }
 
 void wxDataViewTreeStore::DeleteAllItems()
@@ -2836,14 +2431,14 @@ unsigned int wxDataViewTreeStore::GetChildren( const wxDataViewItem &item, wxDat
     wxDataViewTreeStoreContainerNode *node = FindContainerNode( item );
     if (!node) return 0;
 
-    wxDataViewTreeStoreNodes::iterator iter;
-    for (iter = node->GetChildren().begin(); iter != node->GetChildren().end(); ++iter)
+    wxDataViewTreeStoreNodeList::iterator iter;
+    for (iter = node->GetChildren().begin(); iter != node->GetChildren().end(); iter++)
     {
         wxDataViewTreeStoreNode* child = *iter;
         children.Add( child->GetItem() );
     }
 
-    return node->GetChildren().size();
+    return node->GetChildren().GetCount();
 }
 
 int wxDataViewTreeStore::Compare( const wxDataViewItem &item1, const wxDataViewItem &item2,
@@ -2852,14 +2447,19 @@ int wxDataViewTreeStore::Compare( const wxDataViewItem &item1, const wxDataViewI
     wxDataViewTreeStoreNode *node1 = FindNode( item1 );
     wxDataViewTreeStoreNode *node2 = FindNode( item2 );
 
-    if (!node1 || !node2 || (node1 == node2))
+    if (!node1 || !node2)
         return 0;
 
-    wxDataViewTreeStoreContainerNode* const parent =
+    wxDataViewTreeStoreContainerNode* parent1 =
         (wxDataViewTreeStoreContainerNode*) node1->GetParent();
+    wxDataViewTreeStoreContainerNode* parent2 =
+        (wxDataViewTreeStoreContainerNode*) node2->GetParent();
 
-    wxCHECK_MSG( node2->GetParent() == parent, 0,
-                 wxS("Comparing items with different parent.") );
+    if (parent1 != parent2)
+    {
+        wxLogError( wxT("Comparing items with different parent.") );
+        return 0;
+    }
 
     if (node1->IsContainer() && !node2->IsContainer())
         return -1;
@@ -2867,18 +2467,7 @@ int wxDataViewTreeStore::Compare( const wxDataViewItem &item1, const wxDataViewI
     if (node2->IsContainer() && !node1->IsContainer())
         return 1;
 
-    wxDataViewTreeStoreNodes::const_iterator iter;
-    for (iter = parent->GetChildren().begin(); iter != parent->GetChildren().end(); ++iter)
-    {
-        if ( *iter == node1 )
-            return -1;
-
-        if ( *iter == node2 )
-            return 1;
-    }
-
-    wxFAIL_MSG(wxS("Unreachable"));
-    return 0;
+    return parent1->GetChildren().IndexOf( node1 ) - parent2->GetChildren().IndexOf( node2 );
 }
 
 wxDataViewTreeStoreNode *wxDataViewTreeStore::FindNode( const wxDataViewItem &item ) const
@@ -3047,8 +2636,8 @@ void wxDataViewTreeCtrl::DeleteChildren( const wxDataViewItem& item )
     if (!node) return;
 
     wxDataViewItemArray array;
-    wxDataViewTreeStoreNodes::iterator iter;
-    for (iter = node->GetChildren().begin(); iter != node->GetChildren().end(); ++iter)
+    wxDataViewTreeStoreNodeList::iterator iter;
+    for (iter = node->GetChildren().begin(); iter != node->GetChildren().end(); iter++)
     {
         wxDataViewTreeStoreNode* child = *iter;
         array.Add( child->GetItem() );
@@ -3069,7 +2658,7 @@ void  wxDataViewTreeCtrl::DeleteAllItems()
 
 void wxDataViewTreeCtrl::OnExpanded( wxDataViewEvent &event )
 {
-    if (!HasImageList()) return;
+    if (HasImageList()) return;
 
     wxDataViewTreeStoreContainerNode* container = GetStore()->FindContainerNode( event.GetItem() );
     if (!container) return;
@@ -3081,7 +2670,7 @@ void wxDataViewTreeCtrl::OnExpanded( wxDataViewEvent &event )
 
 void wxDataViewTreeCtrl::OnCollapsed( wxDataViewEvent &event )
 {
-    if (!HasImageList()) return;
+    if (HasImageList()) return;
 
     wxDataViewTreeStoreContainerNode* container = GetStore()->FindContainerNode( event.GetItem() );
     if (!container) return;
@@ -3093,7 +2682,7 @@ void wxDataViewTreeCtrl::OnCollapsed( wxDataViewEvent &event )
 
 void wxDataViewTreeCtrl::OnSize( wxSizeEvent &event )
 {
-#if defined(wxHAS_GENERIC_DATAVIEWCTRL)
+#if defined(wxUSE_GENERICDATAVIEWCTRL)
     // automatically resize our only column to take the entire control width
     if ( GetColumnCount() )
     {
@@ -3105,3 +2694,4 @@ void wxDataViewTreeCtrl::OnSize( wxSizeEvent &event )
 }
 
 #endif // wxUSE_DATAVIEWCTRL
+

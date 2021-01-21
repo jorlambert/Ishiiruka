@@ -90,10 +90,12 @@ wxXLocale& wxXLocale::GetCLocale()
 #if wxUSE_INTL
 wxXLocale::wxXLocale(wxLanguage lang)
 {
-    m_locale = NULL;
-
     const wxLanguageInfo * const info = wxLocale::GetLanguageInfo(lang);
-    if ( info )
+    if ( !info )
+    {
+        m_locale = NULL;
+    }
+    else
     {
         Init(info->GetLocaleName().c_str());
     }

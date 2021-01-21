@@ -3,7 +3,7 @@
 // Purpose:     implementation of wxButtonBase
 // Author:      Vadim Zeitlin
 // Created:     2007-04-08
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 

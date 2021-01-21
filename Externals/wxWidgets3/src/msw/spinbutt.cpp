@@ -94,8 +94,7 @@ bool wxSpinButton::Create(wxWindow *parent,
     // translate the styles
     DWORD wstyle = WS_VISIBLE | WS_CHILD | WS_TABSTOP | /*  WS_CLIPSIBLINGS | */
                    UDS_NOTHOUSANDS | // never useful, sometimes harmful
-                   UDS_ALIGNRIGHT  | // these styles are effectively used only
-                   UDS_SETBUDDYINT;  //  by wxSpinCtrl but do no harm otherwise
+                   UDS_SETBUDDYINT;  // it doesn't harm if we don't have buddy
 
     if ( m_windowStyle & wxCLIP_SIBLINGS )
         wstyle |= WS_CLIPSIBLINGS;
@@ -150,8 +149,8 @@ wxSize wxSpinButton::DoGetBestSize() const
 {
     const bool vert = HasFlag(wxSP_VERTICAL);
 
-    wxSize bestSize(wxGetSystemMetrics(vert ? SM_CXVSCROLL : SM_CXHSCROLL, m_parent),
-                    wxGetSystemMetrics(vert ? SM_CYVSCROLL : SM_CYHSCROLL, m_parent));
+    wxSize bestSize(::GetSystemMetrics(vert ? SM_CXVSCROLL : SM_CXHSCROLL),
+                    ::GetSystemMetrics(vert ? SM_CYVSCROLL : SM_CYHSCROLL));
 
     if ( vert )
         bestSize.y *= 2;
@@ -251,31 +250,13 @@ bool wxSpinButton::MSWOnNotify(int WXUNUSED(idCtrl), WXLPARAM lParam, WXLPARAM *
 {
     NM_UPDOWN *lpnmud = (NM_UPDOWN *)lParam;
 
-    if ( lpnmud->hdr.hwndFrom != GetHwnd() || // make sure it is the right control
-         lpnmud->hdr.code != UDN_DELTAPOS )   // and the right notification 
+    if (lpnmud->hdr.hwndFrom != GetHwnd()) // make sure it is the right control
         return false;
-
-    int newVal = lpnmud->iPos + lpnmud->iDelta;
-    if ( newVal < m_min )
-    {
-        newVal = HasFlag(wxSP_WRAP) ? m_max : m_min;
-    }
-    else if ( newVal > m_max )
-    {
-        newVal = HasFlag(wxSP_WRAP) ? m_min : m_max;
-    }
-
-    // Don't send an event if the value hasn't actually changed (for compatibility with wxGTK and wxOSX).
-    if ( newVal == lpnmud->iPos )
-    {
-        *result = 1;
-        return true;
-    }
 
     wxSpinEvent event(lpnmud->iDelta > 0 ? wxEVT_SCROLL_LINEUP
                                          : wxEVT_SCROLL_LINEDOWN,
                       m_windowId);
-    event.SetPosition(newVal);
+    event.SetPosition(lpnmud->iPos + lpnmud->iDelta);
     event.SetEventObject(this);
 
     bool processed = HandleWindowEvent(event);

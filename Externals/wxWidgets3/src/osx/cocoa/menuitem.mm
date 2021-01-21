@@ -131,8 +131,7 @@ void wxMacCocoaMenuItemSetAccelerator( NSMenuItem* menuItem, wxAcceleratorEntry*
         [menuItem setKeyEquivalent:@""];
         return;
     }
-
-#if wxUSE_ACCEL
+         
     unsigned int modifiers = 0 ;
     int key = entry->GetKeyCode() ;
     if ( key )
@@ -228,7 +227,6 @@ void wxMacCocoaMenuItemSetAccelerator( NSMenuItem* menuItem, wxAcceleratorEntry*
         [menuItem setKeyEquivalent:[NSString stringWithCharacters:&shortcut length:1]];
         [menuItem setKeyEquivalentModifierMask:modifiers];
     }
-#endif // wxUSE_ACCEL
 }
 
 @interface NSMenuItem(PossibleMethods)

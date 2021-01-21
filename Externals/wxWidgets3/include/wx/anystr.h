@@ -65,7 +65,6 @@ public:
     bool operator!() const { return !((bool)*this); }
 
 
-#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
     // and these are the conversions operator which allow to assign the result
     // of FuncReturningAnyStrPtr() to either char* or wxChar* (i.e. wchar_t*)
     operator const char *() const
@@ -95,7 +94,6 @@ public:
 
         return p;
     }
-#endif // wxNO_IMPLICIT_WXSTRING_ENCODING
 
     operator const wchar_t *() const
     {

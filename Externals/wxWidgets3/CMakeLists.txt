@@ -70,7 +70,7 @@ set(SRCS_COMMON
 	"src/common/docview.cpp"
 	"src/common/dpycmn.cpp"
 	"src/common/dseldlg.cpp"
-    "src/common/dummy.cpp"
+	"src/common/dynarray.cpp"
 	"src/common/dynlib.cpp"
 	"src/common/dynload.cpp"
 	#"src/common/effects.cpp"
@@ -147,7 +147,6 @@ set(SRCS_COMMON
 	"src/common/listctrlcmn.cpp"
 	"src/common/log.cpp"
 	"src/common/longlong.cpp"
-    "src/common/lzmastream.cpp"
 	#"src/common/markupparser.cpp"
 	"src/common/matrix.cpp"
 	#"src/common/mediactrlcmn.cpp"
@@ -165,7 +164,7 @@ set(SRCS_COMMON
 	"src/common/object.cpp"
 	"src/common/odcombocmn.cpp"
 	"src/common/overlaycmn.cpp"
-	#"src/common/ownerdrwcmn.cpp"
+	"src/common/ownerdrwcmn.cpp"
 	"src/common/panelcmn.cpp"
 	"src/common/paper.cpp"
 	"src/common/persist.cpp"
@@ -189,7 +188,6 @@ set(SRCS_COMMON
 	"src/common/sckipc.cpp"
 	"src/common/sckstrm.cpp"
 	"src/common/scrolbarcmn.cpp"
-    "src/common/secretstore.cpp"
 	"src/common/selectdispatcher.cpp"
 	"src/common/settcmn.cpp"
 	"src/common/sizer.cpp"
@@ -244,7 +242,7 @@ set(SRCS_COMMON
 	"src/common/valnum.cpp"
 	"src/common/valtext.cpp"
 	"src/common/variant.cpp"
-	"src/common/webview.cpp"
+	#"src/common/webview.cpp"
 	#"src/common/webviewfshandler.cpp"
 	"src/common/wfstream.cpp"
 	"src/common/wincmn.cpp"
@@ -267,7 +265,7 @@ set(SRCS_GENERIC
 	"src/generic/busyinfo.cpp"
 	"src/generic/buttonbar.cpp"
 	"src/generic/calctrlg.cpp"
-	"src/generic/caret.cpp"
+	#"src/generic/caret.cpp"
 	"src/generic/choicbkg.cpp"
 	"src/generic/choicdgg.cpp"
 	"src/generic/collheaderctrlg.cpp"
@@ -281,7 +279,7 @@ set(SRCS_GENERIC
 	"src/generic/dirctrlg.cpp"
 	"src/generic/dragimgg.cpp"
 	"src/generic/editlbox.cpp"
-	"src/generic/fdrepdlg.cpp"
+	#"src/generic/fdrepdlg.cpp"
 	"src/generic/filectrlg.cpp"
 	"src/generic/filepickerg.cpp"
 	"src/generic/fontdlgg.cpp"
@@ -295,12 +293,10 @@ set(SRCS_GENERIC
 	"src/generic/helpext.cpp"
 	#"src/generic/htmllbox.cpp"
 	"src/generic/hyperlinkg.cpp"
-    "src/generic/icon.cpp"
-    "src/generic/imaglist.cpp"
 	"src/generic/infobar.cpp"
 	"src/generic/laywin.cpp"
 	"src/generic/listbkg.cpp"
-	"src/generic/listctrl.cpp"
+
 	"src/generic/logg.cpp"
 	#"src/generic/markuptext.cpp"
 	#"src/generic/mask.cpp"
@@ -317,7 +313,6 @@ set(SRCS_GENERIC
 	#"src/generic/regiong.cpp"
 	"src/generic/renderg.cpp"
 	"src/generic/richmsgdlgg.cpp"
-    "src/generic/rowheightcache.cpp"
 	"src/generic/sashwin.cpp"
 	"src/generic/scrlwing.cpp"
 	"src/generic/selstore.cpp"
@@ -349,11 +344,13 @@ set(SRCS_GENERICGTK
 	"src/generic/activityindicator.cpp"
 	"src/generic/icon.cpp"
 	"src/generic/imaglist.cpp"
+	"src/generic/listctrl.cpp"
 	"src/generic/paletteg.cpp"
 	"src/generic/preferencesg.cpp")
 
 set(SRCS_GENERICMSW
-	"src/generic/activityindicator.cpp")
+	"src/generic/activityindicator.cpp"
+	"src/generic/collpaneg.cpp")
 
 set(SRCS_GENERICOSX
 	"src/generic/animateg.cpp"
@@ -362,10 +359,11 @@ set(SRCS_GENERICOSX
 	"src/generic/colrdlgg.cpp"
 	"src/generic/dirdlgg.cpp"
 	"src/generic/filedlgg.cpp"
-	"src/generic/fontpickerg.cpp")
+	"src/generic/fontpickerg.cpp"
+	"src/generic/listctrl.cpp")
 
 set(SRCS_GTK
-	#"src/aui/tabartgtk.cpp"
+	"src/aui/tabartgtk.cpp"
 	"src/gtk/aboutdlg.cpp"
 	"src/gtk/activityindicator.cpp"
 	"src/gtk/animate.cpp"
@@ -393,14 +391,14 @@ set(SRCS_GTK
 	"src/gtk/dataobj.cpp"
 	"src/gtk/dataview.cpp"
 	"src/gtk/dc.cpp"
-	#"src/gtk/dcclient.cpp"
-	#"src/gtk/dcmemory.cpp"
-	#"src/gtk/dcscreen.cpp"
+	"src/gtk/dcclient.cpp"
+	"src/gtk/dcmemory.cpp"
+	"src/gtk/dcscreen.cpp"
 	"src/gtk/dialog.cpp"
 	"src/gtk/dirdlg.cpp"
 	"src/gtk/display.cpp"
 	"src/gtk/dnd.cpp"
-	#"src/gtk/eggtrayicon.c"
+	"src/gtk/eggtrayicon.c"
 	"src/gtk/evtloop.cpp"
 	"src/gtk/filectrl.cpp"
 	"src/gtk/filedlg.cpp"
@@ -418,7 +416,6 @@ set(SRCS_GTK
 	"src/gtk/listbox.cpp"
 	"src/gtk/mdi.cpp"
 	"src/gtk/menu.cpp"
-    "src/gtk/mimetype.cpp"
 	"src/gtk/minifram.cpp"
 	"src/gtk/mnemonics.cpp"
 	"src/gtk/msgdlg.cpp"
@@ -436,7 +433,6 @@ set(SRCS_GTK
 	"src/gtk/renderer.cpp"
 	"src/gtk/scrolbar.cpp"
 	"src/gtk/scrolwin.cpp"
-    "src/gtk/srchctrl.cpp"
 	"src/gtk/settings.cpp"
 	"src/gtk/slider.cpp"
 	"src/gtk/sockgtk.cpp"
@@ -458,8 +454,6 @@ set(SRCS_GTK
 	"src/gtk/treeentry_gtk.c"
 	"src/gtk/utilsgtk.cpp"
 	#"src/gtk/webview_webkit.cpp"
-    "src/gtk/webview_webkit2.cpp"
-    "src/gtk/webview_webkit2_extension.cpp"
 	"src/gtk/win_gtk.cpp"
 	"src/gtk/window.cpp")
 
@@ -492,7 +486,6 @@ set(SRCS_MSW
 	"src/msw/control.cpp"
 	#"src/msw/crashrpt.cpp"
 	"src/msw/cursor.cpp"
-    "src/msw/customdraw.cpp"
 	#"src/msw/data.cpp"
 	"src/msw/datecontrols.cpp"
 	"src/msw/datectrl.cpp"
@@ -514,7 +507,7 @@ set(SRCS_MSW
 	"src/msw/dragimag.cpp"
 	#"src/msw/enhmeta.cpp"
 	"src/msw/evtloop.cpp"
-	#"src/msw/evtloopconsole.cpp"
+	"src/msw/evtloopconsole.cpp"
 	"src/msw/fdrepdlg.cpp"
 	"src/msw/filedlg.cpp"
 	"src/msw/font.cpp"
@@ -560,7 +553,6 @@ set(SRCS_MSW
 	"src/msw/ole/access.cpp"
 	"src/msw/ole/activex.cpp"
 	"src/msw/ole/automtn.cpp"
-    "src/msw/ole/comimpl.cpp"
 	"src/msw/ole/dataobj.cpp"
 	"src/msw/ole/dropsrc.cpp"
 	"src/msw/ole/droptgt.cpp"
@@ -569,7 +561,7 @@ set(SRCS_MSW
 	"src/msw/ole/uuid.cpp"
 	"src/msw/ownerdrw.cpp"
 	"src/msw/palette.cpp"
-    #"src/msw/panel.cpp"
+	"src/msw/panel.cpp"
 	"src/msw/pen.cpp"
 	"src/msw/popupwin.cpp"
 	"src/msw/power.cpp"
@@ -584,7 +576,6 @@ set(SRCS_MSW
 	"src/msw/renderer.cpp"
 	"src/msw/richmsgdlg.cpp"
 	"src/msw/scrolbar.cpp"
-    "src/msw/secretstore.cpp"
 	"src/msw/settings.cpp"
 	"src/msw/slider.cpp"
 	"src/msw/snglinst.cpp"
@@ -614,18 +605,17 @@ set(SRCS_MSW
 	"src/msw/toplevel.cpp"
 	"src/msw/treectrl.cpp"
 	"src/msw/uiaction.cpp"
-	"src/msw/urlmsw.cpp"
+	#"src/msw/urlmsw.cpp"
 	"src/msw/utils.cpp"
 	"src/msw/utilsexc.cpp"
 	"src/msw/utilsgui.cpp"
 	"src/msw/utilswin.cpp"
 	"src/msw/uxtheme.cpp"
-	"src/msw/version.rc"
+	#"src/msw/version.rc"
 	"src/msw/volume.cpp"
-    #"src/msw/webview_ie.cpp"
-    "src/msw/webview_edge.cpp"
+	#"src/msw/webview_ie.cpp"
 	"src/msw/window.cpp"
-	"src/msw/winestub.c"
+	#"src/msw/winestub.c"
 	#"src/msw/rt/notifmsgrt.cpp"
 	#"src/msw/rt/utilsrt.cpp"
 	)
@@ -650,7 +640,7 @@ set(SRCS_OSX
 	#"src/osx/fswatcher_fsevents.cpp"
 	"src/osx/gauge_osx.cpp"
 	#"src/osx/glcanvas_osx.cpp"
-    #"src/osx/imaglist.cpp"
+	"src/osx/imaglist.cpp"
 	"src/osx/listbox_osx.cpp"
 	"src/osx/menu_osx.cpp"
 	"src/osx/menuitem_osx.cpp"
@@ -667,7 +657,6 @@ set(SRCS_OSX
 	"src/osx/sound_osx.cpp"
 	"src/osx/spinbutt_osx.cpp"
 	"src/osx/srchctrl_osx.cpp"
-    "src/osx/statbmp_osx.cpp"
 	"src/osx/statbox_osx.cpp"
 	"src/osx/statline_osx.cpp"
 	"src/osx/stattext_osx.cpp"
@@ -679,37 +668,37 @@ set(SRCS_OSX
 	"src/osx/toplevel_osx.cpp"
 	"src/osx/uiaction_osx.cpp"
 	"src/osx/utils_osx.cpp"
-	"src/osx/webview_webkit.mm"
+	#"src/osx/webview_webkit.mm"
 	"src/osx/window_osx.cpp"
-    "src/osx/carbon/app.cpp"
-    "src/osx/carbon/clipbrd.cpp"
+	"src/osx/carbon/app.cpp"
+	"src/osx/carbon/clipbrd.cpp"
 	#"src/osx/carbon/colordlg.cpp"
-    "src/osx/carbon/colordlgosx.mm"
-    "src/osx/carbon/control.cpp"
-    "src/osx/carbon/cursor.cpp"
-    "src/osx/carbon/dataobj.cpp"
-    "src/osx/carbon/dcclient.cpp"
-    "src/osx/carbon/dcprint.cpp"
-    "src/osx/carbon/dcscreen.cpp"
-    "src/osx/carbon/font.cpp"
-    "src/osx/carbon/fontdlg.cpp"
-    "src/osx/carbon/fontdlgosx.mm"
-    "src/osx/carbon/frame.cpp"
-    "src/osx/carbon/gdiobj.cpp"
-    "src/osx/carbon/graphics.cpp"
-    #"src/osx/carbon/icon.cpp"
+	"src/osx/carbon/colordlgosx.mm"
+	"src/osx/carbon/control.cpp"
+	"src/osx/carbon/cursor.cpp"
+	"src/osx/carbon/dataobj.cpp"
+	"src/osx/carbon/dcclient.cpp"
+	"src/osx/carbon/dcprint.cpp"
+	"src/osx/carbon/dcscreen.cpp"
+	"src/osx/carbon/font.cpp"
+	"src/osx/carbon/fontdlg.cpp"
+	"src/osx/carbon/fontdlgosx.mm"
+	"src/osx/carbon/frame.cpp"
+	"src/osx/carbon/gdiobj.cpp"
+	"src/osx/carbon/graphics.cpp"
+	"src/osx/carbon/icon.cpp"
 	#"src/osx/carbon/main.cpp"
-    "src/osx/carbon/mdi.cpp"
-    "src/osx/carbon/metafile.cpp"
+	"src/osx/carbon/mdi.cpp"
+	"src/osx/carbon/metafile.cpp"
 	#"src/osx/carbon/overlay.cpp"
-    "src/osx/carbon/popupwin.cpp"
-    "src/osx/carbon/region.cpp"
-    "src/osx/carbon/renderer.cpp"
+	"src/osx/carbon/popupwin.cpp"
+	"src/osx/carbon/region.cpp"
+	"src/osx/carbon/renderer.cpp"
 	#"src/osx/carbon/sound.cpp"
-    "src/osx/carbon/statbrma.cpp"
+	"src/osx/carbon/statbrma.cpp"
 	#"src/osx/carbon/thread.cpp"
 	#"src/osx/carbon/timer.cpp"
-    "src/osx/carbon/utilscocoa.mm"
+	"src/osx/carbon/utilscocoa.mm"
 	"src/osx/cocoa/aboutdlg.mm"
 	"src/osx/cocoa/activityindicator.mm"
 	"src/osx/cocoa/anybutton.mm"
@@ -739,7 +728,6 @@ set(SRCS_OSX
 	"src/osx/cocoa/notifmsg.mm"
 	"src/osx/cocoa/overlay.mm"
 	"src/osx/cocoa/power.mm"
-    "src/osx/cocoa/preferences.mm"
 	"src/osx/cocoa/printdlg.mm"
 	"src/osx/cocoa/radiobut.mm"
 	"src/osx/cocoa/scrolbar.mm"
@@ -748,7 +736,6 @@ set(SRCS_OSX
 	"src/osx/cocoa/spinbutt.mm"
 	"src/osx/cocoa/srchctrl.mm"
 	"src/osx/cocoa/statbox.mm"
-    "src/osx/cocoa/statbmp.mm"
 	"src/osx/cocoa/statline.mm"
 	"src/osx/cocoa/stattext.mm"
 	"src/osx/cocoa/stdpaths.mm"
@@ -771,12 +758,11 @@ set(SRCS_OSX
 	#"src/osx/core/hidjoystick.cpp"
 	"src/osx/core/mimetype.cpp"
 	"src/osx/core/printmac.cpp"
-    "src/osx/core/secretstore.cpp"
 	"src/osx/core/sockosx.cpp"
 	"src/osx/core/sound.cpp"
 	"src/osx/core/strconv_cf.cpp"
 	"src/osx/core/timer.cpp"
-    #"src/osx/core/utilsexc_base.cpp"
+	"src/osx/core/utilsexc_base.cpp"
 	"src/osx/core/utilsexc_cf.cpp"
 	#"src/osx/iphone/button.mm"
 	#"src/osx/iphone/checkbox.mm"
@@ -806,7 +792,6 @@ set(SRCS_UNIX
 	"src/unix/fdiounix.cpp"
 	#"src/unix/fswatcher_kqueue.cpp"
 	#"src/unix/net.cpp"
-    "src/unix/secretstore.cpp"
 	"src/unix/snglinst.cpp"
 	"src/unix/sockunix.cpp"
 	"src/unix/stackwalk.cpp"
@@ -833,109 +818,81 @@ set(SRCS_UNIXGTK
 	"src/unix/uiactionx11.cpp"
 	"src/unix/utilsx11.cpp")
 
-include_directories(.)
-include_directories(include)
-
-set(SRCS
-	${SRCS_AUI}
-	${SRCS_COMMON}
-	${SRCS_GENERIC})
+add_library(wx STATIC ${SRCS_AUI} ${SRCS_COMMON} ${SRCS_GENERIC})
+target_include_directories(wx PUBLIC . include)
+target_compile_definitions(wx PRIVATE "WXBUILDING")
+# wxWidgets warnings are not our problem.
+target_compile_options(wx PRIVATE "-w")
 
 if(APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
-	add_definitions(-D__WXOSX_COCOA__)
-
-    find_library(WEBKIT_FRAMEWORK WebKit)
-    if (NOT WEBKIT_FRAMEWORK)
-        message(FATAL_ERROR "WebKit not found")
-    endif()
-    
-	set(SRCS
-		${SRCS}
+        target_compile_definitions(wx PRIVATE "__WXOSX_COCOA__" "__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=1")
+        target_sources(wx PRIVATE 
 		${SRCS_GENERICOSX}
 		${SRCS_OSX}
-		${SRCS_UNIX})
-	set(LIBS
+		${SRCS_UNIX}
+        )
+        target_link_libraries(wx PRIVATE	
 		png
 		iconv
 		${APPKIT_LIBRARY}
 		${APPSERV_LIBRARY}
-		${ATB_LIBRARY}
-        #${CARBON_LIBRARY}
+		${CARBON_LIBRARY}
 		${COCOA_LIBRARY}
 		${COREFUND_LIBRARY}
 		${CORESERV_LIBRARY}
 		${IOK_LIBRARY}
 		${OPENGL_LIBRARY}
-        ${WEBKIT_FRAMEWORK}
-        )
+	)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-		add_definitions(-D__LINUX__=1)
+        target_compile_options(wx PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>")
+	if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+                target_compile_definitions(wx PRIVATE "__LINUX__=1")
 	else()
-		add_definitions(-D__BSD__=1)
+                target_compile_definitions(wx PRIVATE "__BSD__=1")
 	endif()
-	add_definitions(-D__WXGTK__)
-    
-    include(modules/FindPANGOFT2.cmake)
-    include_directories(${PANGOFT2_INCLUDE_DIRS})
-
-    include(modules/FindLIBSOUP.cmake)
-    include_directories(${LIBSOUP_INCLUDE_DIRS})
-
-    include(modules/FindFONTCONFIG.cmake)
-    include_directories(${FONTCONFIG_INCLUDE_DIRS})
-
-    include(modules/FindGio.cmake)
-    include_directories(${GIO_INCLUDE_DIR})
-    ADD_DEFINITIONS(${GIO_DEFINITIONS})
-
-    include(modules/FindWebkit2.cmake)
-    include_directories(${WEBKIT2_INCLUDE_DIR})
-
-    include(modules/FindJavaScriptCore.cmake)
-
-    INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
-    ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
-
-	set(SRCS
-		${SRCS}
+        target_compile_definitions(wx PRIVATE "__WXGTK__")
+        target_sources(wx PRIVATE 
 		${SRCS_GENERICGTK}
 		${SRCS_GTK}
 		${SRCS_UNIX}
-		${SRCS_UNIXGTK})
+		${SRCS_UNIXGTK}
+        )
 	if (NOT X11_xf86vmode_FOUND OR NOT X11_Xinerama_FOUND)
 		message(FATAL_ERROR "wxGTK2 needs Xinerama and Xxf86vm")
 	endif()
-	set(LIBS
+
+        find_package(GTK2 REQUIRED)
+        check_lib(GTHREAD2 gthread-2.0 gthread-2.0 glib/gthread.h REQUIRED)
+        check_lib(PANGOCAIRO pangocairo pangocairo pango/pangocairo.h REQUIRED)
+        # On Linux "backtrace" is part of glibc. FreeBSD has a separate library.
+        # Required for wxUSE_STACKWALKER in Externals/wxWidgets3/wx/wxgtk.h
+        find_package(Backtrace REQUIRED)
+
+        target_include_directories(wx PUBLIC ${GTK2_INCLUDE_DIRS})
+        target_link_libraries(wx PRIVATE
 		png
 		${GTHREAD2_LIBRARIES}
 		${PANGOCAIRO_LIBRARIES}
-        ${PANGOFT2_LIBRARIES}
-		${GTK3_LIBRARIES}
-        ${GIO_LIBRARIES}
-        ${LIBSOUP_LIBRARIES}
+		${GTK2_LIBRARIES}
 		${Backtrace_LIBRARY}
-        ${WEBKIT2_LIBRARIES}
-        ${JAVASCRIPTCORE_LIBRARIES}
-        ${FONTCONFIG_LIBRARIES}
 		${X11_X11_LIB}
 		${X11_Xxf86vm_LIB}
-		${X11_Xinerama_LIB})
-else()
-	add_definitions(-D__WXMSW__)
-
-	set(SRCS
-		${SRCS}
+		${X11_Xinerama_LIB}
+        )
+elseif(WIN32)
+	remove_definitions(-DWIN32_LEAN_AND_MEAN)
+        target_compile_definitions(wx PRIVATE "__WXMSW__" "NOPCH")
+        target_sources(wx PRIVATE
 		${SRCS_GENERICMSW}
-		${SRCS_MSW})
+		${SRCS_MSW}
+        )
+        target_link_libraries(wx PRIVATE
+	        Comctl32.lib
+		Rpcrt4.lib
+		${OPENGL_LIBRARIES}
+	)
+else()
+        message(FATAL_ERROR "wxWidgets in Externals is not compatible with your platform")
 endif()
 
-add_definitions(-DWXBUILDING)
-# wxWidgets warnings are not our problem.
-add_definitions(-w)
-
-add_library(wx STATIC ${PNG_SRCS} ${SRCS})
-target_link_libraries(wx ${LIBS})
+add_library(wxWidgets::wxWidgets ALIAS wx)

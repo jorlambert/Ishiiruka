@@ -61,7 +61,7 @@ public:
         delete m_handler;
     }
 
-    bool Init() wxOVERRIDE
+    bool Init()
     {
         wxCHECK_MSG( !IsOk(), false, "Inotify already initialized" );
 
@@ -75,7 +75,7 @@ public:
             return false;
         }
 
-        m_source = wxEventLoopBase::AddSourceForFD
+        m_source = loop->AddSourceForFD
                          (
                           m_ifd,
                           m_handler,
@@ -98,7 +98,7 @@ public:
         }
     }
 
-    virtual bool DoAdd(wxSharedPtr<wxFSWatchEntryUnix> watch) wxOVERRIDE
+    virtual bool DoAdd(wxSharedPtr<wxFSWatchEntryUnix> watch)
     {
         wxCHECK_MSG( IsOk(), false,
                     "Inotify not initialized or invalid inotify descriptor" );
@@ -121,7 +121,7 @@ public:
         return true;
     }
 
-    virtual bool DoRemove(wxSharedPtr<wxFSWatchEntryUnix> watch) wxOVERRIDE
+    virtual bool DoRemove(wxSharedPtr<wxFSWatchEntryUnix> watch)
     {
         wxCHECK_MSG( IsOk(), false,
                     "Inotify not initialized or invalid inotify descriptor" );
@@ -129,20 +129,8 @@ public:
         int ret = DoRemoveInotify(watch.get());
         if (ret == -1)
         {
-            // Failures can happen if a dir is deleted just before we try to
-            // remove the watch. I think there's a race between calling this
-            // code and IN_DELETE_SELF arriving. So just warn.
-            wxFileSystemWatcherEvent
-                event
-                (
-                    wxFSW_EVENT_WARNING, wxFSW_WARNING_GENERAL,
-                    wxString::Format
-                    (
-                     _("Unable to remove inotify watch %i"),
-                     watch->GetWatchDescriptor()
-                    )
-                );
-            SendEvent(event);
+            wxLogSysError( _("Unable to remove inotify watch") );
+            return false;
         }
 
         if (m_watchMap.erase(watch->GetWatchDescriptor()) != 1)
@@ -157,7 +145,7 @@ public:
         return true;
     }
 
-    virtual bool RemoveAll() wxOVERRIDE
+    virtual bool RemoveAll()
     {
         wxFSWatchEntries::iterator it = m_watches.begin();
         for ( ; it != m_watches.end(); ++it )
@@ -385,7 +373,6 @@ protected:
             // if the wd isn't found: repeated IN_DELETE_SELFs can occur
             wxFileName fn = GetEventPath(watch, inevt);
             wxString path(fn.GetPathWithSep());
-            const wxString filespec(watch.GetFilespec());
 
             if (m_watchMap.erase(inevt.wd) == 1)
             {
@@ -407,7 +394,7 @@ protected:
 
             // Tell the owner, in case it's interested
             // If there's a filespec, assume he's not
-            if (filespec.empty())
+            if (watch.GetFilespec().empty())
             {
                 wxFileSystemWatcherEvent event(flags, fn, fn);
                 SendEvent(event);
@@ -432,7 +419,7 @@ protected:
             if ( it2 == m_cookies.end() )
             {
                 int size = sizeof(inevt) + inevt.len;
-                inotify_event* e = (inotify_event*)new char[size];
+                inotify_event* e = (inotify_event*) operator new (size);
                 memcpy(e, &inevt, size);
 
                 wxInotifyCookies::value_type val(e->cookie, e);
@@ -481,7 +468,7 @@ protected:
                 }
 
                 m_cookies.erase(it2);
-                delete[] (char*)&oldinevt;
+                delete &oldinevt;
             }
         }
         // every other kind of event
@@ -533,7 +520,7 @@ protected:
             }
 
             m_cookies.erase(it);
-            delete[] (char*)&inevt;
+            delete &inevt;
             it = m_cookies.begin();
         }
     }
@@ -703,7 +690,8 @@ wxInotifyFileSystemWatcher::wxInotifyFileSystemWatcher(const wxFileName& path,
 {
     if (!Init())
     {
-        delete m_service;
+        if (m_service)
+            delete m_service;
         return;
     }
 

@@ -511,7 +511,7 @@ size_t wxStreamBuffer::Write(const void *buffer, size_t size)
             {
                 PutToBuffer(buffer, left);
                 size -= left;
-                buffer = static_cast<const char*>(buffer) + left;
+                buffer = (char *)buffer + left;
 
                 if ( !FlushBuffer() )
                 {

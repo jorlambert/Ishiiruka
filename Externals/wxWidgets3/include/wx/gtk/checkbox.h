@@ -22,7 +22,7 @@ public:
             const wxPoint& pos = wxDefaultPosition,
             const wxSize& size = wxDefaultSize, long style = 0,
             const wxValidator& validator = wxDefaultValidator,
-            const wxString& name = wxASCII_STR(wxCheckBoxNameStr))
+            const wxString& name = wxCheckBoxNameStr)
     {
         Create(parent, id, label, pos, size, style, validator, name);
     }
@@ -33,12 +33,13 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = 0,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString& name = wxASCII_STR(wxCheckBoxNameStr) );
+                const wxString& name = wxCheckBoxNameStr );
 
     void SetValue( bool state ) wxOVERRIDE;
     bool GetValue() const wxOVERRIDE;
 
     virtual void SetLabel( const wxString& label ) wxOVERRIDE;
+    virtual bool Enable( bool enable = true ) wxOVERRIDE;
 
     static wxVisualAttributes
     GetClassDefaultAttributes(wxWindowVariant variant = wxWINDOW_VARIANT_NORMAL);
@@ -50,8 +51,6 @@ public:
 protected:
     virtual void DoApplyWidgetStyle(GtkRcStyle *style) wxOVERRIDE;
     virtual GdkWindow *GTKGetWindow(wxArrayGdkWindows& windows) const wxOVERRIDE;
-
-    virtual void DoEnable(bool enable) wxOVERRIDE;
 
     void DoSet3StateValue(wxCheckBoxState state) wxOVERRIDE;
     wxCheckBoxState DoGet3StateValue() const wxOVERRIDE;

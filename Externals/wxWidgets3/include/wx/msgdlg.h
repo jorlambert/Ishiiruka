@@ -45,12 +45,10 @@ public:
         {
         }
 
-#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
         ButtonLabel(const char *label)
             : m_label(label), m_stockId(wxID_NONE)
         {
         }
-#endif // wxNO_IMPLICIT_WXSTRING_ENCODING
 
         ButtonLabel(const wchar_t *label)
             : m_label(label), m_stockId(wxID_NONE)
@@ -242,7 +240,7 @@ protected:
     {
         wxString msg = m_message;
         if ( !m_extendedMessage.empty() )
-            msg << wxASCII_STR("\n\n") << m_extendedMessage;
+            msg << "\n\n" << m_extendedMessage;
 
         return msg;
     }
@@ -316,7 +314,7 @@ private:
 // ----------------------------------------------------------------------------
 
 int WXDLLIMPEXP_CORE wxMessageBox(const wxString& message,
-                             const wxString& caption = wxASCII_STR(wxMessageBoxCaptionStr),
+                             const wxString& caption = wxMessageBoxCaptionStr,
                              long style = wxOK | wxCENTRE,
                              wxWindow *parent = NULL,
                              int x = wxDefaultCoord, int y = wxDefaultCoord);

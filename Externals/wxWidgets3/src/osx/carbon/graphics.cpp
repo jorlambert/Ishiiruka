@@ -39,7 +39,6 @@
     #include "wx/osx/dcclient.h"
     #include "wx/osx/dcmemory.h"
     #include "wx/osx/private.h"
-    #include "wx/osx/core/cfdictionary.h"
 #else
     #include "CoreServices/CoreServices.h"
     #include "ApplicationServices/ApplicationServices.h"
@@ -87,7 +86,7 @@ extern "C"
 const double M_PI = 3.14159265358979;
 #endif
 
-//-----------------------------------------------------------------------------
+//
 // Pen, Brushes and Fonts
 //
 
@@ -117,7 +116,15 @@ CGColorRef wxMacCreateCGColor( const wxColour& col )
     return retval;
 }
 
-//-----------------------------------------------------------------------------
+CTFontRef wxMacCreateCTFont( const wxFont& font )
+{
+#ifdef __WXMAC__
+    return wxCFRetain((CTFontRef) font.OSXGetCTFont());
+#else
+    return CTFontCreateWithName( wxCFStringRef( font.GetFaceName(), wxLocale::GetSystemEncoding() ) , font.GetPointSize() , NULL );
+#endif
+}
+
 // CGPattern wrapper class: always allocate on heap, never call destructor
 
 class wxMacCoreGraphicsPattern
@@ -229,7 +236,7 @@ public :
     {
         switch ( m_hatch )
         {
-            case wxHATCHSTYLE_BDIAGONAL :
+            case wxBDIAGONAL_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -239,7 +246,7 @@ public :
                 }
                 break;
 
-            case wxHATCHSTYLE_CROSSDIAG :
+            case wxCROSSDIAG_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -250,7 +257,7 @@ public :
                 }
                 break;
 
-            case wxHATCHSTYLE_FDIAGONAL :
+            case wxFDIAGONAL_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -260,7 +267,7 @@ public :
                 }
                 break;
 
-            case wxHATCHSTYLE_CROSS :
+            case wxCROSS_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -271,7 +278,7 @@ public :
                 }
                 break;
 
-            case wxHATCHSTYLE_HORIZONTAL :
+            case wxHORIZONTAL_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -281,7 +288,7 @@ public :
                 }
                 break;
 
-            case wxHATCHSTYLE_VERTICAL :
+            case wxVERTICAL_HATCH :
                 {
                     CGPoint pts[] =
                     {
@@ -303,8 +310,646 @@ protected :
     int         m_hatch;
 };
 
+class wxMacCoreGraphicsPenData : public wxGraphicsObjectRefData
+{
+public:
+    wxMacCoreGraphicsPenData( wxGraphicsRenderer* renderer, const wxPen &pen );
+    ~wxMacCoreGraphicsPenData();
+
+    void Init();
+    virtual void Apply( wxGraphicsContext* context );
+    virtual wxDouble GetWidth() { return m_width; }
+
+protected :
+    CGLineCap m_cap;
+    wxCFRef<CGColorRef> m_color;
+    wxCFRef<CGColorSpaceRef> m_colorSpace;
+
+    CGLineJoin m_join;
+    CGFloat m_width;
+
+    int m_count;
+    const CGFloat *m_lengths;
+    CGFloat *m_userLengths;
+
+
+    bool m_isPattern;
+    wxCFRef<CGPatternRef> m_pattern;
+    CGFloat* m_patternColorComponents;
+};
+
+wxMacCoreGraphicsPenData::wxMacCoreGraphicsPenData( wxGraphicsRenderer* renderer, const wxPen &pen ) :
+    wxGraphicsObjectRefData( renderer )
+{
+    Init();
+
+    m_color.reset( wxMacCreateCGColor( pen.GetColour() ) ) ;
+
+    // TODO: * m_dc->m_scaleX
+    m_width = pen.GetWidth();
+    if (m_width <= 0.0)
+        m_width = (CGFloat) 0.1;
+
+    switch ( pen.GetCap() )
+    {
+        case wxCAP_ROUND :
+            m_cap = kCGLineCapRound;
+            break;
+
+        case wxCAP_PROJECTING :
+            m_cap = kCGLineCapSquare;
+            break;
+
+        case wxCAP_BUTT :
+            m_cap = kCGLineCapButt;
+            break;
+
+        default :
+            m_cap = kCGLineCapButt;
+            break;
+    }
+
+    switch ( pen.GetJoin() )
+    {
+        case wxJOIN_BEVEL :
+            m_join = kCGLineJoinBevel;
+            break;
+
+        case wxJOIN_MITER :
+            m_join = kCGLineJoinMiter;
+            break;
+
+        case wxJOIN_ROUND :
+            m_join = kCGLineJoinRound;
+            break;
+
+        default :
+            m_join = kCGLineJoinMiter;
+            break;
+    }
+
+    const CGFloat dashUnit = m_width < 1.0 ? (CGFloat) 1.0 : m_width;
+
+    const CGFloat dotted[] = { (CGFloat) dashUnit , (CGFloat) (dashUnit + 2.0) };
+    static const CGFloat short_dashed[] = { (CGFloat) 9.0 , (CGFloat) 6.0 };
+    static const CGFloat dashed[] = { (CGFloat) 19.0 , (CGFloat) 9.0 };
+    static const CGFloat dotted_dashed[] = { (CGFloat) 9.0 , (CGFloat) 6.0 , (CGFloat) 3.0 , (CGFloat) 3.0 };
+
+    switch ( pen.GetStyle() )
+    {
+        case wxPENSTYLE_SOLID:
+            break;
+
+        case wxPENSTYLE_DOT:
+            m_count = WXSIZEOF(dotted);
+            m_userLengths = new CGFloat[ m_count ] ;
+            memcpy( m_userLengths, dotted, sizeof(dotted) );
+            m_lengths = m_userLengths;
+            break;
+
+        case wxPENSTYLE_LONG_DASH:
+            m_count = WXSIZEOF(dashed);
+            m_lengths = dashed;
+            break;
+
+        case wxPENSTYLE_SHORT_DASH:
+            m_count = WXSIZEOF(short_dashed);
+            m_lengths = short_dashed;
+            break;
+
+        case wxPENSTYLE_DOT_DASH:
+            m_count = WXSIZEOF(dotted_dashed);
+            m_lengths = dotted_dashed;
+            break;
+
+        case wxPENSTYLE_USER_DASH:
+            wxDash *dashes;
+            m_count = pen.GetDashes( &dashes );
+            if ((dashes != NULL) && (m_count > 0))
+            {
+                m_userLengths = new CGFloat[m_count];
+                for ( int i = 0; i < m_count; ++i )
+                {
+                    m_userLengths[i] = dashes[i] * dashUnit;
+
+                    if ( i % 2 == 1 && m_userLengths[i] < dashUnit + 2.0 )
+                        m_userLengths[i] = (CGFloat) (dashUnit + 2.0);
+                    else if ( i % 2 == 0 && m_userLengths[i] < dashUnit )
+                        m_userLengths[i] = dashUnit;
+                }
+            }
+            m_lengths = m_userLengths;
+            break;
+
+        case wxPENSTYLE_STIPPLE:
+            {
+                wxBitmap* bmp = pen.GetStipple();
+                if ( bmp && bmp->IsOk() )
+                {
+                    m_colorSpace.reset( CGColorSpaceCreatePattern( NULL ) );
+                    m_pattern.reset( (CGPatternRef) *( new ImagePattern( bmp , CGAffineTransformMakeScale( 1,-1 ) ) ) );
+                    m_patternColorComponents = new CGFloat[1] ;
+                    m_patternColorComponents[0] = (CGFloat) 1.0;
+                    m_isPattern = true;
+                }
+            }
+            break;
+
+        default :
+            {
+                m_isPattern = true;
+                m_colorSpace.reset( CGColorSpaceCreatePattern( wxMacGetGenericRGBColorSpace() ) );
+                m_pattern.reset( (CGPatternRef) *( new HatchPattern( pen.GetStyle() , CGAffineTransformMakeScale( 1,-1 ) ) ) );
+                m_patternColorComponents = new CGFloat[4] ;
+                m_patternColorComponents[0] = (CGFloat) (pen.GetColour().Red() / 255.0);
+                m_patternColorComponents[1] = (CGFloat) (pen.GetColour().Green() / 255.0);
+                m_patternColorComponents[2] = (CGFloat) (pen.GetColour().Blue() / 255.0);
+                m_patternColorComponents[3] =  (CGFloat) (pen.GetColour().Alpha() / 255.0);
+            }
+            break;
+    }
+    if ((m_lengths != NULL) && (m_count > 0))
+    {
+        // force the line cap, otherwise we get artifacts (overlaps) and just solid lines
+        m_cap = kCGLineCapButt;
+    }
+}
+
+wxMacCoreGraphicsPenData::~wxMacCoreGraphicsPenData()
+{
+    delete[] m_userLengths;
+    delete[] m_patternColorComponents;
+}
+
+void wxMacCoreGraphicsPenData::Init()
+{
+    m_lengths = NULL;
+    m_userLengths = NULL;
+    m_width = 0;
+    m_count = 0;
+    m_patternColorComponents = NULL;
+    m_isPattern = false;
+}
+
+void wxMacCoreGraphicsPenData::Apply( wxGraphicsContext* context )
+{
+    CGContextRef cg = (CGContextRef) context->GetNativeContext();
+    CGContextSetLineWidth( cg , m_width );
+    CGContextSetLineJoin( cg , m_join );
+
+    CGContextSetLineDash( cg , 0 , m_lengths , m_count );
+    CGContextSetLineCap( cg , m_cap );
+
+    if ( m_isPattern )
+    {
+        CGAffineTransform matrix = CGContextGetCTM( cg );
+        CGContextSetPatternPhase( cg, CGSizeMake(matrix.tx, matrix.ty) );
+        CGContextSetStrokeColorSpace( cg , m_colorSpace );
+        CGContextSetStrokePattern( cg, m_pattern , m_patternColorComponents );
+    }
+    else
+    {
+        CGContextSetStrokeColorWithColor( cg , m_color );
+    }
+}
+
+//
+// Brush
+//
+
+// make sure we all use one class for all conversions from wx to native colour
+
+class wxMacCoreGraphicsColour
+{
+    public:
+        wxMacCoreGraphicsColour();
+        wxMacCoreGraphicsColour(const wxBrush &brush);
+        ~wxMacCoreGraphicsColour();
+
+        void Apply( CGContextRef cgContext );
+    protected:
+        void Init();
+        wxCFRef<CGColorRef> m_color;
+        wxCFRef<CGColorSpaceRef> m_colorSpace;
+
+        bool m_isPattern;
+        wxCFRef<CGPatternRef> m_pattern;
+        CGFloat* m_patternColorComponents;
+} ;
+
+wxMacCoreGraphicsColour::~wxMacCoreGraphicsColour()
+{
+    delete[] m_patternColorComponents;
+}
+
+void wxMacCoreGraphicsColour::Init()
+{
+    m_isPattern = false;
+    m_patternColorComponents = NULL;
+}
+
+void wxMacCoreGraphicsColour::Apply( CGContextRef cgContext )
+{
+    if ( m_isPattern )
+    {
+        CGAffineTransform matrix = CGContextGetCTM( cgContext );
+        CGContextSetPatternPhase( cgContext, CGSizeMake(matrix.tx, matrix.ty) );
+        CGContextSetFillColorSpace( cgContext , m_colorSpace );
+        CGContextSetFillPattern( cgContext, m_pattern , m_patternColorComponents );
+    }
+    else
+    {
+        CGContextSetFillColorWithColor( cgContext, m_color );
+    }
+}
+
+wxMacCoreGraphicsColour::wxMacCoreGraphicsColour()
+{
+    Init();
+}
+
+wxMacCoreGraphicsColour::wxMacCoreGraphicsColour( const wxBrush &brush )
+{
+    Init();
+    if ( brush.GetStyle() == wxBRUSHSTYLE_SOLID )
+    {
+        m_color.reset( wxMacCreateCGColor( brush.GetColour() ));
+    }
+    else if ( brush.IsHatch() )
+    {
+        m_isPattern = true;
+        m_colorSpace.reset( CGColorSpaceCreatePattern( wxMacGetGenericRGBColorSpace() ) );
+        m_pattern.reset( (CGPatternRef) *( new HatchPattern( brush.GetStyle() , CGAffineTransformMakeScale( 1,-1 ) ) ) );
+
+        m_patternColorComponents = new CGFloat[4] ;
+        m_patternColorComponents[0] = (CGFloat) (brush.GetColour().Red() / 255.0);
+        m_patternColorComponents[1] = (CGFloat) (brush.GetColour().Green() / 255.0);
+        m_patternColorComponents[2] = (CGFloat) (brush.GetColour().Blue() / 255.0);
+        m_patternColorComponents[3] = (CGFloat) (brush.GetColour().Alpha() / 255.0);
+    }
+    else
+    {
+        // now brush is a bitmap
+        wxBitmap* bmp = brush.GetStipple();
+        if ( bmp && bmp->IsOk() )
+        {
+            m_isPattern = true;
+            m_patternColorComponents = new CGFloat[1] ;
+            m_patternColorComponents[0] = (CGFloat) 1.0;
+            m_colorSpace.reset( CGColorSpaceCreatePattern( NULL ) );
+            m_pattern.reset( (CGPatternRef) *( new ImagePattern( bmp , CGAffineTransformMakeScale( 1,-1 ) ) ) );
+        }
+    }
+}
+
+class wxMacCoreGraphicsBrushData : public wxGraphicsObjectRefData
+{
+public:
+    wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer );
+    wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer, const wxBrush &brush );
+    ~wxMacCoreGraphicsBrushData ();
+
+    virtual void Apply( wxGraphicsContext* context );
+    void CreateLinearGradientBrush(wxDouble x1, wxDouble y1,
+                                   wxDouble x2, wxDouble y2,
+                                   const wxGraphicsGradientStops& stops);
+    void CreateRadialGradientBrush(wxDouble xo, wxDouble yo,
+                                   wxDouble xc, wxDouble yc, wxDouble radius,
+                                   const wxGraphicsGradientStops& stops);
+
+    virtual bool IsShading() { return m_isShading; }
+    CGShadingRef GetShading() { return m_shading; }
+protected:
+    CGFunctionRef CreateGradientFunction(const wxGraphicsGradientStops& stops);
+
+    static void CalculateShadingValues (void *info, const CGFloat *in, CGFloat *out);
+    virtual void Init();
+
+    wxMacCoreGraphicsColour m_cgColor;
+
+    bool m_isShading;
+    CGFunctionRef m_gradientFunction;
+    CGShadingRef m_shading;
+
+    // information about a single gradient component
+    struct GradientComponent
+    {
+        CGFloat pos;
+        CGFloat red;
+        CGFloat green;
+        CGFloat blue;
+        CGFloat alpha;
+    };
+
+    // and information about all of them
+    struct GradientComponents
+    {
+        GradientComponents()
+        {
+            count = 0;
+            comps = NULL;
+        }
+
+        void Init(unsigned count_)
+        {
+            count = count_;
+            comps = new GradientComponent[count];
+        }
+
+        ~GradientComponents()
+        {
+            delete [] comps;
+        }
+
+        unsigned count;
+        GradientComponent *comps;
+    };
+
+    GradientComponents m_gradientComponents;
+};
+
+wxMacCoreGraphicsBrushData::wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer) : wxGraphicsObjectRefData( renderer )
+{
+    Init();
+}
+
+void
+wxMacCoreGraphicsBrushData::CreateLinearGradientBrush(wxDouble x1, wxDouble y1,
+                                                      wxDouble x2, wxDouble y2,
+                                                      const wxGraphicsGradientStops& stops)
+{
+    m_gradientFunction = CreateGradientFunction(stops);
+    m_shading = CGShadingCreateAxial( wxMacGetGenericRGBColorSpace(), CGPointMake((CGFloat) x1, (CGFloat) y1),
+                                        CGPointMake((CGFloat) x2,(CGFloat) y2), m_gradientFunction, true, true ) ;
+    m_isShading = true ;
+}
+
+void
+wxMacCoreGraphicsBrushData::CreateRadialGradientBrush(wxDouble xo, wxDouble yo,
+                                                      wxDouble xc, wxDouble yc,
+                                                      wxDouble radius,
+                                                      const wxGraphicsGradientStops& stops)
+{
+    m_gradientFunction = CreateGradientFunction(stops);
+    m_shading = CGShadingCreateRadial( wxMacGetGenericRGBColorSpace(), CGPointMake((CGFloat) xo,(CGFloat) yo), 0,
+                                        CGPointMake((CGFloat) xc,(CGFloat) yc), (CGFloat) radius, m_gradientFunction, true, true ) ;
+    m_isShading = true ;
+}
+
+wxMacCoreGraphicsBrushData::wxMacCoreGraphicsBrushData(wxGraphicsRenderer* renderer, const wxBrush &brush) : wxGraphicsObjectRefData( renderer ),
+    m_cgColor( brush )
+{
+    Init();
+
+}
+
+wxMacCoreGraphicsBrushData::~wxMacCoreGraphicsBrushData()
+{
+    if ( m_shading )
+        CGShadingRelease(m_shading);
+
+    if( m_gradientFunction )
+        CGFunctionRelease(m_gradientFunction);
+}
+
+void wxMacCoreGraphicsBrushData::Init()
+{
+    m_gradientFunction = NULL;
+    m_shading = NULL;
+    m_isShading = false;
+}
+
+void wxMacCoreGraphicsBrushData::Apply( wxGraphicsContext* context )
+{
+    CGContextRef cg = (CGContextRef) context->GetNativeContext();
+
+    if ( m_isShading )
+    {
+        // nothing to set as shades are processed by clipping using the path and filling
+    }
+    else
+    {
+        m_cgColor.Apply( cg );
+    }
+}
+
+void wxMacCoreGraphicsBrushData::CalculateShadingValues (void *info, const CGFloat *in, CGFloat *out)
+{
+    const GradientComponents& stops = *(GradientComponents*) info ;
+
+    CGFloat f = *in;
+    if (f <= 0.0)
+    {
+        // Start
+        out[0] = stops.comps[0].red;
+        out[1] = stops.comps[0].green;
+        out[2] = stops.comps[0].blue;
+        out[3] = stops.comps[0].alpha;
+    }
+    else if (f >= 1.0)
+    {
+        // end
+        out[0] = stops.comps[stops.count - 1].red;
+        out[1] = stops.comps[stops.count - 1].green;
+        out[2] = stops.comps[stops.count - 1].blue;
+        out[3] = stops.comps[stops.count - 1].alpha;
+    }
+    else
+    {
+        // Find first component with position greater than f
+        unsigned i;
+        for ( i = 0; i < stops.count; i++ )
+        {
+            if (stops.comps[i].pos > f)
+                break;
+        }
+
+        // Interpolated between stops
+        CGFloat diff = (f - stops.comps[i-1].pos);
+        CGFloat range = (stops.comps[i].pos - stops.comps[i-1].pos);
+        CGFloat fact = diff / range;
+
+        out[0] = stops.comps[i - 1].red + (stops.comps[i].red - stops.comps[i - 1].red) * fact;
+        out[1] = stops.comps[i - 1].green + (stops.comps[i].green - stops.comps[i - 1].green) * fact;
+        out[2] = stops.comps[i - 1].blue + (stops.comps[i].blue - stops.comps[i - 1].blue) * fact;
+        out[3] = stops.comps[i - 1].alpha + (stops.comps[i].alpha - stops.comps[i - 1].alpha) * fact;
+    }
+}
+
+CGFunctionRef
+wxMacCoreGraphicsBrushData::CreateGradientFunction(const wxGraphicsGradientStops& stops)
+{
+
+    static const CGFunctionCallbacks callbacks = { 0, &CalculateShadingValues, NULL };
+    static const CGFloat input_value_range [2] = { 0, 1 };
+    static const CGFloat output_value_ranges [8] = { 0, 1, 0, 1, 0, 1, 0, 1 };
+
+    m_gradientComponents.Init(stops.GetCount());
+    for ( unsigned i = 0; i < m_gradientComponents.count; i++ )
+    {
+        const wxGraphicsGradientStop stop = stops.Item(i);
+
+        m_gradientComponents.comps[i].pos = stop.GetPosition();
+
+        const wxColour col = stop.GetColour();
+        m_gradientComponents.comps[i].red = (CGFloat) (col.Red() / 255.0);
+        m_gradientComponents.comps[i].green = (CGFloat) (col.Green() / 255.0);
+        m_gradientComponents.comps[i].blue = (CGFloat) (col.Blue() / 255.0);
+        m_gradientComponents.comps[i].alpha = (CGFloat) (col.Alpha() / 255.0);
+    }
+
+    return CGFunctionCreate ( &m_gradientComponents,  1,
+                            input_value_range,
+                            4,
+                            output_value_ranges,
+                            &callbacks);
+}
+
+//
+// Font
+//
+
+#if wxOSX_USE_IPHONE
+
+extern UIFont* CreateUIFont( const wxFont& font );
+extern void DrawTextInContext( CGContextRef context, CGPoint where, UIFont *font, NSString* text );
+extern CGSize MeasureTextInContext( UIFont *font, NSString* text );
+
+#endif
+
+class wxMacCoreGraphicsFontData : public wxGraphicsObjectRefData
+{
+public:
+    wxMacCoreGraphicsFontData( wxGraphicsRenderer* renderer, const wxFont &font, const wxColour& col );
+    ~wxMacCoreGraphicsFontData();
+
+#if wxOSX_USE_ATSU_TEXT
+    virtual ATSUStyle GetATSUStyle() { return m_macATSUIStyle; }
+#endif
+    CTFontRef OSXGetCTFont() const { return m_ctFont ; }
+    wxColour GetColour() const { return m_colour ; }
+
+    bool GetUnderlined() const { return m_underlined ; }
+    bool GetStrikethrough() const { return m_strikethrough; }
+
+#if wxOSX_USE_IPHONE
+    UIFont* GetUIFont() const { return m_uiFont; }
+#endif
+private :
+    wxColour m_colour;
+    bool m_underlined,
+         m_strikethrough;
+#if wxOSX_USE_ATSU_TEXT
+    ATSUStyle m_macATSUIStyle;
+#endif
+    wxCFRef< CTFontRef > m_ctFont;
+#if wxOSX_USE_IPHONE
+    UIFont*  m_uiFont;
+#endif
+};
+
+wxMacCoreGraphicsFontData::wxMacCoreGraphicsFontData(wxGraphicsRenderer* renderer, const wxFont &font, const wxColour& col) : wxGraphicsObjectRefData( renderer )
+{
+    m_colour = col;
+    m_underlined = font.GetUnderlined();
+    m_strikethrough = font.GetStrikethrough();
+
+    m_ctFont.reset( wxMacCreateCTFont( font ) );
+#if wxOSX_USE_IPHONE
+    m_uiFont = CreateUIFont(font);
+    wxMacCocoaRetain( m_uiFont );
+#endif
+#if wxOSX_USE_ATSU_TEXT
+    OSStatus status = noErr;
+    m_macATSUIStyle = NULL;
+
+    status = ATSUCreateAndCopyStyle( (ATSUStyle) font.MacGetATSUStyle() , &m_macATSUIStyle );
+
+    wxASSERT_MSG( status == noErr, wxT("couldn't create ATSU style") );
+
+    // we need the scale here ...
+
+    Fixed atsuSize = IntToFixed( int( 1 * font.GetPointSize()) );
+    RGBColor atsuColor ;
+    col.GetRGBColor( &atsuColor );
+    ATSUAttributeTag atsuTags[] =
+    {
+            kATSUSizeTag ,
+            kATSUColorTag ,
+    };
+    ByteCount atsuSizes[WXSIZEOF(atsuTags)] =
+    {
+            sizeof( Fixed ) ,
+            sizeof( RGBColor ) ,
+    };
+    ATSUAttributeValuePtr atsuValues[WXSIZEOF(atsuTags)] =
+    {
+            &atsuSize ,
+            &atsuColor ,
+    };
+
+    status = ::ATSUSetAttributes(
+        m_macATSUIStyle, WXSIZEOF(atsuTags),
+        atsuTags, atsuSizes, atsuValues);
+
+    wxASSERT_MSG( status == noErr , wxT("couldn't modify ATSU style") );
+#endif
+}
+
+wxMacCoreGraphicsFontData::~wxMacCoreGraphicsFontData()
+{
+#if wxOSX_USE_ATSU_TEXT
+    if ( m_macATSUIStyle )
+    {
+        ::ATSUDisposeStyle((ATSUStyle)m_macATSUIStyle);
+        m_macATSUIStyle = NULL;
+    }
+#endif
+#if wxOSX_USE_IPHONE
+    wxMacCocoaRelease( m_uiFont );
+#endif
+}
+
+class wxMacCoreGraphicsBitmapData : public wxGraphicsBitmapData
+{
+public:
+    wxMacCoreGraphicsBitmapData( wxGraphicsRenderer* renderer, CGImageRef bitmap, bool monochrome );
+    ~wxMacCoreGraphicsBitmapData();
+
+    virtual CGImageRef GetBitmap() { return m_bitmap; }
+    virtual void* GetNativeBitmap() const wxOVERRIDE { return m_bitmap; }
+    bool IsMonochrome() { return m_monochrome; }
+
+#if wxUSE_IMAGE
+    wxImage ConvertToImage() const
+    {
+        return wxBitmap(m_bitmap).ConvertToImage();
+    }
+#endif // wxUSE_IMAGE
+
+private :
+    CGImageRef m_bitmap;
+    bool m_monochrome;
+};
+
+wxMacCoreGraphicsBitmapData::wxMacCoreGraphicsBitmapData( wxGraphicsRenderer* renderer, CGImageRef bitmap, bool monochrome ) : wxGraphicsBitmapData( renderer ),
+    m_bitmap(bitmap), m_monochrome(monochrome)
+{
+}
+
+wxMacCoreGraphicsBitmapData::~wxMacCoreGraphicsBitmapData()
+{
+    CGImageRelease( m_bitmap );
+}
+
+
+//
+// Graphics Matrix
+//
+
 //-----------------------------------------------------------------------------
-// Graphics Matrix data
+// wxMacCoreGraphicsMatrix declaration
+//-----------------------------------------------------------------------------
 
 class WXDLLIMPEXP_CORE wxMacCoreGraphicsMatrixData : public wxGraphicsMatrixData
 {
@@ -365,6 +1010,9 @@ private :
     CGAffineTransform m_matrix;
 } ;
 
+//-----------------------------------------------------------------------------
+// wxMacCoreGraphicsMatrix implementation
+//-----------------------------------------------------------------------------
 
 wxMacCoreGraphicsMatrixData::wxMacCoreGraphicsMatrixData(wxGraphicsRenderer* renderer) : wxGraphicsMatrixData(renderer)
 {
@@ -474,679 +1122,13 @@ void * wxMacCoreGraphicsMatrixData::GetNativeMatrix() const
     return (void*) &m_matrix;
 }
 
-
-
-// ----------------------------------------------------------------------------
-// Pen and Brush common data. Base class for information shared between pens and
-// brushes, basically just the things needed for gradient support.
-
-class wxMacCoreGraphicsPenBrushDataBase : public wxGraphicsObjectRefData
-{
-public:
-    wxMacCoreGraphicsPenBrushDataBase(wxGraphicsRenderer* renderer);
-    ~wxMacCoreGraphicsPenBrushDataBase();
-
-    void CreateLinearGradientShading(wxDouble x1, wxDouble y1,
-                                     wxDouble x2, wxDouble y2,
-                                     const wxGraphicsGradientStops& stops,
-                                     const wxGraphicsMatrix& matrix);
-    void CreateRadialGradientShading(wxDouble startX, wxDouble startY,
-                                     wxDouble endX, wxDouble endY, wxDouble radius,
-                                     const wxGraphicsGradientStops& stops,
-                                     const wxGraphicsMatrix& matrix);
-
-    virtual bool IsShading() { return m_isShading; }
-    CGShadingRef GetShading() { return m_shading; }
-    wxMacCoreGraphicsMatrixData* GetMatrix() { return m_shadingMatrix; }
-
-protected:
-    void Init();
-
-    CGFunctionRef CreateGradientFunction(const wxGraphicsGradientStops& stops);
-    static void CalculateShadingValues (void *info, const CGFloat *in, CGFloat *out);
-    static void ReleaseComponents (void *info);
-
-    bool m_isShading;
-    CGFunctionRef m_gradientFunction;
-    CGShadingRef m_shading;
-    wxMacCoreGraphicsMatrixData* m_shadingMatrix; 
-
-    // information about a single gradient component
-    struct GradientComponent
-    {
-        CGFloat pos;
-        CGFloat red;
-        CGFloat green;
-        CGFloat blue;
-        CGFloat alpha;
-    };
-
-    // and information about all of them
-    struct GradientComponents
-    {
-        GradientComponents()
-        {
-            count = 0;
-            comps = NULL;
-        }
-
-        void Init(unsigned count_)
-        {
-            count = count_;
-            comps = new GradientComponent[count];
-        }
-
-        ~GradientComponents()
-        {
-            delete [] comps;
-        }
-
-        unsigned count;
-        GradientComponent *comps;
-    };
-
-    GradientComponents* m_gradientComponents;
-};
-
-
-wxMacCoreGraphicsPenBrushDataBase::wxMacCoreGraphicsPenBrushDataBase(wxGraphicsRenderer* renderer)
-    : wxGraphicsObjectRefData(renderer)
-{
-    Init();
-}
-
-wxMacCoreGraphicsPenBrushDataBase::~wxMacCoreGraphicsPenBrushDataBase()
-{
-    if ( m_shading )
-        CGShadingRelease(m_shading);
-
-    if ( m_gradientFunction )
-        CGFunctionRelease(m_gradientFunction);
-
-    if ( m_shadingMatrix )
-        delete m_shadingMatrix;
-    
-    // an eventual existing m_gradientComponents will be deallocated via the CGFunction callback
-}
-
-void
-wxMacCoreGraphicsPenBrushDataBase::Init()
-{
-    m_gradientFunction = NULL;
-    m_shading = NULL;
-    m_isShading = false;
-    m_shadingMatrix = NULL;
-    m_gradientComponents = NULL;
-}
-
-void
-wxMacCoreGraphicsPenBrushDataBase::CreateLinearGradientShading(
-        wxDouble x1, wxDouble y1,
-        wxDouble x2, wxDouble y2,
-        const wxGraphicsGradientStops& stops,
-        const wxGraphicsMatrix& matrix)
-{
-    m_gradientFunction = CreateGradientFunction(stops);
-    m_shading = CGShadingCreateAxial( wxMacGetGenericRGBColorSpace(), 
-                                      CGPointMake((CGFloat) x1, (CGFloat) y1),
-                                      CGPointMake((CGFloat) x2, (CGFloat) y2), 
-                                      m_gradientFunction, true, true );
-    m_isShading = true;
-    if ( !matrix.IsNull() )
-    {
-        m_shadingMatrix = (wxMacCoreGraphicsMatrixData*)((wxMacCoreGraphicsMatrixData*)matrix.GetRefData())->Clone();
-        m_shadingMatrix->Invert();
-    }
-}
-
-void
-wxMacCoreGraphicsPenBrushDataBase::CreateRadialGradientShading(
-        wxDouble startX, wxDouble startY,
-        wxDouble endX, wxDouble endY,
-        wxDouble radius,
-        const wxGraphicsGradientStops& stops,
-        const wxGraphicsMatrix& matrix)
-{
-    m_gradientFunction = CreateGradientFunction(stops);
-    m_shading = CGShadingCreateRadial( wxMacGetGenericRGBColorSpace(), 
-                                       CGPointMake((CGFloat) startX, (CGFloat) startY), 0,
-                                       CGPointMake((CGFloat) endX, (CGFloat) endY), (CGFloat) radius, 
-                                       m_gradientFunction, true, true );
-    m_isShading = true;
-    if ( !matrix.IsNull() )
-    {
-        m_shadingMatrix = (wxMacCoreGraphicsMatrixData*)((wxMacCoreGraphicsMatrixData*)matrix.GetRefData())->Clone();
-        m_shadingMatrix->Invert();
-    }
-}
-
-void wxMacCoreGraphicsPenBrushDataBase::ReleaseComponents(void *info)
-{
-    const GradientComponents* stops = (GradientComponents*) info ;
-    if ( stops )
-        delete stops;
-}
-
-void wxMacCoreGraphicsPenBrushDataBase::CalculateShadingValues(void *info, const CGFloat *in, CGFloat *out)
-{
-    const GradientComponents& stops = *(GradientComponents*) info ;
-
-    CGFloat f = *in;
-    if (f <= 0.0)
-    {
-        // Start
-        out[0] = stops.comps[0].red;
-        out[1] = stops.comps[0].green;
-        out[2] = stops.comps[0].blue;
-        out[3] = stops.comps[0].alpha;
-    }
-    else if (f >= 1.0)
-    {
-        // end
-        out[0] = stops.comps[stops.count - 1].red;
-        out[1] = stops.comps[stops.count - 1].green;
-        out[2] = stops.comps[stops.count - 1].blue;
-        out[3] = stops.comps[stops.count - 1].alpha;
-    }
-    else
-    {
-        // Find first component with position greater than f
-        unsigned i;
-        for ( i = 0; i < stops.count; i++ )
-        {
-            if (stops.comps[i].pos > f)
-                break;
-        }
-
-        // Interpolated between stops
-        CGFloat diff = (f - stops.comps[i-1].pos);
-        CGFloat range = (stops.comps[i].pos - stops.comps[i-1].pos);
-        CGFloat fact = diff / range;
-
-        out[0] = stops.comps[i - 1].red + (stops.comps[i].red - stops.comps[i - 1].red) * fact;
-        out[1] = stops.comps[i - 1].green + (stops.comps[i].green - stops.comps[i - 1].green) * fact;
-        out[2] = stops.comps[i - 1].blue + (stops.comps[i].blue - stops.comps[i - 1].blue) * fact;
-        out[3] = stops.comps[i - 1].alpha + (stops.comps[i].alpha - stops.comps[i - 1].alpha) * fact;
-    }
-}
-
-CGFunctionRef
-wxMacCoreGraphicsPenBrushDataBase::CreateGradientFunction(const wxGraphicsGradientStops& stops)
-{
-    m_gradientComponents = new GradientComponents();
-    
-    static const CGFunctionCallbacks callbacks = { 0, &CalculateShadingValues, &ReleaseComponents };
-    static const CGFloat input_value_range [2] = { 0, 1 };
-    static const CGFloat output_value_ranges [8] = { 0, 1, 0, 1, 0, 1, 0, 1 };
-
-    m_gradientComponents->Init(stops.GetCount());
-    for ( unsigned i = 0; i < m_gradientComponents->count; i++ )
-    {
-        const wxGraphicsGradientStop stop = stops.Item(i);
-
-        m_gradientComponents->comps[i].pos = stop.GetPosition();
-
-        const wxColour col = stop.GetColour();
-        m_gradientComponents->comps[i].red = (CGFloat) (col.Red() / 255.0);
-        m_gradientComponents->comps[i].green = (CGFloat) (col.Green() / 255.0);
-        m_gradientComponents->comps[i].blue = (CGFloat) (col.Blue() / 255.0);
-        m_gradientComponents->comps[i].alpha = (CGFloat) (col.Alpha() / 255.0);
-    }
-
-    return CGFunctionCreate ( m_gradientComponents,  1,
-                            input_value_range,
-                            4,
-                            output_value_ranges,
-                            &callbacks);
-}
+//
+// Graphics Path
+//
 
 //-----------------------------------------------------------------------------
-// Pen data
-
-class wxMacCoreGraphicsPenData : public wxMacCoreGraphicsPenBrushDataBase
-{
-public:
-    wxMacCoreGraphicsPenData( wxGraphicsRenderer* renderer, const wxGraphicsPenInfo& info );
-    ~wxMacCoreGraphicsPenData();
-
-    virtual void Apply( wxGraphicsContext* context );
-    virtual wxDouble GetWidth() { return m_width; }
-
-protected :
-    void Init();
-
-    CGLineCap m_cap;
-    wxCFRef<CGColorRef> m_color;
-    wxCFRef<CGColorSpaceRef> m_colorSpace;
-
-    CGLineJoin m_join;
-    CGFloat m_width;
-
-    int m_count;
-    const CGFloat *m_lengths;
-    CGFloat *m_userLengths;
-
-
-    bool m_isPattern;
-    wxCFRef<CGPatternRef> m_pattern;
-    CGFloat* m_patternColorComponents;
-};
-
-wxMacCoreGraphicsPenData::wxMacCoreGraphicsPenData( wxGraphicsRenderer* renderer,
-                                                    const wxGraphicsPenInfo& info )
-    : wxMacCoreGraphicsPenBrushDataBase( renderer )
-{
-    Init();
-
-    m_color.reset( wxMacCreateCGColor( info.GetColour() ) ) ;
-
-    // TODO: * m_dc->m_scaleX
-    m_width = info.GetWidth();
-    if (m_width <= 0.0)
-        m_width = (CGFloat) 0.1;
-
-    switch ( info.GetCap() )
-    {
-        case wxCAP_ROUND :
-            m_cap = kCGLineCapRound;
-            break;
-
-        case wxCAP_PROJECTING :
-            m_cap = kCGLineCapSquare;
-            break;
-
-        case wxCAP_BUTT :
-            m_cap = kCGLineCapButt;
-            break;
-
-        default :
-            m_cap = kCGLineCapButt;
-            break;
-    }
-
-    switch ( info.GetJoin() )
-    {
-        case wxJOIN_BEVEL :
-            m_join = kCGLineJoinBevel;
-            break;
-
-        case wxJOIN_MITER :
-            m_join = kCGLineJoinMiter;
-            break;
-
-        case wxJOIN_ROUND :
-            m_join = kCGLineJoinRound;
-            break;
-
-        default :
-            m_join = kCGLineJoinMiter;
-            break;
-    }
-
-    const CGFloat dashUnit = m_width < 1.0 ? (CGFloat) 1.0 : m_width;
-
-    const CGFloat dotted[] = { (CGFloat) dashUnit , (CGFloat) (dashUnit + 2.0) };
-    static const CGFloat short_dashed[] = { (CGFloat) 9.0 , (CGFloat) 6.0 };
-    static const CGFloat dashed[] = { (CGFloat) 19.0 , (CGFloat) 9.0 };
-    static const CGFloat dotted_dashed[] = { (CGFloat) 9.0 , (CGFloat) 6.0 , (CGFloat) 3.0 , (CGFloat) 3.0 };
-
-    switch ( info.GetStyle() )
-    {
-        case wxPENSTYLE_SOLID:
-            break;
-
-        case wxPENSTYLE_DOT:
-            m_count = WXSIZEOF(dotted);
-            m_userLengths = new CGFloat[ m_count ] ;
-            memcpy( m_userLengths, dotted, sizeof(dotted) );
-            m_lengths = m_userLengths;
-            break;
-
-        case wxPENSTYLE_LONG_DASH:
-            m_count = WXSIZEOF(dashed);
-            m_lengths = dashed;
-            break;
-
-        case wxPENSTYLE_SHORT_DASH:
-            m_count = WXSIZEOF(short_dashed);
-            m_lengths = short_dashed;
-            break;
-
-        case wxPENSTYLE_DOT_DASH:
-            m_count = WXSIZEOF(dotted_dashed);
-            m_lengths = dotted_dashed;
-            break;
-
-        case wxPENSTYLE_USER_DASH:
-            wxDash *dashes;
-            m_count = info.GetDashes( &dashes );
-            if ((dashes != NULL) && (m_count > 0))
-            {
-                m_userLengths = new CGFloat[m_count];
-                for ( int i = 0; i < m_count; ++i )
-                {
-                    m_userLengths[i] = dashes[i] * dashUnit;
-
-                    if ( i % 2 == 1 && m_userLengths[i] < dashUnit + 2.0 )
-                        m_userLengths[i] = (CGFloat) (dashUnit + 2.0);
-                    else if ( i % 2 == 0 && m_userLengths[i] < dashUnit )
-                        m_userLengths[i] = dashUnit;
-                }
-            }
-            m_lengths = m_userLengths;
-            break;
-
-        case wxPENSTYLE_STIPPLE:
-            {
-                wxBitmap bmp = info.GetStipple();
-                if ( bmp.IsOk() )
-                {
-                    m_colorSpace.reset( CGColorSpaceCreatePattern( NULL ) );
-                    m_pattern.reset( (CGPatternRef) *( new ImagePattern( &bmp , CGAffineTransformMakeScale( 1,-1 ) ) ) );
-                    m_patternColorComponents = new CGFloat[1] ;
-                    m_patternColorComponents[0] = (CGFloat) 1.0;
-                    m_isPattern = true;
-                }
-            }
-            break;
-
-        default :
-            {
-                m_isPattern = true;
-                m_colorSpace.reset( CGColorSpaceCreatePattern( wxMacGetGenericRGBColorSpace() ) );
-                m_pattern.reset( (CGPatternRef) *( new HatchPattern( info.GetStyle() , CGAffineTransformMakeScale( 1,-1 ) ) ) );
-                m_patternColorComponents = new CGFloat[4] ;
-                m_patternColorComponents[0] = (CGFloat) (info.GetColour().Red() / 255.0);
-                m_patternColorComponents[1] = (CGFloat) (info.GetColour().Green() / 255.0);
-                m_patternColorComponents[2] = (CGFloat) (info.GetColour().Blue() / 255.0);
-                m_patternColorComponents[3] = (CGFloat) (info.GetColour().Alpha() / 255.0);
-            }
-            break;
-    }
-    if ((m_lengths != NULL) && (m_count > 0))
-    {
-        // force the line cap, otherwise we get artifacts (overlaps) and just solid lines
-        m_cap = kCGLineCapButt;
-    }
-
-    switch ( info.GetGradientType() )
-    {
-    case wxGRADIENT_NONE:
-        break;
-
-    case wxGRADIENT_LINEAR:
-        CreateLinearGradientShading(info.GetX1(), info.GetY1(),
-                                    info.GetX2(), info.GetY2(),
-                                    info.GetStops(),
-                                    info.GetMatrix());
-        break;
-
-    case wxGRADIENT_RADIAL:
-        CreateRadialGradientShading(info.GetStartX(), info.GetStartY(),
-                                    info.GetEndX(), info.GetEndY(),
-                                    info.GetRadius(),
-                                    info.GetStops(),
-                                    info.GetMatrix());
-        break;
-    }
-
-}
-
-wxMacCoreGraphicsPenData::~wxMacCoreGraphicsPenData()
-{
-    delete[] m_userLengths;
-    delete[] m_patternColorComponents;
-}
-
-void wxMacCoreGraphicsPenData::Init()
-{
-    m_lengths = NULL;
-    m_userLengths = NULL;
-    m_width = 0;
-    m_count = 0;
-    m_patternColorComponents = NULL;
-    m_isPattern = false;
-}
-
-void wxMacCoreGraphicsPenData::Apply( wxGraphicsContext* context )
-{
-    CGContextRef cg = (CGContextRef) context->GetNativeContext();
-    CGContextSetLineWidth( cg , m_width );
-    CGContextSetLineJoin( cg , m_join );
-
-    CGContextSetLineDash( cg , 0 , m_lengths , m_count );
-    CGContextSetLineCap( cg , m_cap );
-
-    if ( m_isPattern )
-    {
-        CGAffineTransform matrix = CGContextGetCTM( cg );
-        CGContextSetPatternPhase( cg, CGSizeMake(matrix.tx, matrix.ty) );
-        CGContextSetStrokeColorSpace( cg , m_colorSpace );
-        CGContextSetStrokePattern( cg, m_pattern , m_patternColorComponents );
-    }
-    else
-    {
-        CGContextSetStrokeColorWithColor( cg , m_color );
-    }
-}
-
+// wxMacCoreGraphicsPath declaration
 //-----------------------------------------------------------------------------
-// Brush data and supporting colour class
-
-// make sure we all use one class for all conversions from wx to native colour
-
-class wxMacCoreGraphicsColour
-{
-    public:
-        wxMacCoreGraphicsColour();
-        wxMacCoreGraphicsColour(const wxBrush &brush);
-        ~wxMacCoreGraphicsColour();
-
-        void Apply( CGContextRef cgContext );
-    protected:
-        void Init();
-        wxCFRef<CGColorRef> m_color;
-        wxCFRef<CGColorSpaceRef> m_colorSpace;
-
-        bool m_isPattern;
-        wxCFRef<CGPatternRef> m_pattern;
-        CGFloat* m_patternColorComponents;
-} ;
-
-wxMacCoreGraphicsColour::~wxMacCoreGraphicsColour()
-{
-    delete[] m_patternColorComponents;
-}
-
-void wxMacCoreGraphicsColour::Init()
-{
-    m_isPattern = false;
-    m_patternColorComponents = NULL;
-}
-
-void wxMacCoreGraphicsColour::Apply( CGContextRef cgContext )
-{
-    if ( m_isPattern )
-    {
-        CGAffineTransform matrix = CGContextGetCTM( cgContext );
-        CGContextSetPatternPhase( cgContext, CGSizeMake(matrix.tx, matrix.ty) );
-        CGContextSetFillColorSpace( cgContext , m_colorSpace );
-        CGContextSetFillPattern( cgContext, m_pattern , m_patternColorComponents );
-    }
-    else
-    {
-        CGContextSetFillColorWithColor( cgContext, m_color );
-    }
-}
-
-wxMacCoreGraphicsColour::wxMacCoreGraphicsColour()
-{
-    Init();
-}
-
-wxMacCoreGraphicsColour::wxMacCoreGraphicsColour( const wxBrush &brush )
-{
-    Init();
-    if ( brush.GetStyle() == wxBRUSHSTYLE_SOLID )
-    {
-        m_color.reset( wxMacCreateCGColor( brush.GetColour() ));
-    }
-    else if ( brush.IsHatch() )
-    {
-        m_isPattern = true;
-        m_colorSpace.reset( CGColorSpaceCreatePattern( wxMacGetGenericRGBColorSpace() ) );
-        m_pattern.reset( (CGPatternRef) *( new HatchPattern( brush.GetStyle() , CGAffineTransformMakeScale( 1,-1 ) ) ) );
-
-        m_patternColorComponents = new CGFloat[4] ;
-        m_patternColorComponents[0] = (CGFloat) (brush.GetColour().Red() / 255.0);
-        m_patternColorComponents[1] = (CGFloat) (brush.GetColour().Green() / 255.0);
-        m_patternColorComponents[2] = (CGFloat) (brush.GetColour().Blue() / 255.0);
-        m_patternColorComponents[3] = (CGFloat) (brush.GetColour().Alpha() / 255.0);
-    }
-    else
-    {
-        // now brush is a bitmap
-        wxBitmap* bmp = brush.GetStipple();
-        if ( bmp && bmp->IsOk() )
-        {
-            m_isPattern = true;
-            m_patternColorComponents = new CGFloat[1] ;
-            m_patternColorComponents[0] = (CGFloat) 1.0;
-            m_colorSpace.reset( CGColorSpaceCreatePattern( NULL ) );
-            m_pattern.reset( (CGPatternRef) *( new ImagePattern( bmp , CGAffineTransformMakeScale( 1,-1 ) ) ) );
-        }
-    }
-}
-
-class wxMacCoreGraphicsBrushData : public wxMacCoreGraphicsPenBrushDataBase
-{
-public:
-    wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer );
-    wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer, const wxBrush &brush );
-    ~wxMacCoreGraphicsBrushData ();
-
-    virtual void Apply( wxGraphicsContext* context );
-
-protected:
-    wxMacCoreGraphicsColour m_cgColor;
-};
-
-wxMacCoreGraphicsBrushData::wxMacCoreGraphicsBrushData( wxGraphicsRenderer* renderer) : 
-    wxMacCoreGraphicsPenBrushDataBase( renderer )
-{
-}
-
-wxMacCoreGraphicsBrushData::wxMacCoreGraphicsBrushData(wxGraphicsRenderer* renderer, const wxBrush &brush) : 
-    wxMacCoreGraphicsPenBrushDataBase( renderer ),
-    m_cgColor( brush )
-{
-}
-
-wxMacCoreGraphicsBrushData::~wxMacCoreGraphicsBrushData()
-{
-}
-
-void wxMacCoreGraphicsBrushData::Apply( wxGraphicsContext* context )
-{
-    CGContextRef cg = (CGContextRef) context->GetNativeContext();
-
-    if ( m_isShading )
-    {
-        // nothing to set as shades are processed by clipping using the path and filling
-    }
-    else
-    {
-        m_cgColor.Apply( cg );
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-// Font data
-
-class wxMacCoreGraphicsFontData : public wxGraphicsObjectRefData
-{
-public:
-    wxMacCoreGraphicsFontData( wxGraphicsRenderer* renderer, const wxFont &font, const wxColour& col );
-    ~wxMacCoreGraphicsFontData();
-
-    CTFontRef OSXGetCTFont() const { return m_ctFont ; }
-    CFDictionaryRef OSXGetCTFontAttributes() const { return m_ctFontAttributes; }
-    wxColour GetColour() const { return m_colour ; }
-
-    bool GetUnderlined() const { return m_underlined ; }
-    bool GetStrikethrough() const { return m_strikethrough; }
-
-#if wxOSX_USE_IPHONE
-    UIFont* GetUIFont() const { return m_uiFont; }
-#endif
-private :
-    wxColour m_colour;
-    bool m_underlined,
-         m_strikethrough;
-    wxCFRef< CTFontRef > m_ctFont;
-    wxCFRef< CFDictionaryRef > m_ctFontAttributes;
-#if wxOSX_USE_IPHONE
-    wxCFRef< WX_UIFont > m_uiFont;
-#endif
-};
-
-wxMacCoreGraphicsFontData::wxMacCoreGraphicsFontData(wxGraphicsRenderer* renderer, const wxFont &font, const wxColour& col) 
-    : wxGraphicsObjectRefData( renderer ),
-      m_colour(col)
-{
-    m_underlined = font.GetUnderlined();
-    m_strikethrough = font.GetStrikethrough();
-
-    m_ctFont = wxCFRetain(font.OSXGetCTFont());
-    m_ctFontAttributes = wxCFRetain(font.OSXGetCTFontAttributes());
-#if wxOSX_USE_IPHONE
-    m_uiFont = wxCFRetain(font.OSXGetUIFont());
-#endif
-}
-
-wxMacCoreGraphicsFontData::~wxMacCoreGraphicsFontData()
-{
-}
-
-//-----------------------------------------------------------------------------
-// Bitmap data
-
-class wxMacCoreGraphicsBitmapData : public wxGraphicsBitmapData
-{
-public:
-    wxMacCoreGraphicsBitmapData( wxGraphicsRenderer* renderer, CGImageRef bitmap, bool monochrome );
-    ~wxMacCoreGraphicsBitmapData();
-
-    virtual CGImageRef GetBitmap() { return m_bitmap; }
-    virtual void* GetNativeBitmap() const wxOVERRIDE { return m_bitmap; }
-    bool IsMonochrome() { return m_monochrome; }
-
-#if wxUSE_IMAGE
-    wxImage ConvertToImage() const
-    {
-        return wxBitmap(m_bitmap).ConvertToImage();
-    }
-#endif // wxUSE_IMAGE
-
-private :
-    CGImageRef m_bitmap;
-    bool m_monochrome;
-};
-
-wxMacCoreGraphicsBitmapData::wxMacCoreGraphicsBitmapData( wxGraphicsRenderer* renderer, CGImageRef bitmap, bool monochrome ) : wxGraphicsBitmapData( renderer ),
-    m_bitmap(bitmap), m_monochrome(monochrome)
-{
-}
-
-wxMacCoreGraphicsBitmapData::~wxMacCoreGraphicsBitmapData()
-{
-    CGImageRelease( m_bitmap );
-}
-
-
-//-----------------------------------------------------------------------------
-// Graphics Path data
 
 class WXDLLEXPORT wxMacCoreGraphicsPathData : public wxGraphicsPathData
 {
@@ -1215,6 +1197,9 @@ private :
     CGMutablePathRef m_path;
 };
 
+//-----------------------------------------------------------------------------
+// wxMacCoreGraphicsPath implementation
+//-----------------------------------------------------------------------------
 
 wxMacCoreGraphicsPathData::wxMacCoreGraphicsPathData( wxGraphicsRenderer* renderer, CGMutablePathRef path) : wxGraphicsPathData(renderer)
 {
@@ -1244,37 +1229,16 @@ void wxMacCoreGraphicsPathData::MoveToPoint( wxDouble x1 , wxDouble y1 )
 
 void wxMacCoreGraphicsPathData::AddLineToPoint( wxDouble x1 , wxDouble y1 )
 {
-    // This function should behave as MoveToPoint if current point is not yet set
-    // (CGPathAddLineToPoint requires non-empty path).
-    if ( CGPathIsEmpty(m_path) )
-    {
-        MoveToPoint(x1, y1);
-    }
-    else
-    {
-        CGPathAddLineToPoint( m_path , NULL , (CGFloat) x1 , (CGFloat) y1 );
-    }
+    CGPathAddLineToPoint( m_path , NULL , (CGFloat) x1 , (CGFloat) y1 );
 }
 
 void wxMacCoreGraphicsPathData::AddCurveToPoint( wxDouble cx1, wxDouble cy1, wxDouble cx2, wxDouble cy2, wxDouble x, wxDouble y )
 {
-    // This function should be preceded by MoveToPoint(cx1, cy1)
-    // if current point is not yet set (CGPathAddCurveToPoint requires non-empty path).
-    if ( CGPathIsEmpty(m_path) )
-    {
-        MoveToPoint(cx1, cy1);
-    }
     CGPathAddCurveToPoint( m_path , NULL , (CGFloat) cx1 , (CGFloat) cy1 , (CGFloat) cx2, (CGFloat) cy2, (CGFloat) x , (CGFloat) y );
 }
 
 void wxMacCoreGraphicsPathData::AddQuadCurveToPoint( wxDouble cx1, wxDouble cy1, wxDouble x, wxDouble y )
 {
-    // This function should be preceded by MoveToPoint(cx1, cy1)
-    // if current point is not yet set (CGPathAddQuadCurveToPoint requires non-empty path).
-    if ( CGPathIsEmpty(m_path) )
-    {
-        MoveToPoint(cx1, cy1);
-    }
     CGPathAddQuadCurveToPoint( m_path , NULL , (CGFloat) cx1 , (CGFloat) cy1 , (CGFloat) x , (CGFloat) y );
 }
 
@@ -1303,12 +1267,6 @@ void wxMacCoreGraphicsPathData::AddArc( wxDouble x, wxDouble y, wxDouble r, wxDo
 
 void wxMacCoreGraphicsPathData::AddArcToPoint( wxDouble x1, wxDouble y1 , wxDouble x2, wxDouble y2, wxDouble r )
 {
-    // This function should be preceded by MoveToPoint(0, 0)
-    // if current point is not yet set (CGPathAddArcToPoint requires non-empty path).
-    if ( CGPathIsEmpty(m_path) )
-    {
-        MoveToPoint(0, 0);
-    }
     CGPathAddArcToPoint( m_path, NULL , (CGFloat) x1, (CGFloat) y1, (CGFloat) x2, (CGFloat) y2, (CGFloat) r);
 }
 
@@ -1320,24 +1278,13 @@ void wxMacCoreGraphicsPathData::AddPath( const wxGraphicsPathData* path )
 // closes the current subpath
 void wxMacCoreGraphicsPathData::CloseSubpath()
 {
-    if ( !CGPathIsEmpty(m_path) )
-    {
-        CGPathCloseSubpath( m_path );
-    }
+    CGPathCloseSubpath( m_path );
 }
 
 // gets the last point of the current path, (0,0) if not yet set
 void wxMacCoreGraphicsPathData::GetCurrentPoint( wxDouble* x, wxDouble* y) const
 {
-    CGPoint p;
-    if ( CGPathIsEmpty(m_path) )
-    {
-        p.x = p.y = 0;
-    }
-    else
-    {
-        p = CGPathGetCurrentPoint(m_path);
-    }
+    CGPoint p = CGPathGetCurrentPoint( m_path );
     *x = p.x;
     *y = p.y;
 }
@@ -1355,11 +1302,6 @@ void wxMacCoreGraphicsPathData::Transform( const wxGraphicsMatrixData* matrix )
 void wxMacCoreGraphicsPathData::GetBox(wxDouble *x, wxDouble *y, wxDouble *w, wxDouble *h) const
 {
     CGRect bounds = CGPathGetBoundingBox( m_path ) ;
-    if ( CGRectIsEmpty(bounds) )
-    {
-        bounds = CGRectZero;
-    }
-
     *x = bounds.origin.x;
     *y = bounds.origin.y;
     *w = bounds.size.width;
@@ -1371,30 +1313,24 @@ bool wxMacCoreGraphicsPathData::Contains( wxDouble x, wxDouble y, wxPolygonFillM
     return CGPathContainsPoint( m_path, NULL, CGPointMake((CGFloat) x,(CGFloat) y), fillStyle == wxODDEVEN_RULE );
 }
 
+//
+// Graphics Context
+//
 
 //-----------------------------------------------------------------------------
-// Graphics Context
+// wxMacCoreGraphicsContext declaration
+//-----------------------------------------------------------------------------
 
 class WXDLLEXPORT wxMacCoreGraphicsContext : public wxGraphicsContext
 {
 public:
-    wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer,
-                              CGContextRef cgcontext,
-                              wxDouble width = 0,
-                              wxDouble height = 0,
-                              wxWindow* window = NULL );
+    wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, CGContextRef cgcontext, wxDouble width = 0, wxDouble height = 0 );
 
     wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, wxWindow* window );
 
     wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer);
 
     ~wxMacCoreGraphicsContext();
-
-    // Enable offset on non-high DPI displays, i.e. those with scale factor <= 1.
-    void SetEnableOffsetFromScaleFactor(double factor)
-    {
-        m_enableOffset = factor <= 1.0;
-    }
 
     void Init();
 
@@ -1419,15 +1355,12 @@ public:
     // resets the clipping to original extent
     virtual void ResetClip() wxOVERRIDE;
 
-    // returns bounding box of the clipping region
-    virtual void GetClipBox(wxDouble* x, wxDouble* y, wxDouble* w, wxDouble* h) wxOVERRIDE;
-
     virtual void * GetNativeContext() wxOVERRIDE;
 
     virtual bool SetAntialiasMode(wxAntialiasMode antialias) wxOVERRIDE;
 
     virtual bool SetInterpolationQuality(wxInterpolationQuality interpolation) wxOVERRIDE;
-
+    
     virtual bool SetCompositionMode(wxCompositionMode op) wxOVERRIDE;
 
     virtual void BeginLayer(wxDouble opacity) wxOVERRIDE;
@@ -1468,14 +1401,11 @@ public:
     // draws a path by first filling and then stroking
     virtual void DrawPath( const wxGraphicsPath &path, wxPolygonFillMode fillStyle = wxODDEVEN_RULE ) wxOVERRIDE;
 
-    // paints a transparent rectangle (only useful for bitmaps or windows)
-    virtual void ClearRectangle(wxDouble x, wxDouble y, wxDouble w, wxDouble h) wxOVERRIDE;
-
     virtual bool ShouldOffset() const wxOVERRIDE
     {
         if ( !m_enableOffset )
             return false;
-
+        
         int penwidth = 0 ;
         if ( !m_pen.IsNull() )
         {
@@ -1503,10 +1433,10 @@ public:
     virtual void DrawBitmap( const wxGraphicsBitmap &bmp, wxDouble x, wxDouble y, wxDouble w, wxDouble h ) wxOVERRIDE;
 
     virtual void DrawIcon( const wxIcon &icon, wxDouble x, wxDouble y, wxDouble w, wxDouble h ) wxOVERRIDE;
-
+    
     // fast convenience methods
-
-
+    
+    
     virtual void DrawRectangle( wxDouble x, wxDouble y, wxDouble w, wxDouble h ) wxOVERRIDE;
 
     void SetNativeContext( CGContextRef cg );
@@ -1516,9 +1446,6 @@ public:
 private:
     bool EnsureIsValid();
     void CheckInvariants() const;
-    bool DoSetAntialiasMode(wxAntialiasMode antialias);
-    bool DoSetInterpolationQuality(wxInterpolationQuality interpolation);
-    bool DoSetCompositionMode(wxCompositionMode op);
 
     virtual void DoDrawText( const wxString &str, wxDouble x, wxDouble y ) wxOVERRIDE;
     virtual void DoDrawRotatedText( const wxString &str, wxDouble x, wxDouble y, wxDouble angle ) wxOVERRIDE;
@@ -1526,7 +1453,6 @@ private:
     CGContextRef m_cgContext;
     WXWidget m_view;
     bool m_contextSynthesized;
-    CGAffineTransform m_initTransform;
     CGAffineTransform m_windowTransform;
     bool m_invisible;
 
@@ -1539,7 +1465,7 @@ private:
 // device context implementation
 //
 // more and more of the dc functionality should be implemented by calling
-// the appropriate wxMacCoreGraphicsContext, but we will have to do that step by step
+// the appropricate wxMacCoreGraphicsContext, but we will have to do that step by step
 // also coordinate conversions should be moved to native matrix ops
 //-----------------------------------------------------------------------------
 
@@ -1594,27 +1520,19 @@ void wxMacCoreGraphicsContext::Init()
     m_interpolation = wxINTERPOLATION_DEFAULT;
 }
 
-wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer,
-                                                    CGContextRef cgcontext,
-                                                    wxDouble width,
-                                                    wxDouble height,
-                                                    wxWindow* window )
-    : wxGraphicsContext(renderer, window)
+wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, CGContextRef cgcontext, wxDouble width, wxDouble height ) : wxGraphicsContext(renderer)
 {
     Init();
     SetNativeContext(cgcontext);
     m_width = width;
     m_height = height;
-    m_initTransform = m_cgContext ? CGContextGetCTM(m_cgContext) : CGAffineTransformIdentity;
 }
 
-wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer,
-                                                    wxWindow* window )
-    : wxGraphicsContext(renderer, window)
+wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, wxWindow* window ): wxGraphicsContext(renderer)
 {
     Init();
 
-    SetEnableOffsetFromScaleFactor(window->GetContentScaleFactor());
+    m_enableOffset = window->GetContentScaleFactor() <= 1;
     wxSize sz = window->GetSize();
     m_width = sz.x;
     m_height = sz.y;
@@ -1644,13 +1562,11 @@ wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer
     m_windowTransform = CGAffineTransformScale( m_windowTransform , 1 , -1 );
     m_windowTransform = CGAffineTransformTranslate( m_windowTransform, originX, originY ) ;
 #endif
-    m_initTransform = m_windowTransform;
 }
 
 wxMacCoreGraphicsContext::wxMacCoreGraphicsContext(wxGraphicsRenderer* renderer) : wxGraphicsContext(renderer)
 {
     Init();
-    m_initTransform = CGAffineTransformIdentity;
 }
 
 wxMacCoreGraphicsContext::~wxMacCoreGraphicsContext()
@@ -1692,7 +1608,7 @@ void wxMacCoreGraphicsContext::Flush()
 bool wxMacCoreGraphicsContext::EnsureIsValid()
 {
     CheckInvariants();
-
+    
     if ( !m_cgContext )
     {
         if (m_invisible)
@@ -1774,16 +1690,6 @@ bool wxMacCoreGraphicsContext::SetAntialiasMode(wxAntialiasMode antialias)
 
     m_antialias = antialias;
 
-    if ( !DoSetAntialiasMode(antialias) )
-    {
-        return false;
-    }
-    CheckInvariants();
-    return true;
-}
-
-bool wxMacCoreGraphicsContext::DoSetAntialiasMode(wxAntialiasMode antialias)
-{
     bool antialiasMode;
     switch (antialias)
     {
@@ -1797,6 +1703,7 @@ bool wxMacCoreGraphicsContext::DoSetAntialiasMode(wxAntialiasMode antialias)
             return false;
     }
     CGContextSetShouldAntialias(m_cgContext, antialiasMode);
+    CheckInvariants();
     return true;
 }
 
@@ -1804,25 +1711,14 @@ bool wxMacCoreGraphicsContext::SetInterpolationQuality(wxInterpolationQuality in
 {
     if (!EnsureIsValid())
         return true;
-
+    
     if (m_interpolation == interpolation)
         return true;
 
     m_interpolation = interpolation;
-
-    if ( !DoSetInterpolationQuality(interpolation) )
-    {
-        return false;
-    }
-    CheckInvariants();
-    return true;
-}
-
-bool wxMacCoreGraphicsContext::DoSetInterpolationQuality(wxInterpolationQuality interpolation)
-{
     CGInterpolationQuality quality;
-
-    switch (interpolation)
+    
+    switch (interpolation) 
     {
         case wxINTERPOLATION_DEFAULT:
             quality = kCGInterpolationDefault;
@@ -1843,6 +1739,7 @@ bool wxMacCoreGraphicsContext::DoSetInterpolationQuality(wxInterpolationQuality 
             return false;
     }
     CGContextSetInterpolationQuality(m_cgContext, quality);
+    CheckInvariants();
     return true;
 }
 
@@ -1856,17 +1753,7 @@ bool wxMacCoreGraphicsContext::SetCompositionMode(wxCompositionMode op)
 
     m_composition = op;
 
-    if ( !DoSetCompositionMode(op) )
-    {
-        return false;
-    }
-    CheckInvariants();
-    return true;
-}
-
-bool wxMacCoreGraphicsContext::DoSetCompositionMode(wxCompositionMode op)
-{
-    if (op == wxCOMPOSITION_DEST)
+    if (m_composition == wxCOMPOSITION_DEST)
         return true;
 
     // TODO REMOVE if we don't need it because of bugs in 10.5
@@ -1876,44 +1763,44 @@ bool wxMacCoreGraphicsContext::DoSetCompositionMode(wxCompositionMode op)
         CGBlendMode mode = kCGBlendModeNormal;
         switch( op )
         {
-            case wxCOMPOSITION_CLEAR:
-                cop = kCGCompositeOperationClear;
-                break;
-            case wxCOMPOSITION_SOURCE:
-                cop = kCGCompositeOperationCopy;
-                break;
-            case wxCOMPOSITION_OVER:
-                mode = kCGBlendModeNormal;
-                break;
-            case wxCOMPOSITION_IN:
-                cop = kCGCompositeOperationSourceIn;
-                break;
-            case wxCOMPOSITION_OUT:
-                cop = kCGCompositeOperationSourceOut;
-                break;
-            case wxCOMPOSITION_ATOP:
-                cop = kCGCompositeOperationSourceAtop;
-                break;
-            case wxCOMPOSITION_DEST_OVER:
-                cop = kCGCompositeOperationDestinationOver;
-                break;
-            case wxCOMPOSITION_DEST_IN:
-                cop = kCGCompositeOperationDestinationIn;
-                break;
-            case wxCOMPOSITION_DEST_OUT:
-                cop = kCGCompositeOperationDestinationOut;
-                break;
-            case wxCOMPOSITION_DEST_ATOP:
-                cop = kCGCompositeOperationDestinationAtop;
-                break;
-            case wxCOMPOSITION_XOR:
-                cop = kCGCompositeOperationXOR;
-                break;
-            case wxCOMPOSITION_ADD:
-                mode = kCGBlendModePlusLighter ;
-                break;
-            default:
-                return false;
+        case wxCOMPOSITION_CLEAR:
+            cop = kCGCompositeOperationClear;
+            break;
+        case wxCOMPOSITION_SOURCE:
+            cop = kCGCompositeOperationCopy;
+            break;
+        case wxCOMPOSITION_OVER:
+            mode = kCGBlendModeNormal;
+            break;
+        case wxCOMPOSITION_IN:
+            cop = kCGCompositeOperationSourceIn;
+            break;
+        case wxCOMPOSITION_OUT:
+            cop = kCGCompositeOperationSourceOut;
+            break;
+        case wxCOMPOSITION_ATOP:
+            cop = kCGCompositeOperationSourceAtop;
+            break;
+        case wxCOMPOSITION_DEST_OVER:
+            cop = kCGCompositeOperationDestinationOver;
+            break;
+        case wxCOMPOSITION_DEST_IN:
+            cop = kCGCompositeOperationDestinationIn;
+            break;
+        case wxCOMPOSITION_DEST_OUT:
+            cop = kCGCompositeOperationDestinationOut;
+            break;
+        case wxCOMPOSITION_DEST_ATOP:
+           cop = kCGCompositeOperationDestinationAtop;
+            break;
+        case wxCOMPOSITION_XOR:
+            cop = kCGCompositeOperationXOR;
+            break;
+        case wxCOMPOSITION_ADD:
+            mode = kCGBlendModePlusLighter ;
+            break;
+        default:
+            return false;
         }
         if ( cop != kCGCompositeOperationSourceOver )
             CGContextSetCompositeOperation(m_cgContext, cop);
@@ -1925,47 +1812,50 @@ bool wxMacCoreGraphicsContext::DoSetCompositionMode(wxCompositionMode op)
         CGBlendMode mode = kCGBlendModeNormal;
         switch( op )
         {
-            case wxCOMPOSITION_CLEAR:
-                mode = kCGBlendModeClear;
-                break;
-            case wxCOMPOSITION_SOURCE:
-                mode = kCGBlendModeCopy;
-                break;
-            case wxCOMPOSITION_OVER:
-                mode = kCGBlendModeNormal;
-                break;
-            case wxCOMPOSITION_IN:
-                mode = kCGBlendModeSourceIn;
-                break;
-            case wxCOMPOSITION_OUT:
-                mode = kCGBlendModeSourceOut;
-                break;
-            case wxCOMPOSITION_ATOP:
-                mode = kCGBlendModeSourceAtop;
-                break;
-            case wxCOMPOSITION_DEST_OVER:
-                mode = kCGBlendModeDestinationOver;
-                break;
-            case wxCOMPOSITION_DEST_IN:
-                mode = kCGBlendModeDestinationIn;
-                break;
-            case wxCOMPOSITION_DEST_OUT:
-                mode = kCGBlendModeDestinationOut;
-                break;
-            case wxCOMPOSITION_DEST_ATOP:
-                mode = kCGBlendModeDestinationAtop;
-                break;
-            case wxCOMPOSITION_XOR:
-                mode = kCGBlendModeExclusion; // Not kCGBlendModeXOR!
-                break;
-            case wxCOMPOSITION_ADD:
-                mode = kCGBlendModePlusLighter ;
-                break;
-            default:
-                return false;
+        case wxCOMPOSITION_CLEAR:
+            mode = kCGBlendModeClear;
+            break;
+        case wxCOMPOSITION_SOURCE:
+            mode = kCGBlendModeCopy;
+            break;
+        case wxCOMPOSITION_OVER:
+            mode = kCGBlendModeNormal;
+            break;
+        case wxCOMPOSITION_IN:
+            mode = kCGBlendModeSourceIn;
+            break;
+        case wxCOMPOSITION_OUT:
+            mode = kCGBlendModeSourceOut;
+            break;
+        case wxCOMPOSITION_ATOP:
+            mode = kCGBlendModeSourceAtop;
+            break;
+        case wxCOMPOSITION_DEST_OVER:
+            mode = kCGBlendModeDestinationOver;
+            break;
+        case wxCOMPOSITION_DEST_IN:
+            mode = kCGBlendModeDestinationIn;
+            break;
+        case wxCOMPOSITION_DEST_OUT:
+            mode = kCGBlendModeDestinationOut;
+            break;
+        case wxCOMPOSITION_DEST_ATOP:
+           mode = kCGBlendModeDestinationAtop;
+            break;
+        case wxCOMPOSITION_XOR:
+            mode = kCGBlendModeExclusion; // Not kCGBlendModeXOR!
+            break;
+
+        case wxCOMPOSITION_ADD:
+            mode = kCGBlendModePlusLighter ;
+            break;
+        default:
+            return false;
         }
         CGContextSetBlendMode(m_cgContext, mode);
     }
+
+    CheckInvariants();
     return true;
 }
 
@@ -2019,7 +1909,7 @@ void wxMacCoreGraphicsContext::Clip( const wxRegion &region )
     // allow usage as measuring context
     // wxASSERT_MSG( m_cgContext != NULL, "Needs a valid context for clipping" );
 #endif
-    CheckInvariants();
+    CheckInvariants();    
 }
 
 // clips drawings to the rect
@@ -2044,7 +1934,7 @@ void wxMacCoreGraphicsContext::Clip( wxDouble x, wxDouble y, wxDouble w, wxDoubl
     // wxFAIL_MSG( "Needs a valid context for clipping" );
 #endif
     }
-    CheckInvariants();
+    CheckInvariants();    
 }
 
     // resets the clipping to original extent
@@ -2061,12 +1951,6 @@ void wxMacCoreGraphicsContext::ResetClip()
         transformNew = CGAffineTransformInvert( transformNew ) ;
         CGContextConcatCTM( m_cgContext, transformNew);
         CGContextConcatCTM( m_cgContext, transform);
-        // Retain antialiasing mode
-        DoSetAntialiasMode(m_antialias);
-        // Retain interpolation quality
-        DoSetInterpolationQuality(m_interpolation);
-        // Retain composition mode
-        DoSetCompositionMode(m_composition);
     }
     else
     {
@@ -2077,42 +1961,7 @@ void wxMacCoreGraphicsContext::ResetClip()
     // wxFAIL_MSG( "Needs a valid context for clipping" );
 #endif
     }
-    CheckInvariants();
-}
-
-void wxMacCoreGraphicsContext::GetClipBox(wxDouble* x, wxDouble* y, wxDouble* w, wxDouble* h)
-{
-    CGRect r;
-
-    if ( m_cgContext )
-    {
-        r = CGContextGetClipBoundingBox(m_cgContext);
-    }
-    else
-    {
-#if wxOSX_USE_COCOA_OR_CARBON
-        HIShapeGetBounds(m_clipRgn, &r);
-#else
-        r = CGRectMake(0, 0, 0, 0);
-    // allow usage as measuring context
-    // wxFAIL_MSG( "Needs a valid context for clipping" );
-#endif
-    }
-
-    if ( CGRectIsEmpty(r) )
-    {
-        r = CGRectZero;
-    }
-    CheckInvariants();
-
-    if ( x )
-        *x = r.origin.x;
-    if ( y )
-        *y = r.origin.y;
-    if ( w )
-        *w = r.size.width;
-    if ( h )
-        *h = r.size.height;
+    CheckInvariants();    
 }
 
 void wxMacCoreGraphicsContext::StrokePath( const wxGraphicsPath &path )
@@ -2127,34 +1976,11 @@ void wxMacCoreGraphicsContext::StrokePath( const wxGraphicsPath &path )
         return;
 
     wxQuartzOffsetHelper helper( m_cgContext , ShouldOffset() );
-    wxMacCoreGraphicsPenData* penData = (wxMacCoreGraphicsPenData*)m_pen.GetRefData();
 
-    penData->Apply(this);
-
-    if (penData->IsShading())
-    {
-        // To stroke with a gradient we first have to turn the path into a path
-        // that is essentially the outline of the original stroke, and then fill
-        // that path.
-        CGContextSaveGState( m_cgContext );
-        CGContextAddPath( m_cgContext, (CGPathRef)path.GetNativePath() );
-        CGContextReplacePathWithStrokedPath(m_cgContext);
-        CGContextClip( m_cgContext );
-        // Apply the gradient's transform, if there is one.
-        if ( penData->GetMatrix() != NULL )
-        {
-            wxMacCoreGraphicsMatrixData* m = penData->GetMatrix();
-            CGContextConcatCTM( m_cgContext, *(CGAffineTransform*) m->GetNativeMatrix());
-        }
-        CGContextDrawShading( m_cgContext, penData->GetShading() );
-        CGContextRestoreGState( m_cgContext);
-    }
-    else
-    {
-        CGContextAddPath( m_cgContext, (CGPathRef)path.GetNativePath() );
-        CGContextStrokePath( m_cgContext );        
-    }   
-
+    ((wxMacCoreGraphicsPenData*)m_pen.GetRefData())->Apply(this);
+    CGContextAddPath( m_cgContext , (CGPathRef) path.GetNativePath() );
+    CGContextStrokePath( m_cgContext );
+    
     CheckInvariants();
 }
 
@@ -2166,8 +1992,7 @@ void wxMacCoreGraphicsContext::DrawPath( const wxGraphicsPath &path , wxPolygonF
     if (m_composition == wxCOMPOSITION_DEST)
         return;
 
-    if ( (!m_brush.IsNull() && ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->IsShading()) ||
-         (!m_pen.IsNull() && ((wxMacCoreGraphicsPenData*)m_pen.GetRefData())->IsShading()) )
+    if ( !m_brush.IsNull() && ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->IsShading() )
     {
         // when using shading, we cannot draw pen and brush at the same time
         // revert to the base implementation of first filling and then stroking
@@ -2210,7 +2035,7 @@ void wxMacCoreGraphicsContext::DrawPath( const wxGraphicsPath &path , wxPolygonF
 
     CGContextAddPath( m_cgContext , (CGPathRef) path.GetNativePath() );
     CGContextDrawPath( m_cgContext , mode );
-
+    
     CheckInvariants();
 }
 
@@ -2225,20 +2050,12 @@ void wxMacCoreGraphicsContext::FillPath( const wxGraphicsPath &path , wxPolygonF
     if (m_composition == wxCOMPOSITION_DEST)
         return;
 
-    wxMacCoreGraphicsBrushData* brushData = (wxMacCoreGraphicsBrushData*)m_brush.GetRefData();
-
-    if ( brushData->IsShading() )
+    if ( ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->IsShading() )
     {
         CGContextSaveGState( m_cgContext );
         CGContextAddPath( m_cgContext , (CGPathRef) path.GetNativePath() );
         CGContextClip( m_cgContext );
-        // Apply the gradient's transform, if there is one.
-        if ( brushData->GetMatrix() != NULL )
-        {
-            wxMacCoreGraphicsMatrixData* m = brushData->GetMatrix();
-            CGContextConcatCTM( m_cgContext, *(CGAffineTransform*) m->GetNativeMatrix());
-        }
-        CGContextDrawShading( m_cgContext, brushData->GetShading() );
+        CGContextDrawShading( m_cgContext, ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->GetShading() );
         CGContextRestoreGState( m_cgContext);
     }
     else
@@ -2250,7 +2067,7 @@ void wxMacCoreGraphicsContext::FillPath( const wxGraphicsPath &path , wxPolygonF
         else
             CGContextFillPath( m_cgContext );
     }
-
+    
     CheckInvariants();
 }
 
@@ -2319,16 +2136,8 @@ void wxMacCoreGraphicsContext::Rotate( wxDouble angle )
 
 void wxMacCoreGraphicsContext::DrawBitmap( const wxBitmap &bmp, wxDouble x, wxDouble y, wxDouble w, wxDouble h )
 {
-#if wxOSX_USE_COCOA
-    if (EnsureIsValid())
-    {
-        CGRect r = CGRectMake( (CGFloat) x , (CGFloat) y , (CGFloat) w , (CGFloat) h );
-        wxOSXDrawNSImage( m_cgContext, &r, bmp.GetImage());
-    }
-#else
     wxGraphicsBitmap bitmap = GetRenderer()->CreateBitmap(bmp);
     DrawBitmap(bitmap, x, y, w, h);
-#endif
 }
 
 void wxMacCoreGraphicsContext::DrawBitmap( const wxGraphicsBitmap &bmp, wxDouble x, wxDouble y, wxDouble w, wxDouble h )
@@ -2371,7 +2180,7 @@ void wxMacCoreGraphicsContext::DrawBitmap( const wxGraphicsBitmap &bmp, wxDouble
         wxMacDrawCGImage( m_cgContext , &r , image );
     }
 #endif
-
+    
     CheckInvariants();
 }
 
@@ -2386,10 +2195,13 @@ void wxMacCoreGraphicsContext::DrawIcon( const wxIcon &icon, wxDouble x, wxDoubl
 #if wxOSX_USE_COCOA
     {
         CGRect r = CGRectMake( (CGFloat) x , (CGFloat) y , (CGFloat) w , (CGFloat) h );
-        wxOSXDrawNSImage( m_cgContext, &r, icon.GetImage());
+        const WX_NSImage nsImage = icon.GetNSImage();
+
+        CGImageRef cgImage = wxOSXGetCGImageFromNSImage( nsImage , &r, m_cgContext );
+        wxMacDrawCGImage( m_cgContext, &r, cgImage);
     }
 #endif
-
+    
     CheckInvariants();
 }
 
@@ -2421,26 +2233,21 @@ void wxMacCoreGraphicsContext::DoDrawText( const wxString &str, wxDouble x, wxDo
 
     wxMacCoreGraphicsFontData* fref = (wxMacCoreGraphicsFontData*)m_font.GetRefData();
     wxCFStringRef text(str, wxLocale::GetSystemEncoding() );
-    CGColorRef col = wxMacCreateCGColor( fref->GetColour() );
     CTFontRef font = fref->OSXGetCTFont();
-
-    wxCFDictionaryRef fontattr(wxCFRetain(fref->OSXGetCTFontAttributes()));
-    wxCFMutableDictionaryRef inlinefontattr;
-
-    bool setColorsInLine = false;
-
-    // if we emulate boldness the stroke color is not taken from the current context
-    // therefore we have to set it explicitly
-    if ( fontattr.GetValue(kCTStrokeWidthAttributeName) != NULL)
-    {
-        setColorsInLine = true;
-        inlinefontattr = fontattr.CreateMutableCopy();
-        inlinefontattr.SetValue(kCTForegroundColorFromContextAttributeName, kCFBooleanFalse);
-        inlinefontattr.SetValue(kCTForegroundColorAttributeName,col);
-        inlinefontattr.SetValue(kCTStrokeColorAttributeName,col);
-    }
-
-    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, text, setColorsInLine ? inlinefontattr : fontattr ) );
+    CGColorRef col = wxMacCreateCGColor( fref->GetColour() );
+#if 0
+    // right now there's no way to get continuous underlines, only words, so we emulate it
+    CTUnderlineStyle ustyle = fref->GetUnderlined() ? kCTUnderlineStyleSingle : kCTUnderlineStyleNone ;
+    wxCFRef<CFNumberRef> underlined( CFNumberCreate(NULL, kCFNumberSInt32Type, &ustyle) );
+     CFStringRef keys[] = { kCTFontAttributeName , kCTForegroundColorAttributeName, kCTUnderlineStyleAttributeName };
+    CFTypeRef values[] = { font, col, underlined };
+#else
+    CFStringRef keys[] = { kCTFontAttributeName , kCTForegroundColorAttributeName };
+    CFTypeRef values[] = { font, col };
+#endif
+    wxCFRef<CFDictionaryRef> attributes( CFDictionaryCreate(kCFAllocatorDefault, (const void**) &keys, (const void**) &values,
+                                                    WXSIZEOF( keys ), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks) );
+    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, text, attributes) );
     wxCFRef<CTLineRef> line( CTLineCreateWithAttributedString(attrtext) );
 
     y += CTFontGetAscent(font);
@@ -2452,7 +2259,6 @@ void wxMacCoreGraphicsContext::DoDrawText( const wxString &str, wxDouble x, wxDo
     CGContextScaleCTM(m_cgContext, 1, -1);
     CGContextSetTextMatrix(m_cgContext, CGAffineTransformIdentity);
 
-    CGContextSetFillColorWithColor( m_cgContext, col );
     CTLineDraw( line, m_cgContext );
 
     if ( fref->GetUnderlined() ) {
@@ -2460,7 +2266,7 @@ void wxMacCoreGraphicsContext::DoDrawText( const wxString &str, wxDouble x, wxDo
         CGFloat width = CTLineGetTypographicBounds(line, NULL, NULL, NULL);
 
         CGPoint points[] = { {0.0, -2.0},  {width, -2.0} };
-
+        
         CGContextSetStrokeColorWithColor(m_cgContext, col);
         CGContextSetShouldAntialias(m_cgContext, false);
         CGContextSetLineWidth(m_cgContext, 1.0);
@@ -2469,8 +2275,8 @@ void wxMacCoreGraphicsContext::DoDrawText( const wxString &str, wxDouble x, wxDo
     if ( fref->GetStrikethrough() )
     {
         CGFloat width = CTLineGetTypographicBounds(line, NULL, NULL, NULL);
-        CGFloat height = CTFontGetXHeight( font ) * 0.6;
-        CGPoint points[] = { {0.0, height},  {width, height} };
+        CGFloat height = CTFontGetXHeight( font );
+        CGPoint points[] = { {0.0, height * 0.6f},  {width, height * 0.6f} };
         CGContextSetStrokeColorWithColor(m_cgContext, col);
         CGContextSetShouldAntialias(m_cgContext, false);
         CGContextSetLineWidth(m_cgContext, 1.0);
@@ -2523,10 +2329,14 @@ void wxMacCoreGraphicsContext::GetTextExtent( const wxString &str, wxDouble *wid
         strToMeasure = wxS(" ");
 
     wxMacCoreGraphicsFontData* fref = (wxMacCoreGraphicsFontData*)m_font.GetRefData();
+    CTFontRef font = fref->OSXGetCTFont();
 
     wxCFStringRef text(strToMeasure, wxLocale::GetSystemEncoding() );
-
-    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, text, fref->OSXGetCTFontAttributes() ) );
+    CFStringRef keys[] = { kCTFontAttributeName  };
+    CFTypeRef values[] = { font };
+    wxCFRef<CFDictionaryRef> attributes( CFDictionaryCreate(kCFAllocatorDefault, (const void**) &keys, (const void**) &values,
+                                                            WXSIZEOF( keys ), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks) );
+    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, text, attributes) );
     wxCFRef<CTLineRef> line( CTLineCreateWithAttributedString(attrtext) );
 
     CGFloat a, d, l, w;
@@ -2539,17 +2349,19 @@ void wxMacCoreGraphicsContext::GetTextExtent( const wxString &str, wxDouble *wid
         if ( height )
             *height = a+d+l;
     }
+
     if ( descent )
         *descent = d;
     if ( externalLeading )
         *externalLeading = l;
 
-    CheckInvariants();
+    CheckInvariants();    
 }
 
 void wxMacCoreGraphicsContext::GetPartialTextExtents(const wxString& text, wxArrayDouble& widths) const
 {
-    widths.clear();
+    widths.Empty();
+    widths.Add(0, text.length());
 
     wxCHECK_RET( !m_font.IsNull(), wxT("wxMacCoreGraphicsContext::DrawText - no valid font set") );
 
@@ -2557,22 +2369,20 @@ void wxMacCoreGraphicsContext::GetPartialTextExtents(const wxString& text, wxArr
         return;
 
     wxMacCoreGraphicsFontData* fref = (wxMacCoreGraphicsFontData*)m_font.GetRefData();
+    CTFontRef font = fref->OSXGetCTFont();
 
     wxCFStringRef t(text, wxLocale::GetSystemEncoding() );
-    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, t, fref->OSXGetCTFontAttributes()) );
+    CFStringRef keys[] = { kCTFontAttributeName  };
+    CFTypeRef values[] = { font };
+    wxCFRef<CFDictionaryRef> attributes( CFDictionaryCreate(kCFAllocatorDefault, (const void**) &keys, (const void**) &values,
+                                                            WXSIZEOF( keys ), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks) );
+    wxCFRef<CFAttributedStringRef> attrtext( CFAttributedStringCreate(kCFAllocatorDefault, t, attributes) );
     wxCFRef<CTLineRef> line( CTLineCreateWithAttributedString(attrtext) );
 
-    widths.reserve(text.length());
-    CFIndex u16index = 1;
-    for ( wxString::const_iterator iter = text.begin(); iter != text.end(); ++iter, ++u16index )
+    int chars = text.length();
+    for ( int pos = 0; pos < (int)chars; pos ++ )
     {
-        // Take care of surrogate pairs: they take two, not one, of UTF-16 code
-        // units used by CoreText.
-        if ( *iter >= 0x10000 )
-        {
-            ++u16index;
-        }
-        widths.push_back( CTLineGetOffsetForStringIndex( line, u16index, NULL ) );
+        widths[pos] = CTLineGetOffsetForStringIndex( line, pos+1 , NULL );
     }
 
     CheckInvariants();
@@ -2583,24 +2393,16 @@ void * wxMacCoreGraphicsContext::GetNativeContext()
     return m_cgContext;
 }
 
-void wxMacCoreGraphicsContext::ClearRectangle( wxDouble x, wxDouble y, wxDouble w, wxDouble h )
-{
-    if (!EnsureIsValid())
-        return;
-
-    CGRect rect = CGRectMake( (CGFloat) x , (CGFloat) y , (CGFloat) w , (CGFloat) h );
-    CGContextClearRect(m_cgContext, rect);
-}
 
 void wxMacCoreGraphicsContext::DrawRectangle( wxDouble x, wxDouble y, wxDouble w, wxDouble h )
 {
     if (!EnsureIsValid())
         return;
 
-    if (m_composition == wxCOMPOSITION_DEST)
-        return;
+    if (m_composition == wxCOMPOSITION_DEST) 
+        return; 
 
-    // when using shading, we have to go back to drawing paths
+    // when using shading, we have to go back to drawing paths 
     if ( !m_brush.IsNull() && ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->IsShading() )
     {
         wxGraphicsContext::DrawRectangle( x,y,w,h );
@@ -2613,7 +2415,7 @@ void wxMacCoreGraphicsContext::DrawRectangle( wxDouble x, wxDouble y, wxDouble w
         ((wxMacCoreGraphicsBrushData*)m_brush.GetRefData())->Apply(this);
         CGContextFillRect(m_cgContext, rect);
     }
-
+    
     wxQuartzOffsetHelper helper( m_cgContext , ShouldOffset() );
     if ( !m_pen.IsNull() )
     {
@@ -2635,18 +2437,16 @@ void wxMacCoreGraphicsContext::ConcatTransform( const wxGraphicsMatrix& matrix )
 void wxMacCoreGraphicsContext::SetTransform( const wxGraphicsMatrix& matrix )
 {
     CheckInvariants();
-    CGAffineTransform t = *((CGAffineTransform*)matrix.GetNativeMatrix());
     if ( m_cgContext )
     {
         CGAffineTransform transform = CGContextGetCTM( m_cgContext );
         transform = CGAffineTransformInvert( transform ) ;
         CGContextConcatCTM( m_cgContext, transform);
-        CGContextConcatCTM(m_cgContext, m_initTransform);
-        CGContextConcatCTM(m_cgContext, t);
+        CGContextConcatCTM( m_cgContext, *(CGAffineTransform*) matrix.GetNativeMatrix());
     }
     else
     {
-        m_windowTransform = CGAffineTransformConcat(t, m_initTransform);
+        m_windowTransform = *(CGAffineTransform*) matrix.GetNativeMatrix();
     }
     CheckInvariants();
 }
@@ -2655,21 +2455,8 @@ void wxMacCoreGraphicsContext::SetTransform( const wxGraphicsMatrix& matrix )
 wxGraphicsMatrix wxMacCoreGraphicsContext::GetTransform() const
 {
     wxGraphicsMatrix m = CreateMatrix();
-    CGAffineTransform* transformMatrix = (CGAffineTransform*)m.GetNativeMatrix();
-
-    if ( m_cgContext )
-    {
-        *transformMatrix = CGContextGetCTM(m_cgContext);
-    }
-    else
-    {
-        *transformMatrix = m_windowTransform;
-    }
-    // Don't expose internal transformations.
-    CGAffineTransform initTransformInv = m_initTransform;
-    initTransformInv = CGAffineTransformInvert(initTransformInv);
-    *transformMatrix = CGAffineTransformConcat(*transformMatrix, initTransformInv);
-
+    *((CGAffineTransform*) m.GetNativeMatrix()) = ( m_cgContext == NULL ? m_windowTransform :
+        CGContextGetCTM( m_cgContext ));
     return m;
 }
 
@@ -2706,12 +2493,6 @@ public:
     {
         m_memDC.SelectObject(wxNullBitmap);
         m_image = m_bitmap.ConvertToImage();
-    }
-
-    virtual void Flush() wxOVERRIDE
-    {
-      wxMacCoreGraphicsContext::Flush();
-      m_image = m_bitmap.ConvertToImage();
     }
 
 private:
@@ -2767,22 +2548,20 @@ public :
         wxDouble tx=0.0, wxDouble ty=0.0) wxOVERRIDE;
 
 
-    virtual wxGraphicsPen CreatePen(const wxGraphicsPenInfo& info) wxOVERRIDE ;
+    virtual wxGraphicsPen CreatePen(const wxPen& pen) wxOVERRIDE ;
 
     virtual wxGraphicsBrush CreateBrush(const wxBrush& brush ) wxOVERRIDE ;
 
     virtual wxGraphicsBrush
     CreateLinearGradientBrush(wxDouble x1, wxDouble y1,
                               wxDouble x2, wxDouble y2,
-                              const wxGraphicsGradientStops& stops,
-                              const wxGraphicsMatrix& matrix) wxOVERRIDE;
+                              const wxGraphicsGradientStops& stops) wxOVERRIDE;
 
     virtual wxGraphicsBrush
-    CreateRadialGradientBrush(wxDouble startX, wxDouble startY,
-                              wxDouble endX, wxDouble endY,
+    CreateRadialGradientBrush(wxDouble xo, wxDouble yo,
+                              wxDouble xc, wxDouble yc,
                               wxDouble radius,
-                              const wxGraphicsGradientStops& stops,
-                              const wxGraphicsMatrix& matrix) wxOVERRIDE;
+                              const wxGraphicsGradientStops& stops) wxOVERRIDE;
 
    // sets the font
     virtual wxGraphicsFont CreateFont( const wxFont &font , const wxColour &col = *wxBLACK ) wxOVERRIDE ;
@@ -2790,9 +2569,6 @@ public :
                                       const wxString& facename,
                                       int flags = wxFONTFLAG_DEFAULT,
                                       const wxColour& col = *wxBLACK) wxOVERRIDE;
-    virtual wxGraphicsFont CreateFontAtDPI(const wxFont& font,
-                                           const wxRealPoint& dpi,
-                                           const wxColour& col) wxOVERRIDE;
 
     // create a native bitmap representation
     virtual wxGraphicsBitmap CreateBitmap( const wxBitmap &bitmap ) wxOVERRIDE ;
@@ -2830,18 +2606,26 @@ wxGraphicsRenderer* wxGraphicsRenderer::GetDefaultRenderer()
 
 wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( const wxWindowDC& dc )
 {
-    wxWindow* const win = dc.GetWindow();
-    wxCHECK_MSG( win, NULL, "Invalid wxWindowDC" );
+    const wxDCImpl* impl = dc.GetImpl();
+    wxWindowDCImpl *win_impl = wxDynamicCast( impl, wxWindowDCImpl );
+    if (win_impl)
+    {
+        int w, h;
+        win_impl->GetSize( &w, &h );
+        CGContextRef cgctx = 0;
 
-    const wxSize sz = win->GetSize();
+        wxASSERT_MSG(win_impl->GetWindow(), "Invalid wxWindow in wxMacCoreGraphicsRenderer::CreateContext");
+        if (win_impl->GetWindow())
+            cgctx =  (CGContextRef)(win_impl->GetWindow()->MacGetCGContextRef());
 
-    // having a cgctx being NULL is fine (will be created on demand)
-    // this is the case for all wxWindowDCs except wxPaintDC
-    CGContextRef cgctx = (CGContextRef)(win->MacGetCGContextRef());
-    wxMacCoreGraphicsContext *context =
-        new wxMacCoreGraphicsContext( this, cgctx, sz.x, sz.y, win );
-    context->SetEnableOffsetFromScaleFactor(dc.GetContentScaleFactor());
-    return context;
+        // having a cgctx being NULL is fine (will be created on demand)
+        // this is the case for all wxWindowDCs except wxPaintDC
+        wxMacCoreGraphicsContext *context = 
+            new wxMacCoreGraphicsContext( this, cgctx, (wxDouble) w, (wxDouble) h );
+        context->EnableOffset(dc.GetContentScaleFactor() < 2);
+        return context;
+    }
+    return NULL;
 }
 
 wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( const wxMemoryDC& dc )
@@ -2855,7 +2639,7 @@ wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( const wxMemoryDC& 
         mem_impl->GetSize( &w, &h );
         wxMacCoreGraphicsContext* context = new wxMacCoreGraphicsContext( this,
             (CGContextRef)(mem_impl->GetGraphicsContext()->GetNativeContext()), (wxDouble) w, (wxDouble) h );
-        context->SetEnableOffsetFromScaleFactor(dc.GetContentScaleFactor());
+        context->EnableOffset(dc.GetContentScaleFactor() < 2);
         return context;
     }
 #endif
@@ -2933,14 +2717,14 @@ wxGraphicsMatrix wxMacCoreGraphicsRenderer::CreateMatrix( wxDouble a, wxDouble b
     return m;
 }
 
-wxGraphicsPen wxMacCoreGraphicsRenderer::CreatePen(const wxGraphicsPenInfo& info)
+wxGraphicsPen wxMacCoreGraphicsRenderer::CreatePen(const wxPen& pen)
 {
-    if ( info.IsTransparent() )
+    if ( !pen.IsOk() || pen.GetStyle() == wxPENSTYLE_TRANSPARENT )
         return wxNullGraphicsPen;
     else
     {
         wxGraphicsPen p;
-        p.SetRefData(new wxMacCoreGraphicsPenData( this, info ));
+        p.SetRefData(new wxMacCoreGraphicsPenData( this, pen ));
         return p;
     }
 }
@@ -3036,26 +2820,24 @@ void wxMacCoreGraphicsRenderer::GetVersion(int *major, int *minor, int *micro) c
 wxGraphicsBrush
 wxMacCoreGraphicsRenderer::CreateLinearGradientBrush(wxDouble x1, wxDouble y1,
                                                      wxDouble x2, wxDouble y2,
-                                                     const wxGraphicsGradientStops& stops,
-                                                     const wxGraphicsMatrix& matrix)
+                                                     const wxGraphicsGradientStops& stops)
 {
     wxGraphicsBrush p;
     wxMacCoreGraphicsBrushData* d = new wxMacCoreGraphicsBrushData( this );
-    d->CreateLinearGradientShading(x1, y1, x2, y2, stops, matrix);
+    d->CreateLinearGradientBrush(x1, y1, x2, y2, stops);
     p.SetRefData(d);
     return p;
 }
 
 wxGraphicsBrush
-wxMacCoreGraphicsRenderer::CreateRadialGradientBrush(wxDouble startX, wxDouble startY,
-                                                     wxDouble endX, wxDouble endY,
+wxMacCoreGraphicsRenderer::CreateRadialGradientBrush(wxDouble xo, wxDouble yo,
+                                                     wxDouble xc, wxDouble yc,
                                                      wxDouble radius,
-                                                     const wxGraphicsGradientStops& stops,
-                                                     const wxGraphicsMatrix& matrix)
+                                                     const wxGraphicsGradientStops& stops)
 {
     wxGraphicsBrush p;
     wxMacCoreGraphicsBrushData* d = new wxMacCoreGraphicsBrushData( this );
-    d->CreateRadialGradientShading(startX, startY, endX, endY, radius, stops, matrix);
+    d->CreateRadialGradientBrush(xo, yo, xc, yc, radius, stops);
     p.SetRefData(d);
     return p;
 }
@@ -3078,22 +2860,27 @@ wxMacCoreGraphicsRenderer::CreateFont(double sizeInPixels,
                                       int flags,
                                       const wxColour& col)
 {
+    // This implementation is not ideal as we don't support fractional font
+    // sizes right now, but it's the simplest one.
+    //
     // Notice that under Mac we always use 72 DPI so the font size in pixels is
     // the same as the font size in points and we can pass it directly to wxFont
     // ctor.
-    wxFont font(wxFontInfo(sizeInPixels).FaceName(facename).AllFlags(flags));
+    wxFont font(wxRound(sizeInPixels),
+                wxFONTFAMILY_DEFAULT,
+                flags & wxFONTFLAG_ITALIC ? wxFONTSTYLE_ITALIC
+                                          : wxFONTSTYLE_NORMAL,
+                flags & wxFONTFLAG_BOLD ? wxFONTWEIGHT_BOLD
+                                        : wxFONTWEIGHT_NORMAL,
+                (flags & wxFONTFLAG_UNDERLINED) != 0,
+                facename);
+
+    if ( flags & wxFONTFLAG_STRIKETHROUGH )
+        font.MakeStrikethrough();
 
     wxGraphicsFont f;
     f.SetRefData(new wxMacCoreGraphicsFontData(this, font, col));
     return f;
-}
-
-wxGraphicsFont
-wxMacCoreGraphicsRenderer::CreateFontAtDPI(const wxFont& font,
-                                           const wxRealPoint& WXUNUSED(dpi),
-                                           const wxColour& col)
-{
-    return CreateFont(font, col);
 }
 
 //

@@ -49,7 +49,7 @@ public:
                 const wxSize& size = wxDefaultSize,
                 long style = wxLC_REPORT,
                 const wxValidator& validator = wxDefaultValidator,
-                const wxString &name = wxASCII_STR(wxListCtrlNameStr))
+                const wxString &name = wxListCtrlNameStr)
     {
         Create(parent, winid, pos, size, style, validator, name);
     }

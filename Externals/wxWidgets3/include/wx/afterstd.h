@@ -17,9 +17,9 @@
 #endif
 
 // undo what we did in wx/beforestd.h
-#if defined(__VISUALC__) && __VISUALC__ >= 1910
+#if defined(__VISUALC__) && __VISUALC__ <= 1201
     #pragma warning(pop)
-#endif // VC++ >= 14.1
+#endif
 
 // see beforestd.h for explanation
 #if defined(HAVE_VISIBILITY) && defined(HAVE_BROKEN_LIBSTDCXX_VISIBILITY)

@@ -9,8 +9,6 @@
 #ifndef _WX_GTK_TOPLEVEL_H_
 #define _WX_GTK_TOPLEVEL_H_
 
-class WXDLLIMPEXP_FWD_CORE wxGUIEventLoop;
-
 //-----------------------------------------------------------------------------
 // wxTopLevelWindowGTK
 //-----------------------------------------------------------------------------
@@ -27,7 +25,7 @@ public:
                         const wxPoint& pos = wxDefaultPosition,
                         const wxSize& size = wxDefaultSize,
                         long style = wxDEFAULT_FRAME_STYLE,
-                        const wxString& name = wxASCII_STR(wxFrameNameStr))
+                        const wxString& name = wxFrameNameStr)
     {
         Init();
 
@@ -40,7 +38,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
     virtual ~wxTopLevelWindowGTK();
 
@@ -74,7 +72,6 @@ public:
     virtual void SetLabel(const wxString& label) wxOVERRIDE { SetTitle( label ); }
     virtual wxString GetLabel() const wxOVERRIDE            { return GetTitle(); }
 
-    virtual wxVisualAttributes GetDefaultAttributes() const wxOVERRIDE;
 
     virtual bool SetTransparent(wxByte alpha) wxOVERRIDE;
     virtual bool CanSetTransparent() wxOVERRIDE;
@@ -83,7 +80,7 @@ public:
     // viewable from within modal dialogs
     virtual void AddGrab();
     virtual void RemoveGrab();
-    virtual bool IsGrabbed() const;
+    virtual bool IsGrabbed() const { return m_grabbed; }
 
 
     virtual void Refresh( bool eraseBackground = true,
@@ -113,19 +110,11 @@ public:
     // size of WM decorations
     struct DecorSize
     {
-        DecorSize()
-        {
-            left =
-            right =
-            top =
-            bottom = 0;
-        }
-
         int left, right, top, bottom;
     };
     DecorSize m_decorSize;
 
-    // private gtk_timeout_add result for mimicking wxUSER_ATTENTION_INFO and
+    // private gtk_timeout_add result for mimicing wxUSER_ATTENTION_INFO and
     // wxUSER_ATTENTION_ERROR difference, -2 for no hint, -1 for ERROR hint, rest for GtkTimeout handle.
     int m_urgency_hint;
     // timer for detecting WM with broken _NET_REQUEST_FRAME_EXTENTS handling
@@ -165,14 +154,11 @@ private:
     // size hint increments
     int m_incWidth, m_incHeight;
 
-    // position before it last changed
-    wxPoint m_lastPos;
-
     // is the frame currently iconized?
     bool m_isIconized;
 
     // is the frame currently grabbed explicitly by the application?
-    wxGUIEventLoop* m_grabbedEventLoop;
+    bool m_grabbed;
 
     bool m_updateDecorSize;
     bool m_deferShowAllowed;

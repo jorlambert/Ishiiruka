@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     20.07.2003
-// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -33,7 +33,6 @@
 #include "wx/splitter.h"
 #include "wx/time.h"
 #include "wx/osx/private.h"
-#include "wx/osx/private/available.h"
 
 #ifdef wxHAS_DRAW_TITLE_BAR_BITMAP
     #include "wx/image.h"
@@ -45,7 +44,7 @@
 inline bool wxHasCGContext(wxWindow* WXUNUSED(win), wxDC& dc)
 {
     wxGCDCImpl* gcdc = wxDynamicCast( dc.GetImpl() , wxGCDCImpl);
-
+    
     if ( gcdc )
     {
         if ( gcdc->GetGraphicsContext()->GetNativeContext() )
@@ -90,7 +89,7 @@ public:
                               const wxRect& rect,
                               int flags = 0) wxOVERRIDE;
 
-    virtual wxSize GetCheckBoxSize(wxWindow* win, int flags = 0) wxOVERRIDE;
+    virtual wxSize GetCheckBoxSize(wxWindow* win) wxOVERRIDE;
 
     virtual void DrawComboBoxDropButton(wxWindow *win,
                                         wxDC& dc,
@@ -173,9 +172,6 @@ int wxRendererMac::DrawHeaderButton( wxWindow *win,
     wxHeaderSortIconType sortArrow,
     wxHeaderButtonParams* params )
 {
-    if ( wxSystemSettings::GetAppearance().IsDark() )
-        return wxRendererNative::GetGeneric().DrawHeaderButton(win, dc,  rect, flags, sortArrow, params);
-
     const wxCoord x = rect.x;
     const wxCoord y = rect.y;
     const wxCoord w = rect.width;
@@ -186,7 +182,7 @@ int wxRendererMac::DrawHeaderButton( wxWindow *win,
     HIRect headerRect = CGRectMake( x, y, w, h );
     if ( !wxHasCGContext(win, dc) )
     {
-        win->RefreshRect(rect);
+        win->Refresh( &rect );
     }
     else
     {
@@ -202,35 +198,34 @@ int wxRendererMac::DrawHeaderButton( wxWindow *win,
             memset( &drawInfo, 0, sizeof(drawInfo) );
             drawInfo.version = 0;
             drawInfo.kind = kThemeListHeaderButton;
+            drawInfo.state = (flags & wxCONTROL_DISABLED) ? kThemeStateInactive : kThemeStateActive;
+            drawInfo.value = (flags & wxCONTROL_PRESSED) ? kThemeButtonOn : kThemeButtonOff;
             drawInfo.adornment = kThemeAdornmentNone;
-            drawInfo.value = kThemeButtonOff;
-            if ( flags & wxCONTROL_DISABLED )
-                drawInfo.state = kThemeStateInactive;
-            else if ( flags & wxCONTROL_PRESSED )
-                drawInfo.state = kThemeStatePressed;
-            else
-                drawInfo.state = kThemeStateActive;
 
-            // The down arrow is drawn automatically (if value is kThemeButtonOn)
-            // change it to an up arrow if needed.
+            // The down arrow is drawn automatically, change it to an up arrow if needed.
             if ( sortArrow == wxHDR_SORT_ICON_UP )
-            {
                 drawInfo.adornment = kThemeAdornmentHeaderButtonSortUp;
-                drawInfo.value = kThemeButtonOn;
-            }
-            else if (sortArrow == wxHDR_SORT_ICON_DOWN )
-            {
-                drawInfo.value = kThemeButtonOn;
-            }
 
             HIThemeDrawButton( &headerRect, &drawInfo, cgContext, kHIThemeOrientationNormal, &labelRect );
+
+            // If we don't want any arrows we need to draw over the one already there
+            if ( (flags & wxCONTROL_PRESSED) && (sortArrow == wxHDR_SORT_ICON_NONE) )
+            {
+                // clip to the header rectangle
+                CGContextSaveGState( cgContext );
+                CGContextClipToRect( cgContext, headerRect );
+                // but draw bigger than that so the arrow will get clipped off
+                headerRect.size.width += 25;
+                HIThemeDrawButton( &headerRect, &drawInfo, cgContext, kHIThemeOrientationNormal, &labelRect );
+                CGContextRestoreGState( cgContext );
+            }
         }
     }
 
     // Reserve room for the arrows before writing the label, and turn off the
     // flags we've already handled
     wxRect newRect(rect);
-    if ( sortArrow != wxHDR_SORT_ICON_NONE )
+    if ( (flags & wxCONTROL_PRESSED) && (sortArrow != wxHDR_SORT_ICON_NONE) )
     {
         newRect.width -= 12;
         sortArrow = wxHDR_SORT_ICON_NONE;
@@ -256,7 +251,8 @@ int wxRendererMac::GetHeaderButtonHeight(wxWindow* WXUNUSED(win))
 
 int wxRendererMac::GetHeaderButtonMargin(wxWindow *WXUNUSED(win))
 {
-    return 0; // TODO: How to determine the real margin?
+    wxFAIL_MSG( "GetHeaderButtonMargin() not implemented" );
+    return -1;
 }
 
 void wxRendererMac::DrawTreeItemButton( wxWindow *win,
@@ -275,7 +271,7 @@ void wxRendererMac::DrawTreeItemButton( wxWindow *win,
     HIRect headerRect = CGRectMake( x, y, w, h );
     if ( !wxHasCGContext(win, dc) )
     {
-        win->RefreshRect(rect);
+        win->Refresh( &rect );
     }
     else
     {
@@ -338,15 +334,7 @@ void wxRendererMac::DrawSplitterSash( wxWindow *win,
     wxOrientation orient,
     int WXUNUSED(flags) )
 {
-    // Note that we can't use ternary ?: operator or any other construct with
-    // logical operators here, WX_IS_MACOS_AVAILABLE() must appear inside an
-    // "if" statement to avoid -Wunsupported-availability-guard with Xcode 10.
-    bool hasMetal;
-    if (WX_IS_MACOS_AVAILABLE(10, 14))
-        hasMetal = false;
-    else
-        hasMetal = win->MacGetTopLevelWindow()->GetExtraStyle() & wxFRAME_EX_METAL;
-
+    bool hasMetal = win->MacGetTopLevelWindow()->GetExtraStyle() & wxFRAME_EX_METAL;
     SInt32 height;
 
     height = wxRendererNative::Get().GetSplitterParams(win).widthSash;
@@ -372,15 +360,13 @@ void wxRendererMac::DrawSplitterSash( wxWindow *win,
         wxGCDCImpl *impl = (wxGCDCImpl*) dc.GetImpl();
         cgContext = (CGContextRef) impl->GetGraphicsContext()->GetNativeContext();
 
-        if ( hasMetal )
-        {
-            HIThemeBackgroundDrawInfo bgdrawInfo;
-            bgdrawInfo.version = 0;
-            bgdrawInfo.state = kThemeStateActive;
-            bgdrawInfo.kind = hasMetal ? kThemeBackgroundMetal : kThemeBackgroundPlacard;
+        HIThemeBackgroundDrawInfo bgdrawInfo;
+        bgdrawInfo.version = 0;
+        bgdrawInfo.state = kThemeStateActive;
+        bgdrawInfo.kind = hasMetal ? kThemeBackgroundMetal : kThemeBackgroundPlacard;
 
+        if ( hasMetal )
             HIThemeDrawBackground(&splitterRect, &bgdrawInfo, cgContext, kHIThemeOrientationNormal);
-        }
         else
         {
             CGContextSetFillColorWithColor(cgContext,win->GetBackgroundColour().GetCGColor());
@@ -389,14 +375,11 @@ void wxRendererMac::DrawSplitterSash( wxWindow *win,
 
         if ( win->HasFlag(wxSP_3DSASH) )
         {
-            if ( !wxSystemSettings::GetAppearance().IsDark() )
-            {
-                HIThemeSplitterDrawInfo drawInfo;
-                drawInfo.version = 0;
-                drawInfo.state = kThemeStateActive;
-                drawInfo.adornment = hasMetal ? kHIThemeSplitterAdornmentMetal : kHIThemeSplitterAdornmentNone;
-                HIThemeDrawPaneSplitter( &splitterRect, &drawInfo, cgContext, kHIThemeOrientationNormal );
-            }
+            HIThemeSplitterDrawInfo drawInfo;
+            drawInfo.version = 0;
+            drawInfo.state = kThemeStateActive;
+            drawInfo.adornment = hasMetal ? kHIThemeSplitterAdornmentMetal : kHIThemeSplitterAdornmentNone;
+            HIThemeDrawPaneSplitter( &splitterRect, &drawInfo, cgContext, kHIThemeOrientationNormal );
         }
     }
 }
@@ -440,7 +423,7 @@ wxRendererMac::DrawMacThemeButton(wxWindow *win,
     HIRect headerRect = CGRectMake( x, y, w, h );
     if ( !wxHasCGContext(win, dc) )
     {
-        win->RefreshRect(rect);
+        win->Refresh( &rect );
     }
     else
     {
@@ -491,13 +474,8 @@ wxRendererMac::DrawCheckBox(wxWindow *win,
                        kind, kThemeAdornmentNone);
 }
 
-wxSize wxRendererMac::GetCheckBoxSize(wxWindow* win, int WXUNUSED(flags))
+wxSize wxRendererMac::GetCheckBoxSize(wxWindow* WXUNUSED(win))
 {
-    // Even though we don't use the window in this implementation, still check
-    // that it's valid to avoid surprises when running the same code under the
-    // other platforms.
-    wxCHECK_MSG( win, wxSize(0, 0), "Must have a valid window" );
-
     wxSize size;
     SInt32 width, height;
     OSStatus errStatus;
@@ -690,7 +668,7 @@ void wxRendererMac::DrawTextCtrl(wxWindow* win, wxDC& dc,
     HIRect hiRect = CGRectMake( x, y, w, h );
     if ( !wxHasCGContext(win, dc) )
     {
-        win->RefreshRect(rect);
+        win->Refresh( &rect );
     }
     else
     {

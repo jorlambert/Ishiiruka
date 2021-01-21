@@ -8,22 +8,31 @@
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+// TODO: Actually test the CE IWMP....
 // TODO: Actually test HTTP proxies...
 
 //-----------------Introduction----------------------------------------------
-// This is the media backend for Windows Media Player 6 and ActiveMovie.
+// This is the media backend for Windows Media Player 6 and ActiveMovie,
+// as well as PocketPC 2000, Windows Media Player Mobile 7 and 8.
 //
 // We use a combination of the WMP 6 IMediaPlayer interface as well as the
-// ActiveMovie interface IActiveMovie.
+// ActiveMovie interface IActiveMovie that even exists on Windows 3. For
+// mobile systems we switch to IWMP for WMP mobile 7 and 8 and possibly
+// earlier. We just use ifdefs for differentiating between IWMP and
+// IActiveMovie/IMediaPlayer as the IWMP and IMediaPlayer are virtually
+// identical with a few minor exceptions.
 //
 // For supporting HTTP proxies and such we query the media player
-// interface (IActiveMovie) for the INSPlay (NetShow) interface.
+// interface (IActiveMovie/IWMP) for the INSPlay (NetShow) interface.
 //
-// The IMediaPlayer/IActiveMovie are rather clean and straightforward
+// The IMediaPlayer/IActiveMovie/IWMP are rather clean and straightforward
 // interfaces that are fairly simplistic.
 //
 // Docs for IMediaPlayer are at
 // http://msdn.microsoft.com/library/en-us/wmp6sdk/htm/microsoftwindowsmediaplayercontrolversion64sdk.asp
+//
+// Docs for IWMP are at
+// http://msdn.microsoft.com/library/en-us/wcewmp/html/_wcesdk_asx_wmp_control_reference.asp
 
 //===========================================================================
 //  DECLARATIONS
@@ -78,9 +87,16 @@
 //  generated interfaces I want with the STDMETHOD wrappers and then put them
 //  into mediactrl.cpp.
 //
+//  According to the MSDN docs, IMediaPlayer requires Windows 98 SE
+//  or greater.  NetShow is available on Windows 3.1 and I'm guessing
+//  IActiveMovie is too.  IMediaPlayer is essentially the Windows Media
+//  Player 6.4 SDK.
+//
+//  IWMP is from PlayerOCX.idl on PocketPC 2000, which uses CLSID_MediaPlayer
+//  as well as the main windows line.
+//
 //  Some of these are not used but are kept here for future reference anyway
 //---------------------------------------------------------------------------
-wxCLANG_WARNING_SUPPRESS(unused-const-variable)
 const IID IID_IActiveMovie          = {0x05589FA2,0xC356,0x11CE,{0xBF,0x01,0x00,0xAA,0x00,0x55,0x59,0x5A}};
 const IID IID_IActiveMovie2         = {0xB6CD6554,0xE9CB,0x11D0,{0x82,0x1F,0x00,0xA0,0xC9,0x1F,0x9C,0xA0}};
 const IID IID_IActiveMovie3         = {0x265EC140,0xAE62,0x11D1,{0x85,0x00,0x00,0xA0,0xC9,0x1F,0x9C,0xA0}};
@@ -110,7 +126,6 @@ const IID IID_IFilterGraph =            {0x56A8689F, 0x0AD4, 0x11CE,{0xB0, 0x3A,
 const IID IID_IGraphBuilder =           {0x56A868A9, 0x0AD4, 0x11CE,{0xB0, 0x3A, 0x00, 0x20, 0xAF, 0x0B, 0xA7, 0x70}};
 const IID IID_IVMRFilterConfig9 =       {0x5A804648, 0x4F66, 0x4867,{0x9C, 0x43, 0x4F, 0x5C, 0x82, 0x2C, 0xF1, 0xB8}};
 const IID IID_IBaseFilter =             {0x56A86895, 0x0AD4, 0x11CE,{0xB0, 0x3A, 0x00, 0x20, 0xAF, 0x0B, 0xA7, 0x70}};
-wxCLANG_WARNING_RESTORE(unused-const-variable)
 
 //---------------------------------------------------------------------------
 //  QUARTZ COM INTERFACES (dumped from quartz.idl from MSVC COM Browser)
@@ -824,44 +839,44 @@ public:
                                      const wxSize& size,
                                      long style,
                                      const wxValidator& validator,
-                                     const wxString& name) wxOVERRIDE;
+                                     const wxString& name);
 
-    virtual bool Play() wxOVERRIDE;
-    virtual bool Pause() wxOVERRIDE;
-    virtual bool Stop() wxOVERRIDE;
+    virtual bool Play();
+    virtual bool Pause();
+    virtual bool Stop();
 
-    virtual bool Load(const wxString& fileName) wxOVERRIDE;
-    virtual bool Load(const wxURI& location) wxOVERRIDE;
-    virtual bool Load(const wxURI& location, const wxURI& proxy) wxOVERRIDE;
+    virtual bool Load(const wxString& fileName);
+    virtual bool Load(const wxURI& location);
+    virtual bool Load(const wxURI& location, const wxURI& proxy);
 
     bool DoLoad(const wxString& location);
     void FinishLoad();
 
-    virtual wxMediaState GetState() wxOVERRIDE;
+    virtual wxMediaState GetState();
 
-    virtual bool SetPosition(wxLongLong where) wxOVERRIDE;
-    virtual wxLongLong GetPosition() wxOVERRIDE;
-    virtual wxLongLong GetDuration() wxOVERRIDE;
+    virtual bool SetPosition(wxLongLong where);
+    virtual wxLongLong GetPosition();
+    virtual wxLongLong GetDuration();
 
-    virtual void Move(int x, int y, int w, int h) wxOVERRIDE;
-    wxSize GetVideoSize() const wxOVERRIDE;
+    virtual void Move(int x, int y, int w, int h);
+    wxSize GetVideoSize() const;
 
-    virtual double GetPlaybackRate() wxOVERRIDE;
-    virtual bool SetPlaybackRate(double) wxOVERRIDE;
+    virtual double GetPlaybackRate();
+    virtual bool SetPlaybackRate(double);
 
-    virtual double GetVolume() wxOVERRIDE;
-    virtual bool SetVolume(double) wxOVERRIDE;
+    virtual double GetVolume();
+    virtual bool SetVolume(double);
 
-    virtual bool ShowPlayerControls(wxMediaCtrlPlayerControls flags) wxOVERRIDE;
+    virtual bool ShowPlayerControls(wxMediaCtrlPlayerControls flags);
 
     void DoGetDownloadProgress(wxLongLong*, wxLongLong*);
-    virtual wxLongLong GetDownloadProgress() wxOVERRIDE
+    virtual wxLongLong GetDownloadProgress()
     {
         wxLongLong progress, total;
         DoGetDownloadProgress(&progress, &total);
         return progress;
     }
-    virtual wxLongLong GetDownloadTotal() wxOVERRIDE
+    virtual wxLongLong GetDownloadTotal()
     {
         wxLongLong progress, total;
         DoGetDownloadProgress(&progress, &total);
@@ -894,10 +909,10 @@ public:
     wxAMMediaEvtHandler(wxAMMediaBackend *amb) :
        m_amb(amb), m_bLoadEventSent(false)
     {
-        m_amb->m_pAX->Bind(
+        m_amb->m_pAX->Connect(m_amb->m_pAX->GetId(),
             wxEVT_ACTIVEX,
-            &wxAMMediaEvtHandler::OnActiveX, this,
-            m_amb->m_pAX->GetId()
+            wxActiveXEventHandler(wxAMMediaEvtHandler::OnActiveX),
+            NULL, this
                               );
     }
 
@@ -1085,7 +1100,7 @@ bool wxAMMediaBackend::CreateControl(wxControl* ctrl, wxWindow* parent,
 
     // don't erase the background of our control window so that resizing is a
     // bit smoother
-    m_ctrl->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    m_ctrl->SetBackgroundStyle(wxBG_STYLE_CUSTOM);
 
     // success
     return true;
@@ -1129,7 +1144,7 @@ bool wxAMMediaBackend::Load(const wxURI& location, const wxURI& proxy)
     if(pPlay)
     {
         pPlay->put_UseHTTPProxy(VARIANT_TRUE);
-        pPlay->put_HTTPProxyHost(wxBasicString(proxy.GetServer()));
+        pPlay->put_HTTPProxyHost(wxBasicString(proxy.GetServer()).Get());
         pPlay->put_HTTPProxyPort(wxAtoi(proxy.GetPort()));
         pPlay->Release();
     }
@@ -1152,9 +1167,9 @@ bool wxAMMediaBackend::DoLoad(const wxString& location)
     // the docs say its async and put_FileName is not -
     // but in practice they both seem to be async anyway
     if(GetMP())
-        hr = GetMP()->Open( wxBasicString(location) );
+        hr = GetMP()->Open( wxBasicString(location).Get() );
     else
-        hr = GetAM()->put_FileName( wxBasicString(location) );
+        hr = GetAM()->put_FileName( wxBasicString(location).Get() );
 
     if(FAILED(hr))
     {
@@ -1371,7 +1386,7 @@ wxLongLong wxAMMediaBackend::GetDuration()
     {
         default:
             wxAMLOG(hr);
-            wxFALLTHROUGH;
+            // fall through
 
         case S_FALSE:
             return 0;
@@ -1532,9 +1547,7 @@ void wxAMMediaBackend::Move(int WXUNUSED(x), int WXUNUSED(y),
 //---------------------------------------------------------------------------
 void wxAMMediaEvtHandler::OnActiveX(wxActiveXEvent& event)
 {
-    // cast to unsigned long to fix narrowing error with case 0xfffffd9f
-    // when using clang
-    switch (static_cast<unsigned long>(event.GetDispatchId()))
+    switch(event.GetDispatchId())
     {
     case 0x00000001: // statechange in IActiveMovie
     case 0x00000bc4: // playstatechange in IMediaPlayer

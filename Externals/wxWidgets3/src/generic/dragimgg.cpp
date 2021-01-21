@@ -58,7 +58,10 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxGenericDragImage, wxObject);
 
 wxGenericDragImage::~wxGenericDragImage()
 {
-    delete m_windowDC;
+    if (m_windowDC)
+    {
+        delete m_windowDC;
+    }
 }
 
 void wxGenericDragImage::Init()
@@ -208,6 +211,7 @@ bool wxGenericDragImage::BeginDrag(const wxPoint& hotspot,
     // dragged.
 
     wxSize clientSize;
+    wxPoint pt;
     if (!m_fullScreen)
     {
         clientSize = window->GetClientSize();
@@ -221,6 +225,7 @@ bool wxGenericDragImage::BeginDrag(const wxPoint& hotspot,
         clientSize.x = w; clientSize.y = h;
         if (rect)
         {
+            pt.x = m_boundingRect.x; pt.y = m_boundingRect.y;
             clientSize.x = m_boundingRect.width; clientSize.y = m_boundingRect.height;
         }
         else

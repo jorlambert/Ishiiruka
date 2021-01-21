@@ -50,7 +50,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE | wxVSCROLL | wxHSCROLL,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
      */
 
 #if wxUSE_MENUS
@@ -157,7 +157,7 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxDEFAULT_FRAME_STYLE,
-                const wxString& name = wxASCII_STR(wxFrameNameStr));
+                const wxString& name = wxFrameNameStr);
 
         And setting m_mdiParent to parent parameter.
      */
@@ -279,17 +279,17 @@ public:
 
     // extra platform-specific hacks
 #ifdef __WXMSW__
-    virtual WXDWORD MSWGetStyle(long flags, WXDWORD *exstyle = NULL) const wxOVERRIDE
+    virtual WXDWORD MSWGetStyle(long flags, WXDWORD *exstyle = NULL) const
     {
         return wxWindow::MSWGetStyle(flags, exstyle);
     }
 
-    virtual WXHWND MSWGetParent() const wxOVERRIDE
+    virtual WXHWND MSWGetParent() const
     {
         return wxWindow::MSWGetParent();
     }
 
-    WXLRESULT MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam) wxOVERRIDE
+    WXLRESULT MSWWindowProc(WXUINT message, WXWPARAM wParam, WXLPARAM lParam)
     {
         return wxWindow::MSWWindowProc(message, wParam, lParam);
     }
@@ -319,11 +319,6 @@ protected:
     virtual void DoMoveWindow(int x, int y, int width, int height) wxOVERRIDE
     {
         wxWindow::DoMoveWindow(x, y, width, height);
-    }
-
-    virtual void DoGetScreenPosition(int *x, int *y) const wxOVERRIDE
-    {
-        wxWindow::DoGetScreenPosition(x, y);
     }
 
     // no size hints

@@ -116,15 +116,13 @@ public:
 
 #if wxUSE_STATTEXT // && wxUSE_TEXTCTRL
     // splits text up at newlines and places the lines into a vertical
-    // wxBoxSizer, with the given maximum width, lines will not be wrapped
-    // for negative values of widthMax
-    wxSizer *CreateTextSizer(const wxString& message, int widthMax = -1);
+    // wxBoxSizer
+    wxSizer *CreateTextSizer( const wxString& message );
 
     // same as above but uses a customized wxTextSizerWrapper to create
     // non-standard controls for the lines
-    wxSizer *CreateTextSizer(const wxString& message,
-                             wxTextSizerWrapper& wrapper,
-                             int widthMax = -1);
+    wxSizer *CreateTextSizer( const wxString& message,
+                              wxTextSizerWrapper& wrapper );
 #endif // wxUSE_STATTEXT // && wxUSE_TEXTCTRL
 
     // returns a horizontal wxBoxSizer containing the given buttons

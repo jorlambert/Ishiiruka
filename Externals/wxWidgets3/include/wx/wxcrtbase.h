@@ -75,6 +75,7 @@
    ------------------------------------------------------------------------- */
 
 #ifdef __cplusplus
+    #if wxUSE_UNICODE_UTF8
         /* flag indicating whether the current locale uses UTF-8 or not; must be
            updated every time the locale is changed! */
         #if wxUSE_UTF8_LOCALE_ONLY
@@ -84,6 +85,9 @@
         #endif
         /* function used to update the flag: */
         extern WXDLLIMPEXP_BASE void wxUpdateLocaleIsUtf8();
+    #else /* !wxUSE_UNICODE_UTF8 */
+        inline void wxUpdateLocaleIsUtf8() {}
+    #endif /* wxUSE_UNICODE_UTF8/!wxUSE_UNICODE_UTF8 */
 #endif /* __cplusplus */
 
 
@@ -190,9 +194,6 @@ extern unsigned long android_wcstoul(const wchar_t *nptr, wchar_t **endptr, int 
     #endif
 
     #ifdef HAVE_STRTOULL
-        wxDECL_FOR_STRICT_MINGW32(long long, strtoll, (const char*, char**, int))
-        wxDECL_FOR_STRICT_MINGW32(unsigned long long, strtoull, (const char*, char**, int))
-
         #define wxCRT_StrtollA   strtoll
         #define wxCRT_StrtoullA  strtoull
     #endif /* HAVE_STRTOULL */
@@ -220,13 +221,6 @@ extern unsigned long android_wcstoul(const wchar_t *nptr, wchar_t **endptr, int 
 #endif
 
 #ifdef HAVE_WCSNLEN
-    /*
-        When using MinGW, wcsnlen() is not declared, but is still found by
-        configure -- just declare it in this case as it seems better to use it
-        if it's available (see https://sourceforge.net/p/mingw/bugs/2332/)
-     */
-    wxDECL_FOR_MINGW32_ALWAYS(size_t, wcsnlen, (const wchar_t*, size_t))
-
     #define wxCRT_StrnlenW  wcsnlen
 #endif
 
@@ -236,15 +230,8 @@ extern unsigned long android_wcstoul(const wchar_t *nptr, wchar_t **endptr, int 
     #define wxCRT_StricmpA stricmp
     #define wxCRT_StrnicmpA strnicmp
 #elif defined(__VISUALC__) || defined(__MINGW32__)
-    /*
-        Due to MinGW 5.3 bug (https://sourceforge.net/p/mingw/bugs/2322/),
-        _stricmp() and _strnicmp() are not declared in its standard headers
-        when compiling without optimizations. Work around this by always
-        declaring them ourselves (notice that if/when this bug were fixed, we'd
-        still need to use wxDECL_FOR_STRICT_MINGW32() for them here.
-     */
-    wxDECL_FOR_MINGW32_ALWAYS(int, _stricmp, (const char*, const char*))
-    wxDECL_FOR_MINGW32_ALWAYS(int, _strnicmp, (const char*, const char*, size_t))
+    wxDECL_FOR_STRICT_MINGW32(int, _stricmp, (const char*, const char*))
+    wxDECL_FOR_STRICT_MINGW32(int, _strnicmp, (const char*, const char*, size_t))
 
     #define wxCRT_StricmpA _stricmp
     #define wxCRT_StrnicmpA _strnicmp
@@ -610,7 +597,7 @@ WXDLLIMPEXP_BASE size_t wxCRT_StrftimeW(wchar_t *s, size_t max,
         #define wxCRT_ToupperW   towupper
     #endif
 #else /* !__GLIBC__ */
-    /* There is a bug in MSVC RTL: toxxx() functions don't do anything
+    /* There is a bug in MSVC RTL: toxxx() functions dosn't do anything
        with signed chars < 0, so "fix" it here. */
     #define wxCRT_TolowerW(c)   towlower((wxUChar)(wxChar)(c))
     #define wxCRT_ToupperW(c)   towupper((wxUChar)(wxChar)(c))

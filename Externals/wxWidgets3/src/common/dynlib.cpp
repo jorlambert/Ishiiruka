@@ -86,7 +86,11 @@ bool wxDynamicLibrary::Load(const wxString& libnameOrig, int flags)
 
     if ( m_handle == 0 && !(flags & wxDL_QUIET) )
     {
-        ReportError(_("Failed to load shared library '%s'"), libname);
+#ifdef wxHAVE_DYNLIB_ERROR
+        Error();
+#else
+        wxLogSysError(_("Failed to load shared library '%s'"), libname.c_str());
+#endif
     }
 
     return IsLoaded();
@@ -110,7 +114,12 @@ void *wxDynamicLibrary::GetSymbol(const wxString& name, bool *success) const
     void *symbol = DoGetSymbol(name, success);
     if ( !symbol )
     {
-        ReportError(_("Couldn't find symbol '%s' in a dynamic library"), name);
+#ifdef wxHAVE_DYNLIB_ERROR
+        Error();
+#else
+        wxLogSysError(_("Couldn't find symbol '%s' in a dynamic library"),
+                      name.c_str());
+#endif
     }
 
     return symbol;

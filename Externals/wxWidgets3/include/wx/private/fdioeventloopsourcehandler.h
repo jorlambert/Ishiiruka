@@ -19,7 +19,7 @@
 class wxFDIOEventLoopSourceHandler : public wxFDIOHandler
 {
 public:
-    explicit wxFDIOEventLoopSourceHandler(wxEventLoopSourceHandler* handler)
+    wxEXPLICIT wxFDIOEventLoopSourceHandler(wxEventLoopSourceHandler* handler)
         : m_handler(handler)
     {
     }

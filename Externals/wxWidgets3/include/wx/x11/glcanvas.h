@@ -26,7 +26,7 @@ public:
                const wxString& name = wxGLCanvasName,
                const wxPalette& palette = wxNullPalette);
 
-    explicit // avoid implicitly converting a wxWindow* to wxGLCanvas
+    wxEXPLICIT // avoid implicitly converting a wxWindow* to wxGLCanvas
     wxGLCanvas(wxWindow *parent,
                wxWindowID id = wxID_ANY,
                const int *attribList = NULL,
@@ -57,7 +57,7 @@ public:
     // implement wxGLCanvasX11 methods
     // --------------------------------
 
-    virtual unsigned long GetXWindow() const;
+    virtual Window GetXWindow() const;
 
 protected:
     virtual int GetColourIndex(const wxColour& col);

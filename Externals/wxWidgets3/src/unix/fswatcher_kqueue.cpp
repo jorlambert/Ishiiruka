@@ -23,31 +23,11 @@
 #include <sys/types.h>
 #include <sys/event.h>
 
-#ifdef __NetBSD__
-    #include <sys/param.h>
-#endif
-
 #include "wx/dynarray.h"
 #include "wx/evtloop.h"
 #include "wx/evtloopsrc.h"
 
 #include "wx/private/fswatcher.h"
-
-namespace
-{
-
-// NetBSD was different until version 10 (or almost), as it used intptr_t as
-// type of kevent struct udata field, instead of "void*" as all the other
-// platforms using kqueue, so accommodate it by adding an extra cast.
-#if defined(__NetBSD__) && (__NetBSD_Version__ <= 999001400)
-    inline intptr_t ToUdata(void* d) { return reinterpret_cast<intptr_t>(d); }
-    inline void* FromUdata(intptr_t d) { return reinterpret_cast<void*>(d); }
-#else
-    inline void* ToUdata(void* d) { return d; }
-    inline void* FromUdata(void* d) { return d; }
-#endif
-
-} // anonymous namespace
 
 // ============================================================================
 // wxFSWSourceHandler helper class
@@ -119,7 +99,7 @@ public:
         }
 
         // create source
-        m_source = wxEventLoopBase::AddSourceForFD(m_kfd, m_handler, wxEVENT_SOURCE_INPUT);
+        m_source = loop->AddSourceForFD(m_kfd, m_handler, wxEVENT_SOURCE_INPUT);
 
         return m_source != NULL;
     }
@@ -146,7 +126,7 @@ public:
         int action = EV_ADD | EV_ENABLE | EV_CLEAR | EV_ERROR;
         int flags = Watcher2NativeFlags(watch->GetFlags());
         EV_SET( &event, watch->GetFileDescriptor(), EVFILT_VNODE, action,
-                flags, 0, ToUdata(watch.get()) );
+                flags, 0, watch.get() );
 
         // TODO more error conditions according to man
         // TODO best deal with the error here
@@ -297,16 +277,14 @@ protected:
 
     void ProcessNativeEvent(const struct kevent& e)
     {
-        void* const udata = FromUdata(e.udata);
-
-        wxASSERT_MSG(udata, "Null user data associated with kevent!");
+        wxASSERT_MSG(e.udata, "Null user data associated with kevent!");
 
         wxLogTrace(wxTRACE_FSWATCHER, "Event: ident=%llu, filter=%d, flags=%u, "
                    "fflags=%u, data=%lld, user_data=%lp",
-                   e.ident, e.filter, e.flags, e.fflags, e.data, udata);
+                   e.ident, e.filter, e.flags, e.fflags, e.data, e.udata);
 
         // for ease of use
-        wxFSWatchEntryKq& w = *(static_cast<wxFSWatchEntry*>(udata));
+        wxFSWatchEntryKq& w = *(static_cast<wxFSWatchEntry*>(e.udata));
         int nflags = e.fflags;
 
         // clear ignored flags

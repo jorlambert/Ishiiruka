@@ -85,8 +85,8 @@ public:
 
     void GetItem( wxListItem &info ) const;
 
-    void SetAttr(wxItemAttr *attr) { m_attr = attr; }
-    wxItemAttr *GetAttr() const { return m_attr; }
+    void SetAttr(wxListItemAttr *attr) { m_attr = attr; }
+    wxListItemAttr *GetAttr() const { return m_attr; }
 
 public:
     // the item image or -1
@@ -103,7 +103,7 @@ public:
     wxListMainWindow *m_owner;
 
     // custom attributes or NULL
-    wxItemAttr *m_attr;
+    wxListItemAttr *m_attr;
 
 protected:
     // common part of all ctors
@@ -258,13 +258,13 @@ public:
     bool HasText() const { return !GetText(0).empty(); }
 
     void SetItem( int index, const wxListItem &info );
-    void GetItem( int index, wxListItem &info ) const;
+    void GetItem( int index, wxListItem &info );
 
     wxString GetText(int index) const;
     void SetText( int index, const wxString& s );
 
-    wxItemAttr *GetAttr() const;
-    void SetAttr(wxItemAttr *attr);
+    wxListItemAttr *GetAttr() const;
+    void SetAttr(wxListItemAttr *attr);
 
     // return true if the highlighting really changed
     bool Highlight( bool on );
@@ -313,18 +313,7 @@ private:
                            int width);
 };
 
-class wxListLineDataArray : public wxVector<wxListLineData*>
-{
-public:
-    void Clear()
-    {
-        for ( size_t n = 0; n < size(); ++n )
-            delete (*this)[n];
-        clear();
-    }
-
-    ~wxListLineDataArray() { Clear(); }
-};
+WX_DECLARE_OBJARRAY(wxListLineData, wxListLineDataArray);
 
 //-----------------------------------------------------------------------------
 //  wxListHeaderWindow (internal)
@@ -380,8 +369,6 @@ public:
     bool m_sendSetColumnWidth;
     int m_colToSend;
     int m_widthToSend;
-
-    virtual wxWindow *GetMainWindowOfCompositeControl() wxOVERRIDE { return GetParent(); }
 
     virtual void OnInternalIdle() wxOVERRIDE;
 
@@ -649,14 +636,13 @@ public:
     {
         return GetSubItemRect(item, wxLIST_GETSUBITEMRECT_WHOLEITEM, rect);
     }
-    bool GetSubItemRect( long item, long subItem, wxRect& rect,
-                         int code = wxLIST_RECT_BOUNDS ) const;
+    bool GetSubItemRect( long item, long subItem, wxRect& rect ) const;
     wxRect GetViewRect() const;
     bool GetItemPosition( long item, wxPoint& pos ) const;
     int GetSelectedItemCount() const;
 
-    bool HasCheckBoxes() const;
-    bool EnableCheckBoxes(bool enable = true);
+    bool HasCheckboxes() const;
+    bool EnableCheckboxes(bool enable = true);
     bool IsItemChecked(long item) const;
     void CheckItem(long item, bool check);
 
@@ -803,7 +789,7 @@ protected:
            m_lineBeforeLastClicked,
            m_lineSelectSingleOnUp;
 
-    bool m_hasCheckBoxes;
+    bool m_hasCheckboxes;
 
 protected:
     wxWindow *GetMainWindowOfCompositeControl() wxOVERRIDE { return GetParent(); }
@@ -829,7 +815,7 @@ protected:
             n = 0;
         }
 
-        return m_lines[n];
+        return &m_lines[n];
     }
 
     // get a dummy line which can be used for geometry calculations and such:
@@ -867,7 +853,7 @@ private:
     // Check if the given point is inside the checkbox of this item.
     //
     // Always returns false if there are no checkboxes.
-    bool IsInsideCheckBox(long item, int x, int y);
+    bool IsInsideCheckbox(long item, int x, int y);
 
     // the height of one line using the current font
     wxCoord m_lineHeight;

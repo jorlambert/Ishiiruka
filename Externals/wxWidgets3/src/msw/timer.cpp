@@ -86,8 +86,8 @@ class wxTimerHiddenWindowModule : public wxModule
 {
 public:
     // module init/finalize
-    virtual bool OnInit() wxOVERRIDE;
-    virtual void OnExit() wxOVERRIDE;
+    virtual bool OnInit();
+    virtual void OnExit();
 
     // get the hidden window (creates on demand)
     static HWND GetHWND();

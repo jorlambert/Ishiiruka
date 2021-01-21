@@ -28,15 +28,50 @@
 #include "wx/checkbox.h"
 
 #ifndef WX_PRECOMP
+    #include "wx/brush.h"
     #include "wx/dcclient.h"
+    #include "wx/dcscreen.h"
     #include "wx/settings.h"
 #endif
 
 #include "wx/renderer.h"
 #include "wx/msw/uxtheme.h"
 #include "wx/msw/private/button.h"
-#include "wx/private/window.h"
 #include "wx/msw/missing.h"
+
+// ----------------------------------------------------------------------------
+// constants
+// ----------------------------------------------------------------------------
+
+#ifndef BP_CHECKBOX
+    #define BP_CHECKBOX 3
+#endif
+
+// these values are defined in tmschema.h (except the first one)
+enum
+{
+    CBS_INVALID,
+    CBS_UNCHECKEDNORMAL,
+    CBS_UNCHECKEDHOT,
+    CBS_UNCHECKEDPRESSED,
+    CBS_UNCHECKEDDISABLED,
+    CBS_CHECKEDNORMAL,
+    CBS_CHECKEDHOT,
+    CBS_CHECKEDPRESSED,
+    CBS_CHECKEDDISABLED,
+    CBS_MIXEDNORMAL,
+    CBS_MIXEDHOT,
+    CBS_MIXEDPRESSED,
+    CBS_MIXEDDISABLED
+};
+
+// these are our own
+enum
+{
+    CBS_HOT_OFFSET = 1,
+    CBS_PRESSED_OFFSET = 2,
+    CBS_DISABLED_OFFSET = 3
+};
 
 // ============================================================================
 // implementation
@@ -97,17 +132,16 @@ WXDWORD wxCheckBox::MSWGetStyle(long style, WXDWORD *exstyle) const
 
 wxSize wxCheckBox::DoGetBestClientSize() const
 {
-    static wxPrivate::DpiDependentValue<wxCoord> s_checkSize;
+    static int s_checkSize = 0;
 
-    if ( s_checkSize.HasChanged(this) )
+    if ( !s_checkSize )
     {
-        wxClientDC dc(const_cast<wxCheckBox*>(this));
+        wxScreenDC dc;
         dc.SetFont(wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT));
 
-        s_checkSize.SetAtNewDPI(dc.GetCharHeight());
+        s_checkSize = dc.GetCharHeight();
     }
 
-    wxCoord& checkSize = s_checkSize.Get();
     wxString str = wxGetWindowText(GetHWND());
 
     int wCheckbox, hCheckbox;
@@ -116,7 +150,7 @@ wxSize wxCheckBox::DoGetBestClientSize() const
         wxClientDC dc(const_cast<wxCheckBox *>(this));
         dc.SetFont(GetFont());
         dc.GetMultiLineTextExtent(GetLabelText(str), &wCheckbox, &hCheckbox);
-        wCheckbox += checkSize + GetCharWidth();
+        wCheckbox += s_checkSize + GetCharWidth();
 
         if ( ::GetWindowLong(GetHwnd(), GWL_STYLE) & BS_MULTILINE )
         {
@@ -128,19 +162,21 @@ wxSize wxCheckBox::DoGetBestClientSize() const
             // label appears on 3 lines, not 2, under Windows 2003 using
             // classic look and feel (although it works fine under Windows 7,
             // with or without themes).
-            wCheckbox += checkSize;
+            wCheckbox += s_checkSize;
         }
 
-        if ( hCheckbox < checkSize )
-            hCheckbox = checkSize;
+        if ( hCheckbox < s_checkSize )
+            hCheckbox = s_checkSize;
     }
     else
     {
-        wCheckbox = checkSize;
-        hCheckbox = checkSize;
+        wCheckbox = s_checkSize;
+        hCheckbox = s_checkSize;
     }
 
-    return wxSize(wCheckbox, hCheckbox);
+    wxSize best(wCheckbox, hCheckbox);
+    CacheBestSize(best);
+    return best;
 }
 
 // ----------------------------------------------------------------------------

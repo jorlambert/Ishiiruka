@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     7/5/2006
-// Copyright:   (c) 1999-2003 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 1999-2003 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -26,31 +26,6 @@
 #if wxUSE_FONTENUM
 
 #include "wx/fontenum.h"
-#include "wx/module.h"
-
-namespace
-{
-
-// Cached result of GetFacenames().
-wxArrayString gs_allFacenames;
-
-// Module used to ensure the cache is cleared on library shutdown and so is not
-// reused if it re-initialized again later.
-class wxFontEnumCacheCleanupModule : public wxModule
-{
-public:
-    wxFontEnumCacheCleanupModule() { }
-
-    bool OnInit() wxOVERRIDE { return true; }
-    void OnExit() wxOVERRIDE { gs_allFacenames.clear(); }
-
-private:
-    wxDECLARE_DYNAMIC_CLASS(wxFontEnumCacheCleanupModule);
-};
-
-wxIMPLEMENT_DYNAMIC_CLASS(wxFontEnumCacheCleanupModule, wxModule);
-
-} // anonymous namespace
 
 // ============================================================================
 // implementation
@@ -104,8 +79,7 @@ bool wxFontEnumerator::IsValidFacename(const wxString &facename)
 {
     // we cache the result of wxFontEnumerator::GetFacenames supposing that
     // the array of face names won't change in the session of this program
-    if ( gs_allFacenames.empty() )
-        gs_allFacenames = wxFontEnumerator::GetFacenames();
+    static wxArrayString s_arr = wxFontEnumerator::GetFacenames();
 
 #ifdef __WXMSW__
     // Quoting the MSDN:
@@ -121,16 +95,10 @@ bool wxFontEnumerator::IsValidFacename(const wxString &facename)
 #endif
 
     // is given font face name a valid one ?
-    if (gs_allFacenames.Index(facename, false) == wxNOT_FOUND)
+    if (s_arr.Index(facename, false) == wxNOT_FOUND)
         return false;
 
     return true;
-}
-
-/* static */
-void wxFontEnumerator::InvalidateCache()
-{
-    gs_allFacenames.clear();
 }
 
 #ifdef wxHAS_UTF8_FONTS
@@ -156,8 +124,7 @@ bool wxFontEnumerator::EnumerateEncodingsUTF8(const wxString& facename)
 
     for ( size_t n = 0; n < count; n++ )
     {
-        if ( !OnFontEncoding(facenames[n], utf8) )
-            break;
+        OnFontEncoding(facenames[n], utf8);
     }
 
     return true;

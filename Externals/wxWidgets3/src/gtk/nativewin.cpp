@@ -3,7 +3,7 @@
 // Purpose:     wxNativeWindow implementation
 // Author:      Vadim Zeitlin
 // Created:     2008-03-05
-// Copyright:   (c) 2008 Vadim Zeitlin <vadim@wxwidgets.org>
+// Copyright:   (c) 2008 Vadim Zeitlin <vadim@wxwindows.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -27,7 +27,8 @@
 
 #include "wx/nativewin.h"
 
-#include "wx/gtk/private/wrapgtk.h"
+#include <gtk/gtk.h>
+#include "wx/gtk/private/gtk2-compat.h"
 
 #ifdef GDK_WINDOWING_X11
     #include <gdk/gdkx.h>
@@ -82,8 +83,7 @@ void wxNativeWindow::DoDisown()
 // TODO: we probably need equivalent code for other GDK platforms
 #ifdef GDK_WINDOWING_X11
 
-extern "C" {
-static GdkFilterReturn
+extern "C" GdkFilterReturn
 wxNativeContainerWindowFilter(GdkXEvent *gdkxevent,
                               GdkEvent *event,
                               gpointer data)
@@ -101,7 +101,6 @@ wxNativeContainerWindowFilter(GdkXEvent *gdkxevent,
 
     return GDK_FILTER_CONTINUE;
 }
-}
 
 #endif // GDK_WINDOWING_X11
 
@@ -109,7 +108,7 @@ bool wxNativeContainerWindow::Create(wxNativeContainerWindowHandle win)
 {
     wxCHECK( win, false );
 
-    if ( !wxTopLevelWindow::Create(NULL, wxID_ANY, wxString()) )
+    if ( !wxTopLevelWindow::Create(NULL, wxID_ANY, "") )
         return false;
 
     // we need to realize the window first before reparenting it

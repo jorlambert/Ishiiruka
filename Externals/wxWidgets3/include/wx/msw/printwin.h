@@ -26,10 +26,10 @@ public:
 
     virtual bool Print(wxWindow *parent,
                        wxPrintout *printout,
-                       bool prompt = true) wxOVERRIDE;
+                       bool prompt = true);
 
-    virtual wxDC *PrintDialog(wxWindow *parent) wxOVERRIDE;
-    virtual bool Setup(wxWindow *parent) wxOVERRIDE;
+    virtual wxDC *PrintDialog(wxWindow *parent);
+    virtual bool Setup(wxWindow *parent);
 
 private:
     wxDECLARE_NO_COPY_CLASS(wxWindowsPrinter);
@@ -51,12 +51,12 @@ public:
                           wxPrintData *data);
     virtual ~wxWindowsPrintPreview();
 
-    virtual bool Print(bool interactive) wxOVERRIDE;
-    virtual void DetermineScaling() wxOVERRIDE;
+    virtual bool Print(bool interactive);
+    virtual void DetermineScaling();
 
 protected:
 #if wxUSE_ENH_METAFILE
-    virtual bool RenderPageIntoBitmap(wxBitmap& bmp, int pageNum) wxOVERRIDE;
+    virtual bool RenderPageIntoBitmap(wxBitmap& bmp, int pageNum);
 #endif
 
     wxDECLARE_DYNAMIC_CLASS_NO_COPY(wxWindowsPrintPreview);

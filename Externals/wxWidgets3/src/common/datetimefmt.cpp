@@ -64,10 +64,9 @@
 // helpers shared between datetime.cpp and datetimefmt.cpp
 // ----------------------------------------------------------------------------
 
-extern void wxInitTm(struct tm& tm);
-extern const tm* wxTryGetTm(tm& tmstruct, time_t t, const wxDateTime::TimeZone& tz);
+extern void InitTm(struct tm& tm);
 
-extern wxString wxCallStrftime(const wxString& format, const tm* tm);
+extern wxString CallStrftime(const wxString& format, const tm* tm);
 
 // ----------------------------------------------------------------------------
 // constants (see also datetime.cpp)
@@ -91,13 +90,11 @@ namespace
 // all the functions below taking non-const wxString::const_iterator p advance
 // it until the end of the match
 
-// Scans all digits (but no more than len) and returns the resulting number.
-// Optionally writes number of digits scanned to numScannedDigits.
+// scans all digits (but no more than len) and returns the resulting number
 bool GetNumericToken(size_t len,
                      wxString::const_iterator& p,
                      const wxString::const_iterator& end,
-                     unsigned long *number,
-                     size_t *numScannedDigits = NULL)
+                     unsigned long *number)
 {
     size_t n = 1;
     wxString s;
@@ -107,11 +104,6 @@ bool GetNumericToken(size_t len,
 
         if ( len && ++n > len )
             break;
-    }
-
-    if (numScannedDigits)
-    {
-        *numScannedDigits = n - 1;
     }
 
     return !s.empty() && s.ToULong(number);
@@ -335,7 +327,6 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
     time_t time = GetTicks();
 
     bool canUseStrftime = time != (time_t)-1;
-    bool isPercent = false;
 
     // We also can't use strftime() if we use non standard specifier: either
     // our own extension "%l" or one of "%g", "%G", "%V", "%z" which are POSIX
@@ -344,15 +335,11 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
           canUseStrftime && p != format.end();
           ++p )
     {
-        if (!isPercent)
-        {
-            isPercent = *p == '%';
+        if ( *p != '%' )
             continue;
-        }
-        isPercent = false;
 
         // set the default format
-        switch ( (*p).GetValue() )
+        switch ( (*++p).GetValue() )
         {
             case 'l':
 #ifdef __WINDOWS__
@@ -368,11 +355,42 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
 
     if ( canUseStrftime )
     {
-        // Try using strftime()
+        // use strftime()
         struct tm tmstruct;
-        if ( const tm* tm = wxTryGetTm(tmstruct, time, tz) )
+        struct tm *tm;
+        if ( tz.GetOffset() == -wxGetTimeZone() )
         {
-            return wxCallStrftime(format, tm);
+            // we are working with local time
+            tm = wxLocaltime_r(&time, &tmstruct);
+
+            // should never happen
+            wxCHECK_MSG( tm, wxEmptyString, wxT("wxLocaltime_r() failed") );
+        }
+        else
+        {
+            time += (int)tz.GetOffset();
+
+#if defined(__VMS__) // time is unsigned so avoid warning
+            int time2 = (int) time;
+            if ( time2 >= 0 )
+#else
+            if ( time >= 0 )
+#endif
+            {
+                tm = wxGmtime_r(&time, &tmstruct);
+
+                // should never happen
+                wxCHECK_MSG( tm, wxEmptyString, wxT("wxGmtime_r() failed") );
+            }
+            else
+            {
+                tm = (struct tm *)NULL;
+            }
+        }
+
+        if ( tm )
+        {
+            return CallStrftime(format, tm);
         }
     }
     //else: use generic code below
@@ -536,7 +554,7 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
                         //     corresponding to Feb 29 of a non leap year (which
                         //     may happen if yearReal was leap and year is not)
                         struct tm tmAdjusted;
-                        wxInitTm(tmAdjusted);
+                        InitTm(tmAdjusted);
                         tmAdjusted.tm_hour = tm.hour;
                         tmAdjusted.tm_min = tm.min;
                         tmAdjusted.tm_sec = tm.sec;
@@ -546,7 +564,7 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
                         tmAdjusted.tm_mon = tm.mon;
                         tmAdjusted.tm_year = year - 1900;
                         tmAdjusted.tm_isdst = 0; // no DST, already adjusted
-                        wxString str = wxCallStrftime(*p == wxT('c') ? wxT("%c")
+                        wxString str = CallStrftime(*p == wxT('c') ? wxT("%c")
                                                                   : wxT("%x"),
                                                     &tmAdjusted);
 
@@ -620,7 +638,7 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
 
                 case wxT('p'):       // AM or PM string
 #ifdef wxHAS_STRFTIME
-                    res += wxCallStrftime(wxS("%p"), &tmTimeOnly);
+                    res += CallStrftime(wxT("%p"), &tmTimeOnly);
 #else // !wxHAS_STRFTIME
                     res += (tmTimeOnly.tm_hour > 12) ? wxT("pm") : wxT("am");
 #endif // wxHAS_STRFTIME/!wxHAS_STRFTIME
@@ -648,7 +666,7 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
                 case wxT('X'):       // locale default time representation
                     // just use strftime() to format the time for us
 #ifdef wxHAS_STRFTIME
-                    res += wxCallStrftime(wxS("%X"), &tmTimeOnly);
+                    res += CallStrftime(wxT("%X"), &tmTimeOnly);
 #else // !wxHAS_STRFTIME
                     res += wxString::Format(wxT("%02d:%02d:%02d"),tm.hour, tm.min, tm.sec);
 #endif // wxHAS_STRFTIME/!wxHAS_STRFTIME
@@ -671,7 +689,10 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
                         // time in the local time zone to the user.
                         if ( ofs == -wxGetTimeZone() && IsDST() == 1 )
                         {
-                            ofs += DST_OFFSET;
+                            // FIXME: As elsewhere in wxDateTime, we assume
+                            // that the DST is always 1 hour, but this is not
+                            // true in general.
+                            ofs += 3600;
                         }
 
                         if ( ofs < 0 )
@@ -692,7 +713,7 @@ wxString wxDateTime::Format(const wxString& formatp, const TimeZone& tz) const
 
                 case wxT('Z'):       // timezone name
 #ifdef wxHAS_STRFTIME
-                    res += wxCallStrftime(wxS("%Z"), &tmTimeOnly);
+                    res += CallStrftime(wxT("%Z"), &tmTimeOnly);
 #endif
                     break;
 
@@ -844,7 +865,7 @@ wxDateTime::ParseRfc822Date(const wxString& date, wxString::const_iterator *end)
     wxDateTime_t sec = 0;
     if ( *p == ':' )
     {
-        ++p;
+        p++;
         if ( !wxIsdigit(*p) )
             return false;
 
@@ -1033,7 +1054,7 @@ wxDateTime::ParseFormat(const wxString& date,
                 // spaces in the input
                 while ( input != end && wxIsspace(*input) )
                 {
-                    ++input;
+                    input++;
                 }
             }
             else // !space
@@ -1464,74 +1485,25 @@ wxDateTime::ParseFormat(const wxString& date,
                     if ( input == end )
                         return false;
 
-                    if ( *input == wxS('Z') )
-                    {
-                        // Time is in UTC.
-                        ++input;
-                        haveTimeZone = true;
-                        break;
-                    }
-
-                    // Check if there's either a plus, hyphen-minus, or
-                    // minus sign.
+                    // and then check that it's either plus or minus sign
                     bool minusFound;
-                    if ( *input == wxS('+') )
-                        minusFound = false;
-                    else if
-                    (
-                        *input == wxS('-')
-#if wxUSE_UNICODE
-                        || *input == wxString::FromUTF8("\xe2\x88\x92")
-#endif
-                    )
+                    if ( *input == wxT('-') )
                         minusFound = true;
+                    else if ( *input == wxT('+') )
+                        minusFound = false;
                     else
                         return false;   // no match
 
+                    // here should follow 4 digits HHMM
                     ++input;
+                    unsigned long tzHourMin;
+                    if ( !GetNumericToken(4, input, end, &tzHourMin) )
+                        return false;   // no match
 
-                    // Here should follow exactly 2 digits for hours (HH).
-                    const size_t numRequiredDigits = 2;
-                    size_t numScannedDigits;
+                    const unsigned hours = tzHourMin / 100;
+                    const unsigned minutes = tzHourMin % 100;
 
-                    unsigned long hours;
-                    if ( !GetNumericToken(numRequiredDigits, input, end,
-                                          &hours, &numScannedDigits)
-                         || numScannedDigits != numRequiredDigits)
-                    {
-                        return false; // No match.
-                    }
-
-                    // Optionally followed by a colon separator.
-                    bool mustHaveMinutes = false;
-                    if ( input != end && *input == wxS(':') )
-                    {
-                        mustHaveMinutes = true;
-                        ++input;
-                    }
-
-                    // Optionally followed by exactly 2 digits for minutes (MM).
-                    unsigned long minutes = 0;
-                    if ( !GetNumericToken(numRequiredDigits, input, end,
-                                          &minutes, &numScannedDigits)
-                         || numScannedDigits != numRequiredDigits)
-                    {
-                        if (mustHaveMinutes || numScannedDigits)
-                        {
-                            // No match if we must have minutes, or digits
-                            // for minutes were specified but not exactly 2.
-                            return false;
-                        }
-                    }
-
-                    /*
-                    Contemporary offset limits are -12:00 and +14:00.
-                    However historically offsets of over +/- 15 hours
-                    existed so be a bit more flexible. Info retrieved
-                    from Time Zone Database at
-                    https://www.iana.org/time-zones.
-                    */
-                    if ( hours > 15 || minutes > 59 )
+                    if ( hours > 12 || minutes > 59 )
                         return false;   // bad format
 
                     timeZone = 3600*hours + 60*minutes;
@@ -1647,7 +1619,12 @@ wxDateTime::ParseFormat(const wxString& date,
 
     Set(tm);
 
-    if ( haveTimeZone )
+    // If a time zone was specified and it is not the local time zone, we need
+    // to shift the time accordingly.
+    //
+    // Note that avoiding the call to MakeFromTimeZone is necessary to avoid
+    // DST problems.
+    if ( haveTimeZone && timeZone != -wxGetTimeZone() )
         MakeFromTimezone(timeZone);
 
     // finally check that the week day is consistent -- if we had it
@@ -1772,7 +1749,7 @@ wxDateTime::ParseDate(const wxString& date, wxString::const_iterator *end)
 
     wxString::const_iterator p = pBegin;
     while ( p != pEnd && wxIsspace(*p) )
-        ++p;
+        p++;
 
     // some special cases
     static struct
@@ -2270,20 +2247,18 @@ enum TimeSpanPart
 //  %l          milliseconds (000 - 999)
 wxString wxTimeSpan::Format(const wxString& format) const
 {
-    wxString str;
-
     // we deal with only positive time spans here and just add the sign in
     // front for the negative ones
     if ( IsNegative() )
     {
-        str = "-";
-        str << Negate().Format(format);
-        return str;
+        wxString str(Negate().Format(format));
+        return "-" + str;
     }
 
-    wxCHECK_MSG( !format.empty(), str,
+    wxCHECK_MSG( !format.empty(), wxEmptyString,
                  wxT("NULL format in wxTimeSpan::Format") );
 
+    wxString str;
     str.Alloc(format.length());
 
     // Suppose we have wxTimeSpan ts(1 /* hour */, 2 /* min */, 3 /* sec */)

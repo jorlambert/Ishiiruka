@@ -78,7 +78,7 @@ class WXDLLIMPEXP_ADV wxRegTipProvider : public wxTipProvider
 public:
     wxRegTipProvider(const wxString& keyname);
 
-    virtual wxString GetTip() wxOVERRIDE;
+    virtual wxString GetTip();
 };
 
 // Empty implementation for now to keep the linker happy
@@ -164,7 +164,7 @@ wxString wxFileTipProvider::GetTip()
 
         // Break if tip isn't a comment, and isn't an empty string
         // (or only stray space characters).
-        if ( !tip.StartsWith(wxT("#")) && !tip.Trim().empty() )
+        if ( !tip.StartsWith(wxT("#")) && (tip.Trim() != wxEmptyString) )
         {
             break;
         }
@@ -213,7 +213,7 @@ wxTipDialog::wxTipDialog(wxWindow *parent,
     if (!isPda)
     {
         wxFont font = text->GetFont();
-        font.SetFractionalPointSize(1.6 * font.GetFractionalPointSize());
+        font.SetPointSize(int(1.6 * font.GetPointSize()));
         font.SetWeight(wxFONTWEIGHT_BOLD);
         text->SetFont(font);
     }

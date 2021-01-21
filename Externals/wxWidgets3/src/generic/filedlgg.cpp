@@ -19,7 +19,7 @@
 
 // NOTE : it probably also supports MAC, untested
 #if !defined(__UNIX__) && !defined(__WIN32__)
-#error wxGenericFileDialog currently only supports Unix and MSW
+#error wxGenericFileDialog currently only supports Unix, win32 and DOS
 #endif
 
 #ifndef WX_PRECOMP
@@ -187,7 +187,7 @@ bool wxGenericFileDialog::Create( wxWindow *parent,
     if ((len > 1) && (wxEndsWithPathSeparator(m_dir)))
         m_dir.Remove( len-1, 1 );
 
-    m_filterExtension.clear();
+    m_filterExtension = wxEmptyString;
 
     // layout
 

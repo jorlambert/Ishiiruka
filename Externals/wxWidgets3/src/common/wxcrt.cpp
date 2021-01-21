@@ -685,8 +685,7 @@ int wxVsnprintf(wchar_t *str, size_t size, const wxString& format, va_list argpt
 
     // VsnprintfTestCase reveals that glibc's implementation of vswprintf
     // doesn't nul terminate on truncation.
-    if ( size )
-        str[size - 1] = 0;
+    str[size - 1] = 0;
 
     return rv;
 }
@@ -737,7 +736,7 @@ size_t wxStrlen(const wxChar32 *s )
 {
     if (!s) return 0;
     size_t i=0;
-    while (*s!=0) { ++i; ++s; }
+    while (*s!=0) { ++i; ++s; };
     return i;
 }
 
@@ -908,7 +907,7 @@ wxCRT_StrtoullBase(const T* nptr, T** endptr, int base, T* sign)
                 {
                     // Then it's an error.
                     if ( endptr )
-                        *endptr = const_cast<T*>(nptr);
+                        *endptr = (T*) nptr;
                     errno = EINVAL;
                     return sum;
                 }
@@ -1091,6 +1090,8 @@ char *strdup(const char *s)
 // wxLocaleIsUtf8
 // ============================================================================
 
+#if wxUSE_UNICODE_UTF8
+
 #if !wxUSE_UTF8_LOCALE_ONLY
 bool wxLocaleIsUtf8 = false; // the safer setting if not known
 #endif
@@ -1144,6 +1145,8 @@ void wxUpdateLocaleIsUtf8()
     wxLocaleIsUtf8 = wxIsLocaleUtf8();
 #endif
 }
+
+#endif // wxUSE_UNICODE_UTF8
 
 // ============================================================================
 // wx wrappers for CRT functions

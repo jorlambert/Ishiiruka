@@ -168,9 +168,10 @@ void wxItemContainer::SetClientObject(unsigned int n, wxClientData *data)
 
     if ( HasClientObjectData() )
     {
-        wxClientData * clientDataOld =
-            static_cast<wxClientData *>(DoGetItemClientData(n));
-        delete clientDataOld;
+        wxClientData * clientDataOld
+            = static_cast<wxClientData *>(DoGetItemClientData(n));
+        if ( clientDataOld )
+            delete clientDataOld;
     }
     else // didn't have any client data so far
     {
@@ -298,6 +299,7 @@ void wxControlWithItemsBase::SendSelectionChangedEvent(wxEventType eventType)
 
     wxCommandEvent event(eventType, m_windowId);
     event.SetInt(n);
+    event.SetEventObject(this);
     event.SetString(GetStringSelection());
     InitCommandEventWithItems(event, n);
 

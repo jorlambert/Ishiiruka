@@ -269,8 +269,6 @@ public:
 
     wxWindow* GetWindow() const { return m_window; }
 
-    void SetWindow(wxWindow* w) { m_window = w; }
-
     virtual bool IsOk() const { return m_ok; }
 
     // query capabilities
@@ -285,7 +283,7 @@ public:
     }
 
     virtual void* GetHandle() const { return NULL; }
-
+    
     // query dimension, colour deps, resolution
 
     virtual void DoGetSize(int *width, int *height) const = 0;
@@ -327,9 +325,6 @@ public:
 
     virtual void CalcBoundingBox(wxCoord x, wxCoord y)
     {
-      // Bounding box is internally stored in device units.
-      x = LogicalToDeviceX(x);
-      y = LogicalToDeviceY(y);
       if ( m_isBBoxValid )
       {
          if ( x < m_minX ) m_minX = x;
@@ -354,11 +349,10 @@ public:
         m_minX = m_maxX = m_minY = m_maxY = 0;
     }
 
-    // Get bounding box in logical units.
-    wxCoord MinX() const { return m_isBBoxValid ? DeviceToLogicalX(m_minX) : 0; }
-    wxCoord MaxX() const { return m_isBBoxValid ? DeviceToLogicalX(m_maxX) : 0; }
-    wxCoord MinY() const { return m_isBBoxValid ? DeviceToLogicalY(m_minY) : 0; }
-    wxCoord MaxY() const { return m_isBBoxValid ? DeviceToLogicalY(m_maxY) : 0; }
+    wxCoord MinX() const { return m_minX; }
+    wxCoord MaxX() const { return m_maxX; }
+    wxCoord MinY() const { return m_minY; }
+    wxCoord MaxY() const { return m_maxY; }
 
     // setters and getters
 
@@ -448,22 +442,18 @@ public:
     // NB: this function works with device coordinates, not the logical ones!
     virtual void DoSetDeviceClippingRegion(const wxRegion& region) = 0;
 
-    // Method used to implement wxDC::GetClippingBox().
-    //
-    // Default implementation returns values stored in m_clip[XY][12] member
-    // variables, so this method doesn't need to be overridden if they're kept
-    // up to date.
-    virtual bool DoGetClippingRect(wxRect& rect) const;
-
-#if WXWIN_COMPATIBILITY_3_0
-    // This method is kept for backwards compatibility but shouldn't be used
-    // nor overridden in the new code, implement DoGetClippingRect() above
-    // instead.
-    wxDEPRECATED_BUT_USED_INTERNALLY(
-        virtual void DoGetClippingBox(wxCoord *x, wxCoord *y,
-                                      wxCoord *w, wxCoord *h) const
-    );
-#endif // WXWIN_COMPATIBILITY_3_0
+    virtual void DoGetClippingBox(wxCoord *x, wxCoord *y,
+                                  wxCoord *w, wxCoord *h) const
+    {
+        if ( x )
+            *x = m_clipX1;
+        if ( y )
+            *y = m_clipY1;
+        if ( w )
+            *w = m_clipX2 - m_clipX1;
+        if ( h )
+            *h = m_clipY2 - m_clipY1;
+    }
 
     virtual void DestroyClippingRegion() { ResetClipping(); }
 
@@ -528,9 +518,9 @@ public:
 
     virtual void ComputeScaleAndOrigin();
 
-    // this needs to overridden if the axis is inverted
+    // this needs to overidden if the axis is inverted
     virtual void SetAxisOrientation(bool xLeftRight, bool yBottomUp);
-
+    
     virtual double GetContentScaleFactor() const { return m_contentScaleFactor; }
 
 #ifdef __WXMSW__
@@ -672,10 +662,7 @@ private:
     wxDC       *m_owner;
 
 protected:
-    // This method exists for backwards compatibility only (while it's not
-    // documented, there are derived classes using it outside wxWidgets
-    // itself), don't use it in any new code and just call wxDCImpl version of
-    // DestroyClippingRegion() to reset the clipping information instead.
+    // unset clipping variables (after clipping region was destroyed)
     void ResetClipping()
     {
         m_clipping = false;
@@ -687,16 +674,6 @@ protected:
     // it is point size on screen and needs to be multiplied by this value
     // for rendering on higher-resolution DCs such as printer ones
     static float GetFontPointSizeAdjustment(float dpi);
-
-    // Return the number of pixels per mm in the horizontal and vertical
-    // directions, respectively.
-    //
-    // If the physical size of the DC is not known, or doesn't make sense, as
-    // for a SVG DC, for example, a fixed value corresponding to the standard
-    // DPI is used.
-    double GetMMToPXx() const;
-    double GetMMToPXy() const;
-
 
     // window on which the DC draws or NULL
     wxWindow   *m_window;
@@ -724,19 +701,16 @@ protected:
     double m_scaleX, m_scaleY;  // calculated from logical scale and user scale
 
     int m_signX, m_signY;  // Used by SetAxisOrientation() to invert the axes
-
+    
     double m_contentScaleFactor; // used by high resolution displays (retina)
 
-    // Pixel per mm in horizontal and vertical directions.
-    //
-    // These variables are computed on demand by GetMMToPX[xy]() functions,
-    // don't access them directly other than for assigning to them.
-    mutable double m_mm_to_pix_x,
-                   m_mm_to_pix_y;
+    // what is a mm on a screen you don't know the size of?
+    double       m_mm_to_pix_x,
+                 m_mm_to_pix_y;
 
     // bounding and clipping boxes
-    wxCoord m_minX, m_minY, m_maxX, m_maxY; // Bounding box is stored in device units.
-    wxCoord m_clipX1, m_clipY1, m_clipX2, m_clipY2;  // Clipping box is stored in logical units.
+    wxCoord m_minX, m_minY, m_maxX, m_maxY;
+    wxCoord m_clipX1, m_clipY1, m_clipX2, m_clipY2;
 
     wxRasterOperationMode m_logicalFunction;
     int m_backgroundMode;
@@ -755,9 +729,6 @@ protected:
 #endif // wxUSE_PALETTE
 
 private:
-    // Return the full DC area in logical coordinates.
-    wxRect GetLogicalArea() const;
-
     wxDECLARE_ABSTRACT_CLASS(wxDCImpl);
 };
 
@@ -981,22 +952,10 @@ public:
     void DestroyClippingRegion()
         { m_pimpl->DestroyClippingRegion(); }
 
-    bool GetClippingBox(wxCoord *x, wxCoord *y, wxCoord *w, wxCoord *h) const
-    {
-        wxRect r;
-        const bool clipping = m_pimpl->DoGetClippingRect(r);
-        if ( x )
-            *x = r.x;
-        if ( y )
-            *y = r.y;
-        if ( w )
-            *w = r.width;
-        if ( h )
-            *h = r.height;
-        return clipping;
-    }
-    bool GetClippingBox(wxRect& rect) const
-        { return m_pimpl->DoGetClippingRect(rect); }
+    void GetClippingBox(wxCoord *x, wxCoord *y, wxCoord *w, wxCoord *h) const
+        { m_pimpl->DoGetClippingBox(x, y, w, h); }
+    void GetClippingBox(wxRect& rect) const
+        { m_pimpl->DoGetClippingBox(&rect.x, &rect.y, &rect.width, &rect.height); }
 
     // coordinates conversions and transforms
 
@@ -1327,7 +1286,7 @@ public:
             : m_dc(thdc.m_dc),
               m_hdc(thdc.m_hdc)
         {
-            const_cast<TempHDC&>(thdc).m_hdc = NULL;
+            const_cast<TempHDC&>(thdc).m_hdc = 0;
         }
 
         ~TempHDC()
@@ -1365,9 +1324,6 @@ protected:
     wxDC(wxDCImpl *pimpl) : m_pimpl(pimpl) { }
 
     wxDCImpl * const m_pimpl;
-
-    void SetWindow(wxWindow* w)
-        { return m_pimpl->SetWindow(w); }
 
 private:
     wxDECLARE_ABSTRACT_CLASS(wxDC);
@@ -1408,78 +1364,6 @@ private:
     wxColour m_colFgOld;
 
     wxDECLARE_NO_COPY_CLASS(wxDCTextColourChanger);
-};
-
-// ----------------------------------------------------------------------------
-// helper class: you can use it to temporarily change the DC text background colour and
-// restore it automatically when the object goes out of scope
-// ----------------------------------------------------------------------------
-
-class WXDLLIMPEXP_CORE wxDCTextBgColourChanger
-{
-public:
-    wxDCTextBgColourChanger(wxDC& dc) : m_dc(dc) { }
-
-    wxDCTextBgColourChanger(wxDC& dc, const wxColour& col) : m_dc(dc)
-    {
-        Set(col);
-    }
-
-    ~wxDCTextBgColourChanger()
-    {
-        if ( m_colBgOld.IsOk() )
-            m_dc.SetTextBackground(m_colBgOld);
-    }
-
-    void Set(const wxColour& col)
-    {
-        if ( !m_colBgOld.IsOk() )
-            m_colBgOld = m_dc.GetTextBackground();
-        m_dc.SetTextBackground(col);
-    }
-
-private:
-    wxDC& m_dc;
-
-    wxColour m_colBgOld;
-
-    wxDECLARE_NO_COPY_CLASS(wxDCTextBgColourChanger);
-};
-
-// ----------------------------------------------------------------------------
-// helper class: you can use it to temporarily change the DC text background mode and
-// restore it automatically when the object goes out of scope
-// ----------------------------------------------------------------------------
-
-class WXDLLIMPEXP_CORE wxDCTextBgModeChanger
-{
-public:
-    wxDCTextBgModeChanger(wxDC& dc) : m_dc(dc), m_modeOld(wxBRUSHSTYLE_INVALID) { }
-
-    wxDCTextBgModeChanger(wxDC& dc, int mode) : m_dc(dc)
-    {
-        Set(mode);
-    }
-
-    ~wxDCTextBgModeChanger()
-    {
-        if ( m_modeOld != wxBRUSHSTYLE_INVALID )
-            m_dc.SetBackgroundMode(m_modeOld);
-    }
-
-    void Set(int mode)
-    {
-        if ( m_modeOld == wxBRUSHSTYLE_INVALID )
-            m_modeOld = m_dc.GetBackgroundMode();
-        m_dc.SetBackgroundMode(mode);
-    }
-
-private:
-    wxDC& m_dc;
-
-    int m_modeOld;
-
-    wxDECLARE_NO_COPY_CLASS(wxDCTextBgModeChanger);
 };
 
 // ----------------------------------------------------------------------------
@@ -1545,36 +1429,16 @@ class WXDLLIMPEXP_CORE wxDCClipper
 {
 public:
     wxDCClipper(wxDC& dc, const wxRegion& r) : m_dc(dc)
-    {
-        Init(r.GetBox());
-    }
+        { dc.SetClippingRegion(r.GetBox()); }
     wxDCClipper(wxDC& dc, const wxRect& r) : m_dc(dc)
-    {
-        Init(r);
-    }
+        { dc.SetClippingRegion(r.x, r.y, r.width, r.height); }
     wxDCClipper(wxDC& dc, wxCoord x, wxCoord y, wxCoord w, wxCoord h) : m_dc(dc)
-    {
-        Init(wxRect(x, y, w, h));
-    }
+        { dc.SetClippingRegion(x, y, w, h); }
 
-    ~wxDCClipper()
-    {
-        m_dc.DestroyClippingRegion();
-        if ( m_restoreOld )
-            m_dc.SetClippingRegion(m_oldClipRect);
-    }
+    ~wxDCClipper() { m_dc.DestroyClippingRegion(); }
 
 private:
-    // Common part of all ctors.
-    void Init(const wxRect& r)
-    {
-        m_restoreOld = m_dc.GetClippingBox(m_oldClipRect);
-        m_dc.SetClippingRegion(r);
-    }
-
     wxDC& m_dc;
-    wxRect m_oldClipRect;
-    bool m_restoreOld;
 
     wxDECLARE_NO_COPY_CLASS(wxDCClipper);
 };

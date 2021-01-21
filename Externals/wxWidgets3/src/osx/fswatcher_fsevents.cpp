@@ -19,10 +19,7 @@
 
 #include "wx/fswatcher.h"
 #include "wx/osx/core/cfstring.h"
-#include "wx/osx/core/private/strconv_cf.h"
-
 #include <CoreFoundation/CoreFoundation.h>
-#include <CoreServices/CoreServices.h>
 
 // A small class that we will give the FSEvents
 // framework, which will be forwarded to the function
@@ -89,7 +86,7 @@ private:
 static int wxFSEventsToWatcherFlags(FSEventStreamEventFlags flags,
 wxFSWWarningType& warning, wxString& msg)
 {
-    msg.clear();
+    msg = "";
     warning = wxFSW_WARNING_NONE;
 
     // see https://developer.apple.com/library/mac/documentation/Darwin/Reference/FSEvents_Ref/index.html
@@ -270,34 +267,26 @@ static void wxFSEventCallback(ConstFSEventStreamRef WXUNUSED(streamRef), void *c
 static void wxDeleteContext(const void* context)
 {
     wxFSEventWatcherContext* watcherContext =
-        static_cast<wxFSEventWatcherContext*>(const_cast<void*>(context));
+        (wxFSEventWatcherContext*) context;
     delete watcherContext;
 }
 
-WX_DECLARE_STRING_HASH_MAP(FSEventStreamRef, FSEventStreamRefMap);
-
-struct wxFsEventsFileSystemWatcher::PrivateData
-{
-    // map of path => FSEventStreamRef
-    FSEventStreamRefMap m_streams;
-};
-
 wxFsEventsFileSystemWatcher::wxFsEventsFileSystemWatcher()
-: wxKqueueFileSystemWatcher(), m_pImpl(new PrivateData)
+: wxKqueueFileSystemWatcher()
 {
 
 }
 
 wxFsEventsFileSystemWatcher::wxFsEventsFileSystemWatcher(const wxFileName& path,
     int events)
-: wxKqueueFileSystemWatcher(path, events), m_pImpl(new PrivateData)
+: wxKqueueFileSystemWatcher(path, events)
 {
 
 }
 
 wxFsEventsFileSystemWatcher::~wxFsEventsFileSystemWatcher()
 {
-    delete m_pImpl;
+
 }
 
 bool wxFsEventsFileSystemWatcher::AddTree(const wxFileName& path, int events,
@@ -322,7 +311,7 @@ bool wxFsEventsFileSystemWatcher::AddTree(const wxFileName& path, int events,
         return false;
     }
 
-    if ( m_pImpl->m_streams.find(canonical) != m_pImpl->m_streams.end() )
+    if ( m_streams.find(canonical) != m_streams.end() )
     {
         // How to take into account filespec
         // if client adds a watch for /home/*.cpp
@@ -374,7 +363,7 @@ bool wxFsEventsFileSystemWatcher::AddTree(const wxFileName& path, int events,
         started = FSEventStreamStart(stream);
         if ( started )
         {
-            m_pImpl->m_streams[canonical] = stream;
+            m_streams[canonical] = stream;
         }
     }
 
@@ -407,14 +396,14 @@ bool wxFsEventsFileSystemWatcher::RemoveTree(const wxFileName& path)
         }
     }
 
-    FSEventStreamRefMap::iterator it = m_pImpl->m_streams.find(canonical);
+    FSEventStreamRefMap::iterator it = m_streams.find(canonical);
     bool removed = false;
-    if ( it != m_pImpl->m_streams.end() )
+    if ( it != m_streams.end() )
     {
         FSEventStreamStop(it->second);
         FSEventStreamInvalidate(it->second);
         FSEventStreamRelease(it->second);
-        m_pImpl->m_streams.erase(it);
+        m_streams.erase(it);
         removed = true;
     }
     return removed;
@@ -424,16 +413,16 @@ bool wxFsEventsFileSystemWatcher::RemoveAll()
 {
     // remove all watches created with Add()
     bool ret = wxKqueueFileSystemWatcher::RemoveAll();
-    FSEventStreamRefMap::iterator it = m_pImpl->m_streams.begin();
-    while ( it != m_pImpl->m_streams.end() )
+    FSEventStreamRefMap::iterator it = m_streams.begin();
+    while ( it != m_streams.end() )
     {
         FSEventStreamStop(it->second);
         FSEventStreamInvalidate(it->second);
         FSEventStreamRelease(it->second);
-        ++it;
-        ret = true;
+        it++;
+        ret |= true;
     }
-    m_pImpl->m_streams.clear();
+    m_streams.clear();
     return ret;
 }
 
@@ -459,7 +448,7 @@ void wxFsEventsFileSystemWatcher::PostChange(const wxFileName& oldFileName,
         wxFSW_EVENT_ATTRIB
     };
 
-    for ( unsigned i = 0; i < WXSIZEOF(allEvents); i++ )
+    for ( int i = 0; i < WXSIZEOF(allEvents); i++ )
     {
         if ( event & allEvents[i] )
         {
@@ -498,7 +487,7 @@ void wxFsEventsFileSystemWatcher::PostError(const wxString& msg)
 
 int wxFsEventsFileSystemWatcher::GetWatchedPathsCount() const
 {
-    return m_pImpl->m_streams.size() + wxFileSystemWatcherBase::GetWatchedPathsCount();
+    return m_streams.size() + wxFileSystemWatcherBase::GetWatchedPathsCount();
 }
 
 int wxFsEventsFileSystemWatcher::GetWatchedPaths(wxArrayString* paths) const
@@ -509,8 +498,8 @@ int wxFsEventsFileSystemWatcher::GetWatchedPaths(wxArrayString* paths) const
         return 0;
     }
     wxFileSystemWatcherBase::GetWatchedPaths(paths);
-    FSEventStreamRefMap::const_iterator it = m_pImpl->m_streams.begin();
-    for ( ; it != m_pImpl->m_streams.end(); ++it )
+    FSEventStreamRefMap::const_iterator it = m_streams.begin();
+    for ( ; it != m_streams.end(); it++ )
     {
         paths->push_back(it->first);
     }

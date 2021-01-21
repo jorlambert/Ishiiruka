@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Name:        wx/scopeguard.h
-// Purpose:     declares wxScopeGuard and related macros
+// Purpose:     declares wxwxScopeGuard and related macros
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     03.07.2003

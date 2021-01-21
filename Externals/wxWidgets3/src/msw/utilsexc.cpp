@@ -135,8 +135,8 @@ public:
 class wxExecuteModule : public wxModule
 {
 public:
-    virtual bool OnInit() wxOVERRIDE { return true; }
-    virtual void OnExit() wxOVERRIDE
+    virtual bool OnInit() { return true; }
+    virtual void OnExit()
     {
         if ( gs_heventShutdown.IsOk() )
         {
@@ -520,7 +520,7 @@ size_t wxPipeOutputStream::OnSysWrite(const void *buffer, size_t len)
         if ( !chunkWritten )
             break;
 
-        buffer = static_cast<const char*>(buffer) + chunkWritten;
+        buffer = (char *)buffer + chunkWritten;
         totalWritten += chunkWritten;
         len -= chunkWritten;
     }
@@ -918,22 +918,19 @@ long wxExecute(const wxString& cmd, int flags, wxProcess *handler,
     data->dwProcessId = pi.dwProcessId;
     data->hWnd        = hwnd;
     data->state       = (flags & wxEXEC_SYNC) != 0;
-
-    if ( handler )
-        handler->SetPid(pi.dwProcessId);
-
     if ( flags & wxEXEC_SYNC )
     {
         // handler may be !NULL for capturing program output, but we don't use
-        // it in wxExecuteData struct in this case because it's only needed
-        // there for calling OnTerminate() on it and we don't do this when
-        // executing synchronously
+        // it wxExecuteData struct in this case
         data->handler = NULL;
     }
     else
     {
         // may be NULL or not
         data->handler = handler;
+
+        if (handler)
+            handler->SetPid(pi.dwProcessId);
     }
 
     DWORD tid;
@@ -988,11 +985,10 @@ long wxExecute(const wxString& cmd, int flags, wxProcess *handler,
         {
             default:
                 wxFAIL_MSG( wxT("unexpected WaitForInputIdle() return code") );
-                wxFALLTHROUGH;
+                // fall through
 
             case WAIT_FAILED:
                 wxLogLastError(wxT("WaitForInputIdle() in wxExecute"));
-                wxFALLTHROUGH;
 
             case WAIT_TIMEOUT:
                 wxLogDebug(wxT("Timeout too small in WaitForInputIdle"));
@@ -1072,7 +1068,7 @@ long wxExecute(const wxString& cmd, int flags, wxProcess *handler,
 }
 
 template <typename CharType>
-long wxExecuteImpl(const CharType* const* argv, int flags, wxProcess* handler,
+long wxExecuteImpl(CharType **argv, int flags, wxProcess *handler,
                    const wxExecuteEnv *env)
 {
     wxString command;
@@ -1115,7 +1111,7 @@ long wxExecuteImpl(const CharType* const* argv, int flags, wxProcess* handler,
     return wxExecute(command, flags, handler, env);
 }
 
-long wxExecute(const char* const* argv, int flags, wxProcess* handler,
+long wxExecute(char **argv, int flags, wxProcess *handler,
                const wxExecuteEnv *env)
 {
     return wxExecuteImpl(argv, flags, handler, env);
@@ -1123,7 +1119,7 @@ long wxExecute(const char* const* argv, int flags, wxProcess* handler,
 
 #if wxUSE_UNICODE
 
-long wxExecute(const wchar_t* const* argv, int flags, wxProcess* handler,
+long wxExecute(wchar_t **argv, int flags, wxProcess *handler,
                const wxExecuteEnv *env)
 {
     return wxExecuteImpl(argv, flags, handler, env);

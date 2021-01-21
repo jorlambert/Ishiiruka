@@ -48,8 +48,7 @@ enum
     wxFD_FILE_MUST_EXIST   = 0x0010,
     wxFD_CHANGE_DIR        = 0x0080,
     wxFD_PREVIEW           = 0x0100,
-    wxFD_MULTIPLE          = 0x0200,
-    wxFD_SHOW_HIDDEN       = 0x0400
+    wxFD_MULTIPLE          = 0x0200
 };
 
 #define wxFD_DEFAULT_STYLE      wxFD_OPEN
@@ -68,14 +67,14 @@ public:
     wxFileDialogBase () { Init(); }
 
     wxFileDialogBase(wxWindow *parent,
-                     const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+                     const wxString& message = wxFileSelectorPromptStr,
                      const wxString& defaultDir = wxEmptyString,
                      const wxString& defaultFile = wxEmptyString,
-                     const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                     const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                      long style = wxFD_DEFAULT_STYLE,
                      const wxPoint& pos = wxDefaultPosition,
                      const wxSize& sz = wxDefaultSize,
-                     const wxString& name = wxASCII_STR(wxFileDialogNameStr))
+                     const wxString& name = wxFileDialogNameStr)
     {
         Init();
         Create(parent, message, defaultDir, defaultFile, wildCard, style, pos, sz, name);
@@ -85,14 +84,14 @@ public:
 
 
     bool Create(wxWindow *parent,
-                const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+                const wxString& message = wxFileSelectorPromptStr,
                 const wxString& defaultDir = wxEmptyString,
                 const wxString& defaultFile = wxEmptyString,
-                const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                 long style = wxFD_DEFAULT_STYLE,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& sz = wxDefaultSize,
-                const wxString& name = wxASCII_STR(wxFileDialogNameStr));
+                const wxString& name = wxFileDialogNameStr);
 
     bool HasFdFlag(int flag) const { return HasFlag(flag); }
 
@@ -104,28 +103,16 @@ public:
     virtual void SetFilterIndex(int filterIndex) { m_filterIndex = filterIndex; }
 
     virtual wxString GetMessage() const { return m_message; }
-    virtual wxString GetPath() const
-    {
-        wxCHECK_MSG( !HasFlag(wxFD_MULTIPLE), wxString(), "When using wxFD_MULTIPLE, must call GetPaths() instead" );
-        return m_path;
-    }
-
+    virtual wxString GetPath() const { return m_path; }
     virtual void GetPaths(wxArrayString& paths) const { paths.Empty(); paths.Add(m_path); }
     virtual wxString GetDirectory() const { return m_dir; }
-    virtual wxString GetFilename() const
-    {
-        wxCHECK_MSG( !HasFlag(wxFD_MULTIPLE), wxString(), "When using wxFD_MULTIPLE, must call GetFilenames() instead" );
-        return m_fileName;
-    }
+    virtual wxString GetFilename() const { return m_fileName; }
     virtual void GetFilenames(wxArrayString& files) const { files.Empty(); files.Add(m_fileName); }
     virtual wxString GetWildcard() const { return m_wildCard; }
     virtual int GetFilterIndex() const { return m_filterIndex; }
 
     virtual wxString GetCurrentlySelectedFilename() const
         { return m_currentlySelectedFilename; }
-
-    virtual int GetCurrentlySelectedFilterIndex () const
-        { return m_currentlySelectedFilterIndex; }
 
     // this function is called with wxFileDialog as parameter and should
     // create the window containing the extra controls we want to show in it
@@ -166,12 +153,6 @@ protected:
     // GetCurrentlySelectedFilename().
     wxString      m_currentlySelectedFilename;
 
-    // Currently selected, but not yet necessarily accepted by the user, file
-    // type (a.k.a. filter) index. This should be updated whenever the
-    // selection in the control changes by the platform-specific code to
-    // provide a useful implementation of GetCurrentlySelectedFilterIndex().
-    int           m_currentlySelectedFilterIndex;
-
     wxWindow*     m_extraControl;
 
     // returns true if control is created (if it already exists returns false)
@@ -197,22 +178,22 @@ private:
 
 // File selector - backward compatibility
 WXDLLIMPEXP_CORE wxString
-wxFileSelector(const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+wxFileSelector(const wxString& message = wxFileSelectorPromptStr,
                const wxString& default_path = wxEmptyString,
                const wxString& default_filename = wxEmptyString,
                const wxString& default_extension = wxEmptyString,
-               const wxString& wildcard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+               const wxString& wildcard = wxFileSelectorDefaultWildcardStr,
                int flags = 0,
                wxWindow *parent = NULL,
                int x = wxDefaultCoord, int y = wxDefaultCoord);
 
 // An extended version of wxFileSelector
 WXDLLIMPEXP_CORE wxString
-wxFileSelectorEx(const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+wxFileSelectorEx(const wxString& message = wxFileSelectorPromptStr,
                  const wxString& default_path = wxEmptyString,
                  const wxString& default_filename = wxEmptyString,
                  int *indexDefaultExtension = NULL,
-                 const wxString& wildcard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                 const wxString& wildcard = wxFileSelectorDefaultWildcardStr,
                  int flags = 0,
                  wxWindow *parent = NULL,
                  int x = wxDefaultCoord, int y = wxDefaultCoord);

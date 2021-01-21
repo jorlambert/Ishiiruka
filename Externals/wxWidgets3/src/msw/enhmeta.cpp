@@ -230,7 +230,7 @@ public:
     wxEnhMetaFile *Close();
 
 protected:
-    virtual void DoGetSize(int *width, int *height) const wxOVERRIDE;
+    virtual void DoGetSize(int *width, int *height) const;
 
 private:
     void Create(HDC hdcRef,
@@ -480,7 +480,7 @@ bool wxEnhMetaFileDataObject::SetData(const wxDataFormat& format,
 
     if ( format == wxDF_ENHMETAFILE )
     {
-        hEMF = *static_cast<const HENHMETAFILE*>(buf);
+        hEMF = *(HENHMETAFILE *)buf;
 
         wxCHECK_MSG( hEMF, false, wxT("pasting invalid enh metafile") );
     }
@@ -555,7 +555,7 @@ bool wxEnhMetaFileSimpleDataObject::GetDataHere(void *buf) const
 bool wxEnhMetaFileSimpleDataObject::SetData(size_t WXUNUSED(len),
                                             const void *buf)
 {
-    HENHMETAFILE hEMF = *static_cast<const HENHMETAFILE*>(buf);
+    HENHMETAFILE hEMF = *(HENHMETAFILE *)buf;
 
     wxCHECK_MSG( hEMF, false, wxT("pasting invalid enh metafile") );
     m_metafile.SetHENHMETAFILE((WXHANDLE)hEMF);

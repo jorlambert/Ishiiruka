@@ -180,17 +180,17 @@ void wxGLContextAttrs::EndList()
 
 wxGLAttributes& wxGLAttributes::RGBA()
 {
-    // No effect
+    AddAttribute(WXOpenGLPFAColorSize);
+    AddAttribute(24);
+    AddAttribute(WXOpenGLPFAAlphaSize);
+    AddAttribute(8);
     return *this;
 }
 
 wxGLAttributes& wxGLAttributes::BufferSize(int val)
 {
-    if ( val >= 0 )
-    {
-        AddAttribute(WXOpenGLPFAColorSize);
-        AddAttribute(val);
-    }
+    // No effect
+    wxUnusedVar(val);
     return *this;
 }
 
@@ -225,10 +225,6 @@ wxGLAttributes& wxGLAttributes::AuxBuffers(int val)
 
 wxGLAttributes& wxGLAttributes::MinRGBA(int mRed, int mGreen, int mBlue, int mAlpha)
 {
-    // NOTE: 'NSOpenGLPixelFormat' doesn't offer a value for each of the RGBA
-    //   components, but just one for the size of the colour buffer. In order
-    //   to make wx more effective, this function _does_ set the colour buffer.
-
     int minColorBits = 0;
     if ( mRed > minColorBits )
         minColorBits = mRed;
@@ -236,9 +232,6 @@ wxGLAttributes& wxGLAttributes::MinRGBA(int mRed, int mGreen, int mBlue, int mAl
         minColorBits = mGreen;
     if ( mBlue > minColorBits )
         minColorBits = mBlue;
-    // Now that we have the R/G/B maximum, obtain a minimun for the buffer.
-    minColorBits *= 4; // 'alpha' included
-
     if ( minColorBits > 0 )
     {
         AddAttribute(WXOpenGLPFAColorSize);
@@ -275,7 +268,6 @@ wxGLAttributes& wxGLAttributes::Stencil(int val)
 
 wxGLAttributes& wxGLAttributes::MinAcumRGBA(int mRed, int mGreen, int mBlue, int mAlpha)
 {
-    // See MinRGBA() for some explanation.
     int minAcumBits = 0;
     if ( mRed > minAcumBits )
         minAcumBits = mRed;
@@ -283,14 +275,15 @@ wxGLAttributes& wxGLAttributes::MinAcumRGBA(int mRed, int mGreen, int mBlue, int
         minAcumBits = mGreen;
     if ( mBlue > minAcumBits )
         minAcumBits = mBlue;
-    if ( mAlpha > minAcumBits )
-        minAcumBits = mAlpha;
-    minAcumBits *= 4;
-    if ( minAcumBits >= 0 )
+    if ( minAcumBits > 0 )
     {
         AddAttribute(WXOpenGLPFAAccumSize);
         AddAttribute(minAcumBits);
     }
+
+    // No effect for Alpha in accumulation buffer
+    wxUnusedVar(mAlpha);
+
     return *this;
 }
 
@@ -358,15 +351,6 @@ wxGLAttributes& wxGLAttributes::Defaults()
     RGBA().Depth(16).DoubleBuffer().SampleBuffers(1).Samplers(4);
     return *this;
 }
-
-void wxGLAttributes::AddDefaultsForWXBefore31()
-{
-    // ParseAttribList() will add EndList(), don't do it now
-    DoubleBuffer();
-    // Negative value will keep its buffer untouched
-    BufferSize(8).Depth(8).MinRGBA(-1, -1, -1, 0);
-}
-
 
 // ----------------------------------------------------------------------------
 // wxGLContext
@@ -501,9 +485,9 @@ bool wxGLCanvas::Create(wxWindow *parent,
     // Make a copy of attributes. Will use at wxGLContext ctor
     m_GLAttrs = dispAttrs;
 
-    if ( !wxGLCanvas::DoCreate(parent,id,pos,size,style,name) )
+    if ( !wxWindow::Create(parent, id, pos, size, style, name) )
         return false;
-    
+
     return true;
 }
 

@@ -89,4 +89,3 @@ public:
 };
 
 #endif // _WX_X11_DATAOBJ2_H_
-

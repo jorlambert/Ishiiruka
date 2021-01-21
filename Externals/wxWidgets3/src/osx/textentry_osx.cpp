@@ -34,7 +34,11 @@
 #endif
 
 #if wxUSE_STD_IOSTREAM
-    #include <fstream>
+    #if wxUSE_IOSTREAMH
+        #include <fstream.h>
+    #else
+        #include <fstream>
+    #endif
 #endif
 
 #include "wx/filefn.h"

@@ -19,7 +19,6 @@
 
 #if wxUSE_STDPATHS
 
-#include "wx/filename.h"
 #include "wx/stdpaths.h"
 #include "wx/osx/private.h"
 #include "wx/osx/core/cfstring.h"
@@ -43,12 +42,12 @@ static wxString GetFMDirectory(
 
 wxStandardPaths::wxStandardPaths()
 {
-    
+
 }
 
 wxStandardPaths::~wxStandardPaths()
 {
-    
+
 }
 
 wxString wxStandardPaths::GetExecutablePath() const
@@ -104,9 +103,6 @@ wxString wxStandardPaths::GetUserDir(Dir userDir) const
     NSSearchPathDirectory dirType;
     switch (userDir)
     {
-        case Dir_Cache:
-            dirType = NSCachesDirectory;
-            break;
         case Dir_Desktop:
             dirType = NSDesktopDirectory;
             break;
@@ -126,17 +122,8 @@ wxString wxStandardPaths::GetUserDir(Dir userDir) const
             dirType = NSDocumentDirectory;
             break;
     }
-    
-    return GetFMDirectory(dirType, NSUserDomainMask);
-}
 
-wxString
-wxStandardPaths::MakeConfigFileName(const wxString& basename,
-                                    ConfigFileConv WXUNUSED(conv)) const
-{
-    wxFileName fn(wxEmptyString, basename);
-    fn.SetName(fn.GetName() + wxT(" Preferences"));
-    return fn.GetFullName();
+    return GetFMDirectory(dirType, NSUserDomainMask);
 }
 
 #endif // wxUSE_STDPATHS

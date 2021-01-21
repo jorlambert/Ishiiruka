@@ -33,19 +33,19 @@ public:
     wxWebViewWebKit() {}
     wxWebViewWebKit(wxWindow *parent,
                     wxWindowID winID = wxID_ANY,
-                    const wxString& strURL = wxASCII_STR(wxWebViewDefaultURLStr),
+                    const wxString& strURL = wxWebViewDefaultURLStr,
                     const wxPoint& pos = wxDefaultPosition,
                     const wxSize& size = wxDefaultSize, long style = 0,
-                    const wxString& name = wxASCII_STR(wxWebViewNameStr))
+                    const wxString& name = wxWebViewNameStr)
     {
         Create(parent, winID, strURL, pos, size, style, name);
     }
     bool Create(wxWindow *parent,
                 wxWindowID winID = wxID_ANY,
-                const wxString& strURL = wxASCII_STR(wxWebViewDefaultURLStr),
+                const wxString& strURL = wxWebViewDefaultURLStr,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize, long style = 0,
-                const wxString& name = wxASCII_STR(wxWebViewNameStr)) wxOVERRIDE;
+                const wxString& name = wxWebViewNameStr) wxOVERRIDE;
     virtual ~wxWebViewWebKit();
 
     virtual bool CanGoBack() const wxOVERRIDE;
@@ -63,9 +63,7 @@ public:
     virtual wxString GetCurrentURL() const wxOVERRIDE;
     virtual wxString GetCurrentTitle() const wxOVERRIDE;
     virtual wxWebViewZoom GetZoom() const wxOVERRIDE;
-    virtual float GetZoomFactor() const wxOVERRIDE;
     virtual void SetZoom(wxWebViewZoom zoom) wxOVERRIDE;
-    virtual void SetZoomFactor(float zoom) wxOVERRIDE;
 
     virtual void SetZoomType(wxWebViewZoomType zoomType) wxOVERRIDE;
     virtual wxWebViewZoomType GetZoomType() const wxOVERRIDE;
@@ -88,10 +86,10 @@ public:
 
     //Find function
     virtual long Find(const wxString& text, int flags = wxWEBVIEW_FIND_DEFAULT) wxOVERRIDE
-    {
+    { 
         wxUnusedVar(text);
         wxUnusedVar(flags);
-        return wxNOT_FOUND;
+        return wxNOT_FOUND; 
     }
 
     //Clipboard functions
@@ -114,7 +112,7 @@ public:
     virtual wxString GetSelectedSource() const wxOVERRIDE;
     virtual void ClearSelection() wxOVERRIDE;
 
-    bool RunScript(const wxString& javascript, wxString* output = NULL) wxOVERRIDE;
+    void RunScript(const wxString& javascript) wxOVERRIDE;
 
     //Virtual Filesystem Support
     virtual void RegisterHandler(wxSharedPtr<wxWebViewHandler> handler) wxOVERRIDE;
@@ -162,13 +160,11 @@ private:
 
     OSXWebViewPtr m_webView;
 
-    WX_NSObject m_loadDelegate;
-    WX_NSObject m_policyDelegate;
-    WX_NSObject m_UIDelegate;
-
     // we may use this later to setup our own mouse events,
     // so leave it in for now.
     void* m_webKitCtrlEventHandler;
+    //It should be WebView*, but WebView is an Objective-C class
+    //TODO: look into using DECLARE_WXCOCOA_OBJC_CLASS rather than this.
 };
 
 class WXDLLIMPEXP_WEBVIEW wxWebViewFactoryWebKit : public wxWebViewFactory
@@ -181,7 +177,7 @@ public:
                               const wxPoint& pos = wxDefaultPosition,
                               const wxSize& size = wxDefaultSize,
                               long style = 0,
-                              const wxString& name = wxASCII_STR(wxWebViewNameStr))
+                              const wxString& name = wxWebViewNameStr)
     { return new wxWebViewWebKit(parent, id, url, pos, size, style, name); }
 };
 

@@ -80,7 +80,9 @@ bool wxGenericFileDirButton::Create(wxWindow *parent,
     }
 
     // and handle user clicks on it
-    Bind(wxEVT_BUTTON, &wxGenericFileDirButton::OnButtonClick, this, GetId());
+    Connect(GetId(), wxEVT_BUTTON,
+            wxCommandEventHandler(wxGenericFileDirButton::OnButtonClick),
+            NULL, this);
 
     // create the dialog associated with this button
     m_path = path;

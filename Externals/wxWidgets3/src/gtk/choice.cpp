@@ -16,7 +16,9 @@
     #include "wx/arrstr.h"
 #endif
 
+#include <gtk/gtk.h>
 #include "wx/gtk/private.h"
+#include "wx/gtk/private/gtk2-compat.h"
 #include "wx/gtk/private/eventsdisabler.h"
 
 // ----------------------------------------------------------------------------
@@ -96,34 +98,7 @@ bool wxChoice::Create( wxWindow *parent, wxWindowID id,
 
 wxChoice::~wxChoice()
 {
-    Clear();
     delete m_strings;
-
- #ifdef __WXGTK3__
-    // At least with GTK+ 3.22.9, destroying a shown combobox widget results in
-    // a Gtk-CRITICAL debug message when the assertion fails inside a signal
-    // handler called from gtk_widget_unrealize(), which is annoying, so avoid
-    // it by hiding the widget before destroying it -- this doesn't look right,
-    // but shouldn't do any harm neither.
-    Hide();
- #endif // __WXGTK3__
-}
-
-bool wxChoice::GTKHandleFocusOut()
-{
-    if ( wx_is_at_least_gtk2(10) )
-    {
-        gboolean isShown;
-        g_object_get( m_widget, "popup-shown", &isShown, NULL );
-
-        // Don't send "focus lost" events if the focus is grabbed by our own
-        // popup, it counts as part of this window, even though wx doesn't know
-        // about it (and can't, because GtkComboBox doesn't expose it).
-        if ( isShown )
-            return true;
-    }
-
-    return wxChoiceBase::GTKHandleFocusOut();
 }
 
 void wxChoice::GTKInsertComboBoxTextItem( unsigned int n, const wxString& text )
@@ -185,8 +160,7 @@ void wxChoice::DoClear()
 
     GtkComboBox* combobox = GTK_COMBO_BOX( m_widget );
     GtkTreeModel* model = gtk_combo_box_get_model( combobox );
-    if (model)
-        gtk_list_store_clear(GTK_LIST_STORE(model));
+    gtk_list_store_clear(GTK_LIST_STORE(model));
 
     m_clientData.Clear();
 
@@ -362,6 +336,11 @@ wxSize wxChoice::DoGetSizeFromTextSize(int xlen, int ylen) const
 
     // a GtkEntry for wxComboBox and a GtkCellView for wxChoice
     GtkWidget* childPart = gtk_bin_get_child(GTK_BIN(m_widget));
+
+    // Set a as small as possible size for the control, so preferred sizes
+    // return "natural" sizes, not taking into account the previous ones (which
+    // seems to be GTK+3 behaviour)
+    gtk_widget_set_size_request(m_widget, 0, 0);
 
     // We are interested in the difference of sizes between the whole contol
     // and its child part. I.e. arrow, separators, etc.

@@ -36,8 +36,6 @@
     #include "wx/module.h"
 #endif
 
-#include "wx/display.h"
-
 #include "wx/msw/private.h"
 #include "wx/msw/missing.h" // IDC_HAND
 
@@ -55,7 +53,7 @@ public:
 
     virtual ~wxCursorRefData() { Free(); }
 
-    virtual void Free() wxOVERRIDE;
+    virtual void Free();
 
 
     // return the size of the standard cursor: notice that the system only
@@ -65,6 +63,9 @@ public:
 
 private:
     bool m_destroyCursor;
+
+    // standard cursor size, computed on first use
+    static wxSize ms_sizeStd;
 };
 
 // ----------------------------------------------------------------------------
@@ -88,14 +89,14 @@ static wxCursor *gs_globalCursor = NULL;
 class wxCursorModule : public wxModule
 {
 public:
-    virtual bool OnInit() wxOVERRIDE
+    virtual bool OnInit()
     {
         gs_globalCursor = new wxCursor;
 
         return true;
     }
 
-    virtual void OnExit() wxOVERRIDE
+    virtual void OnExit()
     {
         wxDELETE(gs_globalCursor);
     }
@@ -109,17 +110,22 @@ public:
 // wxCursorRefData
 // ----------------------------------------------------------------------------
 
+wxSize wxCursorRefData::ms_sizeStd;
 
 wxCoord wxCursorRefData::GetStandardWidth()
 {
-    const wxWindow* win = wxTheApp ? wxTheApp->GetTopWindow() : NULL;
-    return wxSystemSettings::GetMetric(wxSYS_CURSOR_X, win);
+    if ( !ms_sizeStd.x )
+        ms_sizeStd.x = wxSystemSettings::GetMetric(wxSYS_CURSOR_X);
+
+    return ms_sizeStd.x;
 }
 
 wxCoord wxCursorRefData::GetStandardHeight()
 {
-    const wxWindow* win = wxTheApp ? wxTheApp->GetTopWindow() : NULL;
-    return wxSystemSettings::GetMetric(wxSYS_CURSOR_Y, win);
+    if ( !ms_sizeStd.y )
+        ms_sizeStd.y = wxSystemSettings::GetMetric(wxSYS_CURSOR_Y);
+
+    return ms_sizeStd.y;
 }
 
 wxCursorRefData::wxCursorRefData(HCURSOR hcursor, bool destroy)
@@ -265,20 +271,12 @@ wxPoint wxCursor::GetHotSpot() const
 namespace
 {
 
-wxSize ScaleAndReverseBitmap(HBITMAP& bitmap, float scale)
+void ReverseBitmap(HBITMAP bitmap, int width, int height)
 {
-    BITMAP bmp;
-    if ( !::GetObject(bitmap, sizeof(bmp), &bmp) )
-        return wxSize();
-    wxSize cs(bmp.bmWidth * scale, bmp.bmHeight * scale);
-
     MemoryHDC hdc;
     SelectInHDC selBitmap(hdc, bitmap);
-    if ( scale != 1 )
-        ::SetStretchBltMode(hdc, HALFTONE);
-    ::StretchBlt(hdc, cs.x - 1, 0, -cs.x, cs.y, hdc, 0, 0, bmp.bmWidth, bmp.bmHeight, SRCCOPY);
-
-    return cs;
+    ::StretchBlt(hdc, width - 1, 0, -width, height,
+                 hdc, 0, 0, width, height, SRCCOPY);
 }
 
 HCURSOR CreateReverseCursor(HCURSOR cursor)
@@ -287,15 +285,14 @@ HCURSOR CreateReverseCursor(HCURSOR cursor)
     if ( !info.GetFrom(cursor) )
         return NULL;
 
-    const unsigned displayID = (unsigned)wxDisplay::GetFromPoint(wxGetMousePosition());
-    wxDisplay disp(displayID == 0u || displayID < wxDisplay::GetCount() ? displayID : 0u);
-    const float scale = (float)disp.GetPPI().y / wxGetDisplayPPI().y;
+    BITMAP bmp;
+    if ( !::GetObject(info.hbmMask, sizeof(bmp), &bmp) )
+        return NULL;
 
-    wxSize cursorSize = ScaleAndReverseBitmap(info.hbmMask, scale);
+    ReverseBitmap(info.hbmMask, bmp.bmWidth, bmp.bmHeight);
     if ( info.hbmColor )
-        ScaleAndReverseBitmap(info.hbmColor, scale);
-    info.xHotspot = (DWORD)(cursorSize.x - 1 - info.xHotspot * scale);
-    info.yHotspot = (DWORD)(info.yHotspot * scale);
+        ReverseBitmap(info.hbmColor, bmp.bmWidth, bmp.bmHeight);
+    info.xHotspot = (DWORD)bmp.bmWidth - 1 - info.xHotspot;
 
     return ::CreateIconIndirect(&info);
 }

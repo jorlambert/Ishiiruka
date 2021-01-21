@@ -38,20 +38,20 @@ public:
     wxGenericDirDialog() : wxDirDialogBase() { }
 
     wxGenericDirDialog(wxWindow* parent,
-                       const wxString& title = wxASCII_STR(wxDirSelectorPromptStr),
+                       const wxString& title = wxDirSelectorPromptStr,
                        const wxString& defaultPath = wxEmptyString,
                        long style = wxDD_DEFAULT_STYLE,
                        const wxPoint& pos = wxDefaultPosition,
                        const wxSize& sz = wxDefaultSize,//Size(450, 550),
-                       const wxString& name = wxASCII_STR(wxDirDialogNameStr));
+                       const wxString& name = wxDirDialogNameStr);
 
     bool Create(wxWindow* parent,
-                const wxString& title = wxASCII_STR(wxDirSelectorPromptStr),
+                const wxString& title = wxDirSelectorPromptStr,
                 const wxString& defaultPath = wxEmptyString,
                 long style = wxDD_DEFAULT_STYLE,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& sz = wxDefaultSize,//Size(450, 550),
-                const wxString& name = wxASCII_STR(wxDirDialogNameStr));
+                       const wxString& name = wxDirDialogNameStr);
 
     //// Accessors
     void SetPath(const wxString& path) wxOVERRIDE;

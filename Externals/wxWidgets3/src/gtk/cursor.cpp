@@ -18,8 +18,9 @@
     #include "wx/log.h"
 #endif // WX_PRECOMP
 
-#include "wx/gtk/private/wrapgtk.h"
+#include <gtk/gtk.h>
 #include "wx/gtk/private/object.h"
+#include "wx/gtk/private/gtk2-compat.h"
 
 GdkWindow* wxGetTopLevelGDK();
 
@@ -108,9 +109,9 @@ wxCursor::wxCursor(const char bits[], int width, int height,
 #ifdef __WXGTK3__
     wxBitmap bitmap(bits, width, height);
     if (maskBits)
-        bitmap.SetMask(new wxMask(wxBitmap(maskBits, width, height), *wxWHITE));
+        bitmap.SetMask(new wxMask(wxBitmap(maskBits, width, height)));
     GdkPixbuf* pixbuf = bitmap.GetPixbuf();
-    if ((fg && *fg != *wxBLACK) || (bg && *bg != *wxWHITE))
+    if (fg || bg)
     {
         const int stride = gdk_pixbuf_get_rowstride(pixbuf);
         const int n_channels = gdk_pixbuf_get_n_channels(pixbuf);
@@ -120,7 +121,7 @@ wxCursor::wxCursor(const char bits[], int width, int height,
             guchar* p = data;
             for (int i = 0; i < width; i++, p += n_channels)
             {
-                if (p[0] == 0)
+                if (p[0])
                 {
                     if (fg)
                     {
@@ -174,7 +175,7 @@ wxPoint wxCursor::GetHotSpot() const
 #if GTK_CHECK_VERSION(2,8,0)
     if (GetCursor())
     {
-        if (wx_is_at_least_gtk2(8))
+        if (gtk_check_version(2,8,0) == NULL)
         {
             GdkPixbuf *pixbuf = gdk_cursor_get_image(GetCursor());
             if (pixbuf)
@@ -359,7 +360,7 @@ const wxCursor wxBusyCursor::GetBusyCursor()
 static void UpdateCursors(wxWindow* win, bool isBusyOrGlobalCursor)
 {
     win->GTKUpdateCursor(isBusyOrGlobalCursor);
-    const wxWindowList& children = win->GetChildren(); 
+    const wxWindowList& children = win->GetChildren();
     wxWindowList::const_iterator i = children.begin();
     for (size_t n = children.size(); n--; ++i)
         UpdateCursors(*i, isBusyOrGlobalCursor);
@@ -414,9 +415,6 @@ bool wxIsBusy()
 
 void wxSetCursor( const wxCursor& cursor )
 {
-    if (cursor.IsOk() || g_globalCursor.IsOk())
-    {
-        g_globalCursor = cursor;
-        SetGlobalCursor(cursor);
-    }
+    g_globalCursor = cursor;
+    SetGlobalCursor(cursor);
 }

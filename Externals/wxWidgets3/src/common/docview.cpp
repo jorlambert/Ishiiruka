@@ -63,9 +63,13 @@
 #include "wx/except.h"
 
 #if wxUSE_STD_IOSTREAM
+    #include "wx/ioswrap.h"
     #include "wx/beforestd.h"
-    #include <fstream>
-    #include <iostream>
+    #if wxUSE_IOSTREAMH
+        #include <fstream.h>
+    #else
+        #include <fstream>
+    #endif
     #include "wx/afterstd.h"
 #else
     #include "wx/wfstream.h"
@@ -566,9 +570,7 @@ bool wxDocument::AddView(wxView *view)
 
 bool wxDocument::RemoveView(wxView *view)
 {
-    if ( !m_documentViews.DeleteObject(view) )
-        return false;
-
+    (void)m_documentViews.DeleteObject(view);
     OnChangedViewList();
     return true;
 }
@@ -820,15 +822,15 @@ wxDocTemplate::wxDocTemplate(wxDocManager *manager,
                              wxClassInfo *docClassInfo,
                              wxClassInfo *viewClassInfo,
                              long flags)
-    : m_fileFilter(filter)
-    , m_directory(dir)
-    , m_description(descr)
-    , m_defaultExt(ext)
-    , m_docTypeName(docTypeName)
-    , m_viewTypeName(viewTypeName)
 {
     m_documentManager = manager;
+    m_description = descr;
+    m_directory = dir;
+    m_defaultExt = ext;
+    m_fileFilter = filter;
     m_flags = flags;
+    m_docTypeName = docTypeName;
+    m_viewTypeName = viewTypeName;
     m_documentManager->AssociateTemplate(this);
 
     m_docClassInfo = docClassInfo;
@@ -1120,7 +1122,7 @@ void wxDocManager::OnFileNew(wxCommandEvent& WXUNUSED(event))
 
 void wxDocManager::OnFileOpen(wxCommandEvent& WXUNUSED(event))
 {
-    if ( !CreateDocument(wxString()) )
+    if ( !CreateDocument("") )
     {
         OnOpenFileFailure();
     }
@@ -1175,6 +1177,7 @@ void wxDocManager::DoOpenMRUFile(unsigned n)
     if ( filename.empty() )
         return;
 
+    wxString errMsg; // must contain exactly one "%s" if non-empty
     if ( wxFile::Exists(filename) )
     {
         // Try to open it but don't give an error if it failed: this could be
@@ -1789,7 +1792,7 @@ wxDocTemplate *wxDocManager::SelectDocumentPath(wxDocTemplate **templates,
                          msgTitle,
                          wxOK | wxICON_EXCLAMATION | wxCENTRE);
 
-            path.clear();
+            path = wxEmptyString;
             return NULL;
         }
 
@@ -1800,18 +1803,7 @@ wxDocTemplate *wxDocManager::SelectDocumentPath(wxDocTemplate **templates,
         // first choose the template using the extension, if this fails (i.e.
         // wxFileSelectorEx() didn't fill it), then use the path
         if ( FilterIndex != -1 )
-        {
             theTemplate = templates[FilterIndex];
-            if ( theTemplate )
-            {
-                // But don't use this template if it doesn't match the path as
-                // can happen if the user specified the extension explicitly
-                // but didn't bother changing the filter.
-                if ( !theTemplate->FileMatchesTemplate(path) )
-                    theTemplate = NULL;
-            }
-        }
-
         if ( !theTemplate )
             theTemplate = FindTemplateForPath(path);
         if ( !theTemplate )
@@ -2231,10 +2223,11 @@ bool wxTransferFileToStream(const wxString& filename, wxSTD ostream& stream)
     if ( !file.IsOpened() )
         return false;
 
+    char buf[4096];
+
+    size_t nRead;
     do
     {
-        char buf[4096];
-        size_t nRead;
         nRead = file.Read(buf, WXSIZEOF(buf));
         if ( file.Error() )
             return false;

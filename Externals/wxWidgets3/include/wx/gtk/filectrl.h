@@ -77,11 +77,11 @@ public:
                     wxWindowID id,
                     const wxString& defaultDirectory = wxEmptyString,
                     const wxString& defaultFilename = wxEmptyString,
-                    const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                    const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                     long style = wxFC_DEFAULT_STYLE,
                     const wxPoint& pos = wxDefaultPosition,
                     const wxSize& size = wxDefaultSize,
-                    const wxString& name = wxASCII_STR(wxFileCtrlNameStr) )
+                    const wxString& name = wxFileCtrlNameStr )
     {
         Init();
         Create( parent, id, defaultDirectory, defaultFilename, wildCard, style, pos, size, name );
@@ -93,11 +93,11 @@ public:
                  wxWindowID id,
                  const wxString& defaultDirectory = wxEmptyString,
                  const wxString& defaultFileName = wxEmptyString,
-                 const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                 const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                  long style = wxFC_DEFAULT_STYLE,
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
-                 const wxString& name = wxASCII_STR(wxFileCtrlNameStr) );
+                 const wxString& name = wxFileCtrlNameStr );
 
     virtual void SetWildcard( const wxString& wildCard ) wxOVERRIDE;
     virtual void SetFilterIndex( int filterIndex ) wxOVERRIDE;

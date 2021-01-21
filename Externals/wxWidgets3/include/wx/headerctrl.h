@@ -37,9 +37,6 @@ enum
     // right clicking the header
     wxHD_ALLOW_HIDE = 0x0002,
 
-    // force putting column images on right
-    wxHD_BITMAP_ON_RIGHT = 0x0004,
-
     // style used by default when creating the control
     wxHD_DEFAULT_STYLE = wxHD_ALLOW_REORDER
 };
@@ -62,14 +59,14 @@ public:
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
                  long style = wxHD_DEFAULT_STYLE,
-                 const wxString& name = wxASCII_STR(wxHeaderCtrlNameStr));
+                 const wxString& name = wxHeaderCtrlNameStr);
 
     bool Create(wxWindow *parent,
                 wxWindowID winid = wxID_ANY,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxHD_DEFAULT_STYLE,
-                const wxString& name = wxASCII_STR(wxHeaderCtrlNameStr));
+                const wxString& name = wxHeaderCtrlNameStr);
      */
 
     // column-related methods
@@ -158,12 +155,6 @@ public:
 
     // compute column title width
     int GetColumnTitleWidth(const wxHeaderColumn& col);
-
-    // compute column title width for the column with the given index
-    int GetColumnTitleWidth(unsigned int idx)
-    {
-        return GetColumnTitleWidth(GetColumn(idx));
-    }
 
     // implementation only from now on
     // -------------------------------
@@ -273,7 +264,7 @@ public:
                        const wxPoint& pos = wxDefaultPosition,
                        const wxSize& size = wxDefaultSize,
                        long style = wxHD_DEFAULT_STYLE,
-                       const wxString& name = wxASCII_STR(wxHeaderCtrlNameStr))
+                       const wxString& name = wxHeaderCtrlNameStr)
     {
         Init();
 
@@ -351,8 +342,6 @@ protected:
         return -1;
     }
 
-    void OnHeaderResizing(wxHeaderCtrlEvent& evt);
-
 private:
     // functions implementing our public API
     void DoInsert(const wxHeaderColumnSimple& col, unsigned int idx);
@@ -379,7 +368,6 @@ private:
 
 
     wxDECLARE_NO_COPY_CLASS(wxHeaderCtrlSimple);
-    wxDECLARE_EVENT_TABLE();
 };
 
 // ----------------------------------------------------------------------------

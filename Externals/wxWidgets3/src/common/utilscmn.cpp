@@ -19,33 +19,16 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#include "wx/debug.h"
-
 #ifdef __BORLANDC__
     #pragma hdrstop
 #endif
 
-// This is a needed to get the declaration of the global "environ" variable
-// from MinGW headers which don't declare it there when in strict ANSI mode. We
-// can't use the usual wxDECL_FOR_STRICT_MINGW32() hack for it because it's not
-// even a variable, but a macro expanding to a function or a variable depending
-// on the build and this is horribly brittle but there just doesn't seem to be
-// any other alternative.
+// See comment about this hack in time.cpp: here we do it for environ external
+// variable which can't be easily declared when using MinGW in strict ANSI mode.
 #ifdef wxNEEDS_STRICT_ANSI_WORKAROUNDS
-    // Notice that undefining __STRICT_ANSI__ and including it here doesn't
-    // work because it could have been already included, e.g. when using PCH.
+    #undef __STRICT_ANSI__
     #include <stdlib.h>
-
-    #ifndef environ
-        // This just reproduces what stdlib.h does in MinGW 4.8.1.
-        #ifdef __MSVCRT__
-            wxDECL_FOR_STRICT_MINGW32(char ***, __p__environ, (void));
-            #define environ (*__p__environ())
-        #else
-            extern char *** _imp___environ_dll;
-            #define environ (*_imp___environ_dll)
-        #endif
-    #endif // defined(environ)
+    #define __STRICT_ANSI__
 #endif
 
 #ifndef WX_PRECOMP
@@ -86,7 +69,6 @@
 #include <errno.h>
 
 #if wxUSE_GUI
-    #include "wx/filename.h"
     #include "wx/filesys.h"
     #include "wx/notebook.h"
     #include "wx/statusbr.h"
@@ -106,17 +88,13 @@
     #include "wx/msw/private.h"
 #endif
 
-#if wxUSE_GUI
-    // Include the definitions of GTK_XXX_VERSION constants.
-    #ifdef __WXGTK20__
-        #include "wx/gtk/private/wrapgtk.h"
-    #elif defined(__WXGTK__)
-        #include <gtk/gtk.h>
-    #elif defined(__WXQT__)
-        #include <QtCore/QtGlobal>       // for QT_VERSION_STR constants
-    #endif
+#if wxUSE_GUI && defined(__WXGTK__)
+    #include <gtk/gtk.h>    // for GTK_XXX_VERSION constants
 #endif
 
+#if wxUSE_GUI && defined(__WXQT__)
+    #include <QtGlobal>       // for QT_VERSION_STR constants
+#endif
 #if wxUSE_BASE
 
 // ============================================================================
@@ -124,38 +102,38 @@
 // ============================================================================
 
 // Array used in DecToHex conversion routine.
-static const char hexArray[] = "0123456789ABCDEF";
+static const wxChar hexArray[] = wxT("0123456789ABCDEF");
 
 // Convert 2-digit hex number to decimal
 int wxHexToDec(const wxString& str)
 {
-    wxCHECK_MSG( str.Length() >= 2, -1, wxS("Invalid argument") );
-
     char buf[2];
     buf[0] = str.GetChar(0);
     buf[1] = str.GetChar(1);
-    return wxHexToDec(buf);
+    return wxHexToDec((const char*) buf);
 }
 
-// Convert decimal integer to 2-character hex string (not prefixed by 0x).
-void wxDecToHex(unsigned char dec, wxChar *buf)
+// Convert decimal integer to 2-character hex string
+void wxDecToHex(int dec, wxChar *buf)
 {
-    wxASSERT_MSG( buf, wxS("Invalid argument") );
-    buf[0] = hexArray[dec >> 4];
-    buf[1] = hexArray[dec & 0x0F];
+    int firstDigit = (int)(dec/16.0);
+    int secondDigit = (int)(dec - (firstDigit*16.0));
+    buf[0] = hexArray[firstDigit];
+    buf[1] = hexArray[secondDigit];
     buf[2] = 0;
 }
 
 // Convert decimal integer to 2 characters
-void wxDecToHex(unsigned char dec, char* ch1, char* ch2)
+void wxDecToHex(int dec, char* ch1, char* ch2)
 {
-    wxASSERT_MSG( ch1 && ch2, wxS("Invalid argument(s)") );
-    *ch1 = hexArray[dec >> 4];
-    *ch2 = hexArray[dec & 0x0F];
+    int firstDigit = (int)(dec/16.0);
+    int secondDigit = (int)(dec - (firstDigit*16.0));
+    (*ch1) = (char) hexArray[firstDigit];
+    (*ch2) = (char) hexArray[secondDigit];
 }
 
-// Convert decimal integer to 2-character hex string (not prefixed by 0x).
-wxString wxDecToHex(unsigned char dec)
+// Convert decimal integer to 2-character hex string
+wxString wxDecToHex(int dec)
 {
     wxChar buf[3];
     wxDecToHex(dec, buf);
@@ -614,7 +592,14 @@ static bool ReadAll(wxInputStream *is, wxArrayString& output)
     // the stream could be already at EOF or in wxSTREAM_BROKEN_PIPE state
     is->Reset();
 
-    wxTextInputStream tis(*is);
+    // Notice that wxTextInputStream doesn't work correctly with wxConvAuto
+    // currently, see #14720, so use the current locale conversion explicitly
+    // under assumption that any external program should be using it too.
+    wxTextInputStream tis(*is, " \t"
+#if wxUSE_UNICODE
+                                    , wxConvLibc
+#endif
+                                                );
 
     for ( ;; )
     {
@@ -697,9 +682,9 @@ long wxExecute(const wxString& command,
 // ----------------------------------------------------------------------------
 
 // Id generation
-static wxWindowID wxCurrentId = 100;
+static int wxCurrentId = 100;
 
-wxWindowID wxNewId()
+int wxNewId()
 {
     // skip the part of IDs space that contains hard-coded values:
     if (wxCurrentId == wxID_LOWEST)
@@ -708,11 +693,11 @@ wxWindowID wxNewId()
     return wxCurrentId++;
 }
 
-wxWindowID
+int
 wxGetCurrentId(void) { return wxCurrentId; }
 
 void
-wxRegisterId (wxWindowID id)
+wxRegisterId (int id)
 {
   if (id >= wxCurrentId)
     wxCurrentId = id + 1;
@@ -1011,27 +996,6 @@ unsigned int wxGCD(unsigned int u, unsigned int v)
     return u << shift;
 }
 
-// ----------------------------------------------------------------------------
-// wxCTZ
-// Count trailing zeros. Use optimised builtin where available.
-// ----------------------------------------------------------------------------
-unsigned int wxCTZ(wxUint32 x)
-{
-    wxCHECK_MSG(x > 0, 0, "Undefined for x == 0.");
-#ifdef __GNUC__
-   return __builtin_ctz(x);
-#else
-   int n;
-   n = 1;
-   if ((x & 0x0000FFFF) == 0) {n = n +16; x = x >>16;}
-   if ((x & 0x000000FF) == 0) {n = n + 8; x = x >> 8;}
-   if ((x & 0x0000000F) == 0) {n = n + 4; x = x >> 4;}
-   if ((x & 0x00000003) == 0) {n = n + 2; x = x >> 2;}
-   return n - (x & 1);
-#endif
-}
-
-
 #endif // wxUSE_BASE
 
 // ============================================================================
@@ -1054,7 +1018,7 @@ bool wxSetDetectableAutoRepeat( bool WXUNUSED(flag) )
 // Launch default browser
 // ----------------------------------------------------------------------------
 
-#if defined(__WINDOWS__) && !defined(__WXQT__) || \
+#if defined(__WINDOWS__) || \
     defined(__WXX11__) || defined(__WXGTK__) || defined(__WXMOTIF__) || \
     defined(__WXOSX__)
 
@@ -1133,8 +1097,12 @@ static bool DoLaunchDefaultBrowserHelper(const wxString& url, int flags)
 
         if ( params.scheme == "file" )
         {
+            // TODO: extract URLToFileName() to some always compiled in
+            //       function
+#if wxUSE_FILESYSTEM
             // for same reason as above, remove the scheme from the URL
-            params.path = wxFileName::URLToFileName(url).GetFullPath();
+            params.path = wxFileSystem::URLToFileName(url).GetFullPath();
+#endif // wxUSE_FILESYSTEM
         }
     }
 
@@ -1171,29 +1139,6 @@ wxString wxStripMenuCodes(const wxString& in, int flags)
 
     size_t len = in.length();
     out.reserve(len);
-
-    // In some East Asian languages _("&File") translates as "<translation>(&F)"
-    // Check for this first, otherwise fall through to the standard situation
-    if ( flags & wxStrip_CJKMnemonics )
-    {
-        wxString label(in), accel;
-        int pos = in.Find('\t');
-        if (pos != wxNOT_FOUND)
-        {
-            label = in.Left(pos+1).Trim();
-            if (!(flags & wxStrip_Accel))
-            {
-                accel = in.Mid(pos);
-            }
-        }
-
-        // The initial '?' means we match "Foo(&F)" but not "(&F)"
-        if (label.Matches("?*(&?)"))
-        {
-            label = label.Left( label.Len()-4 ).Trim();
-            return label + accel;
-        }
-    }
 
     for ( wxString::const_iterator it = in.begin(); it != in.end(); ++it )
     {
@@ -1261,15 +1206,15 @@ wxFindMenuItemId(wxFrame *frame,
                  const wxString& menuString,
                  const wxString& itemString)
 {
-#if wxUSE_MENUBAR
+#if wxUSE_MENUS
     wxMenuBar *menuBar = frame->GetMenuBar ();
     if ( menuBar )
         return menuBar->FindMenuItem (menuString, itemString);
-#else // !wxUSE_MENUBAR
+#else // !wxUSE_MENUS
     wxUnusedVar(frame);
     wxUnusedVar(menuString);
     wxUnusedVar(itemString);
-#endif // wxUSE_MENUBAR/!wxUSE_MENUBAR
+#endif // wxUSE_MENUS/!wxUSE_MENUS
 
     return wxNOT_FOUND;
 }
@@ -1391,9 +1336,7 @@ wxVersionInfo wxGetLibraryVersionInfo()
     wxString msg;
     msg.Printf(wxS("wxWidgets Library (%s port)\n")
                wxS("Version %d.%d.%d (Unicode: %s, debug level: %d),\n")
-#if !wxUSE_REPRODUCIBLE_BUILD
                wxS("compiled at %s %s\n\n")
-#endif
                wxS("Runtime version of toolkit used is %d.%d.\n"),
                wxPlatformInfo::Get().GetPortIdName(),
                wxMAJOR_VERSION,
@@ -1407,10 +1350,8 @@ wxVersionInfo wxGetLibraryVersionInfo()
                "none",
 #endif
                wxDEBUG_LEVEL,
-#if !wxUSE_REPRODUCIBLE_BUILD
                __TDATE__,
                __TTIME__,
-#endif
                wxPlatformInfo::Get().GetToolkitMajorVersion(),
                wxPlatformInfo::Get().GetToolkitMinorVersion()
               );
@@ -1432,7 +1373,7 @@ wxVersionInfo wxGetLibraryVersionInfo()
                          wxMINOR_VERSION,
                          wxRELEASE_NUMBER,
                          msg,
-                         wxS("Copyright (c) 1995-2020 wxWidgets team"));
+                         wxS("Copyright (c) 1995-2016 wxWidgets team"));
 }
 
 void wxInfoMessageBox(wxWindow* parent)

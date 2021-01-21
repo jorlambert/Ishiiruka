@@ -94,18 +94,13 @@ wxDCOverlay::wxDCOverlay(wxOverlay &overlay, wxDC *dc, int x , int y , int width
 wxDCOverlay::wxDCOverlay(wxOverlay &overlay, wxDC *dc) :
     m_overlay(overlay)
 {
-    const wxSize size(dc->GetSize());
-
-    const wxCoord logicalLeft = dc->DeviceToLogicalX(0);
-    const wxCoord logicalTop = dc->DeviceToLogicalY(0);
-    const wxCoord logicalRight = dc->DeviceToLogicalX(size.GetWidth());
-    const wxCoord logicalBottom = dc->DeviceToLogicalY(size.GetHeight());
+    const wxRect device(wxPoint(0, 0), dc->GetSize());
 
     Init(dc,
-         logicalLeft,
-         logicalTop,
-         logicalRight - logicalLeft,
-         logicalBottom - logicalTop);
+         dc->DeviceToLogicalX(device.GetLeft()),
+         dc->DeviceToLogicalY(device.GetTop()),
+         dc->DeviceToLogicalX(device.GetRight()),
+         dc->DeviceToLogicalY(device.GetBottom()));
 }
 
 wxDCOverlay::~wxDCOverlay()

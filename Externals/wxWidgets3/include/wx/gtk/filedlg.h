@@ -21,23 +21,23 @@ public:
     wxFileDialog() { }
 
     wxFileDialog(wxWindow *parent,
-                 const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+                 const wxString& message = wxFileSelectorPromptStr,
                  const wxString& defaultDir = wxEmptyString,
                  const wxString& defaultFile = wxEmptyString,
-                 const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                 const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                  long style = wxFD_DEFAULT_STYLE,
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& sz = wxDefaultSize,
-                 const wxString& name = wxASCII_STR(wxFileDialogNameStr));
+                 const wxString& name = wxFileDialogNameStr);
     bool Create(wxWindow *parent,
-                 const wxString& message = wxASCII_STR(wxFileSelectorPromptStr),
+                 const wxString& message = wxFileSelectorPromptStr,
                  const wxString& defaultDir = wxEmptyString,
                  const wxString& defaultFile = wxEmptyString,
-                 const wxString& wildCard = wxASCII_STR(wxFileSelectorDefaultWildcardStr),
+                 const wxString& wildCard = wxFileSelectorDefaultWildcardStr,
                  long style = wxFD_DEFAULT_STYLE,
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& sz = wxDefaultSize,
-                 const wxString& name = wxASCII_STR(wxFileDialogNameStr));
+                 const wxString& name = wxFileDialogNameStr);
     virtual ~wxFileDialog();
 
     virtual wxString GetPath() const wxOVERRIDE;
