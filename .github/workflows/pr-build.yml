@@ -114,7 +114,7 @@ jobs:
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}.dmg
           chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}.dmg
       - name: "Package ${{ matrix.build_type }}"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null)
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
