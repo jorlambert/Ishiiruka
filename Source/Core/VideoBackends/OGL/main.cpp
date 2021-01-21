@@ -186,4 +186,10 @@ void VideoBackend::Video_Cleanup()
   g_renderer.reset();
   GLInterface->ClearCurrent();
 }
+
+void VideoBackend::PrepareWindow(void* window_handle) 
+{
+
+}
+
 }
