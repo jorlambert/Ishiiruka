@@ -14,6 +14,156 @@ on:
       - "**.ini"
 
 jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay]
+        include:
+          - build_type: Netplay
+            artifact_name: windows64-netplay
+            build_config: Release
+    env:
+      DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
+    name: "Windows ${{ matrix.build_type }}"
+    runs-on: windows-2019
+    steps:
+      - name: "Remove Redistributable"
+        shell: cmd
+        run: |
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+      - name: "Install DirectX SDK"
+        shell: powershell
+        run: |
+          choco install directx-sdk
+      - name: "Setup MSBuild"
+        uses: microsoft/setup-msbuild@v1
+      - name: "Checkout"
+        uses: actions/checkout@v2.3.1
+      - name: 'Fetch Git Tags'
+        shell: bash
+        if: success()
+        run: |
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Build ${{ matrix.build_type }} Dolphin"
+        shell: cmd
+        run: |
+          msbuild /p:Configuration=${{ matrix.build_config }} /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Prepare Artifact"
+        working-directory: ${{ github.workspace }}
+        run: |
+          Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
+          cd .\Binary\x64\
+      - name: Package Artifact
+        working-directory: ${{ github.workspace }}
+        run: |
+          $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
+          mkdir artifact
+          cd .\Binary\x64\
+          fsutil file createnew portable.txt 0
+          7z a $FILE_NAME .\*
+          move $FILE_NAME ..\..\artifact\
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "./artifact/"
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay]
+        include:
+          - build_type: Netplay
+            artifact_name: linux-netplay
+            build_config: netplay
+    name: "Ubuntu ${{ matrix.build_type }}"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        if: success()
+        run: |
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Install prerequisites"
+        if: success()
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          wget \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwebkit2gtk-4.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          libmbedtls-dev \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build ${{ matrix.build_type }} Dolphin"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-linux.sh ${{ matrix.build_config }}
+      - name: "Build ${{ matrix.build_type }} AppImage"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-appimage.sh ${{ matrix.build_config }}
+      - name: "Package"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
+          zip -r "${FILE_NAME}" ./*.AppImage*
+          mv "${FILE_NAME}" ./artifact/
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "./artifact/"
   macOS:
     strategy:
       fail-fast: false
