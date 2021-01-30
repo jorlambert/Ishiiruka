@@ -28,6 +28,13 @@ jobs:
       - name: "Build Dolphin"
         run: |
           mkdir -p ${{ github.workspace }}/Binary/x64/
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: '5.x'
+      - name: NuGet Restore
+        run: |
+          nuget restore ${{ github.workspace }}\FPM-Win-Updater\DolphinUpdater.sln
       - name: "Build Netplay Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
