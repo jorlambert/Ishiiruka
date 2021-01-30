@@ -34,7 +34,7 @@ jobs:
         run: |
           git clone https://github.com/Birdthulu/FPM-Win-Updater
           cd FPM-Win-Updater
-          msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\FPM-Win-Updater\DolphinUpdater.sln
+          msbuild /p:Configuration=Release /p:Platform="Any CPU" ${{ github.workspace }}\FPM-Win-Updater\DolphinUpdater.sln
           cd DolphinUpdater\bin\Release
           copy /b /v /y Updater.exe ${{ github.workspace }}\Binary\x64\
       - name: "Prepare Artifact"
