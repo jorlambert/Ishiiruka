@@ -20,19 +20,42 @@ jobs:
       matrix:
         include:
           - artifact_name: windows
+    env:
+      DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
     name: "Windows Dolphin"
     runs-on: windows-2019
     steps:
+      - name: "Remove Redistributable"
+        shell: cmd
+        run: |
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+      - name: "Install DirectX SDK"
+        shell: powershell
+        run: |
+          choco install directx-sdk
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1
-      - name: "Build Dolphin"
+      - name: "Checkout"
+        uses: actions/checkout@v2.3.1
+      - name: 'Fetch Git Tags'
+        shell: bash
+        if: success()
         run: |
-          mkdir -p ${{ github.workspace }}/Binary/x64/
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Build Dolphin"
+        shell: cmd
+        run: |
+          msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
         with:
           nuget-version: '5.x'
-      - name: "Build Netplay Updater"
+      - name: "Build Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
         run: |
@@ -42,19 +65,186 @@ jobs:
           msbuild /p:Configuration=Release /p:Platform="Any CPU" ${{ github.workspace }}\FPM-Win-Updater\DolphinUpdater.sln
           cd DolphinUpdater\bin\Release
           copy /b /v /y Updater.exe ${{ github.workspace }}\Binary\x64\
+      - name: "Build Replay Manager"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          git clone https://github.com/Birdthulu/Dolphin-Replay-Manager
+          cd Dolphin-Replay-Manager
+          msbuild /p:Configuration=Release /p:Platform="Any CPU" "${{ github.workspace }}\Dolphin-Replay-Manager\Bird's Replay Manager.sln"
+          cd "Bird's Replay Manager\bin\Release"
+          copy /b /v /y "Bird's Replay Manager.exe" ${{ github.workspace }}\Binary\x64\
       - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
+          Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
         run: |
-          $FILE_NAME="${{ matrix.artifact_name }}.zip"
+          $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
           mkdir artifact
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
           7z a $FILE_NAME .\*
           move $FILE_NAME ..\..\artifact\
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "./artifact/"
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_name: linux
+    name: "Ubuntu Dolphin"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        if: success()
+        run: |
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Install prerequisites"
+        if: success()
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          wget \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwebkit2gtk-4.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          libmbedtls-dev \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build Dolphin"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-linux.sh
+      - name: "Build AppImage"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          chmod +x ./build-appimage.sh
+          ./build-appimage.sh
+      - name: "Package"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
+          zip -r "${FILE_NAME}" ./*.AppImage*
+          mv "${FILE_NAME}" ./artifact/
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "./artifact/"
+  macOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_name: macOS
+    name: "macOS Dolphin"
+    runs-on: macos-10.15
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        if: success()
+        run: |
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Install 10.14 SDK"
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
+          tar -xf MacOSX10.14.sdk.tar.xz
+          rm MacOSX10.14.sdk.tar.xz
+          sudo mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
+      - name: "Download and Install prerequisites"
+        if: success()
+        shell: bash
+        run: |
+          rm '/usr/local/bin/2to3' || true
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
+          brew upgrade cmake
+          brew install \
+          ffmpeg \
+          libpng \
+          libav \
+          pkgconfig \
+          libao \
+          sound-touch \
+          hidapi
+      - name: "Build Dolphin"
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+          chmod +x ./build-mac.sh && ./build-mac.sh
+          mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
+      - name: "Package"
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd  ./build/Binaries
+          zip -r "${{ env.FILE_NAME }}.zip" Dolphin.app
+          mv "${{ env.FILE_NAME }}.zip" ../../artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
