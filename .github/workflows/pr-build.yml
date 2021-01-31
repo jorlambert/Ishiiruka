@@ -56,7 +56,6 @@ jobs:
       - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
-          Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
