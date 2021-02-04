@@ -86,7 +86,11 @@ jobs:
       - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
+          xcopy .\Data\User .\Binary\x64\User /E /V /F /Y /I
+          xcopy .\Data\Sys .\Binary\x64\Sys /E /V /F /Y /I
           cd .\Binary\x64\
+          fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
+          echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
       - name: "Package Artifact"
         working-directory: ${{ github.workspace }}
         run: |
