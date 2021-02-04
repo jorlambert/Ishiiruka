@@ -1,9 +1,8 @@
 #!/bin/bash -e
 # build-online-appimage.sh
 
-ZSYNC_STRING="gh-releases-zsync|fpm|Ishiiruka|latest|FPM-x86_64.AppImage.zsync"
-NETPLAY_APPIMAGE_STRING="FPM-x86_64.AppImage"
-PLAYBACK_APPIMAGE_STRING="FPM-x86_64.AppImage"
+ZSYNC_STRING="gh-releases-zsync|fpm|Ishiiruka|latest|Faster_Project_M-x86_64.AppImage.zsync"
+APPIMAGE_STRING="Faster_Project_M-x86_64.AppImage"
 
 LINUXDEPLOY_PATH="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous"
 LINUXDEPLOY_FILE="linuxdeploy-x86_64.AppImage"
@@ -49,7 +48,7 @@ cp -r Data/Sys ${APPDIR_BIN}
 
 echo "Using Netplay build config"
 
-rm -f ${NETPLAY_APPIMAGE_STRING}
+rm -f ${APPIMAGE_STRING}
 		
 # Package up the update tool within the AppImage
 cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
