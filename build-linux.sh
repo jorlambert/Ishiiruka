@@ -11,8 +11,8 @@ mkdir -p build
 pushd build
 cmake ${CMAKE_FLAGS} ../
 #Copy wx folder to Source/Core/
-cp /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/Externals/wxWidgets3/include/wx /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/ -r
-cp /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/Externals/wxWidgets3/wx/* /home/runner/work/Ishiiruka-Private/Ishiiruka-Private/build/Source/Core/wx/
+cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/include/wx /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/ -r
+cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/wx/* /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/wx/
 make -j$(nproc)
 popd
 
