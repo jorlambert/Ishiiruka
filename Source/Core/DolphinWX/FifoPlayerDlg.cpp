@@ -970,11 +970,8 @@ void FifoPlayerDlg::FileLoaded()
 
   if (m_EvtHandler)
   {
-  // Disabled for update to wxWidges 3.1.4 - this may not be needed in Slippi, and 3.1.4
-  // makes wxPaintEvent a private construct.
-  //
-  // wxPaintEvent event;
-  // m_EvtHandler->AddPendingEvent(event);
+    wxPaintEvent event;
+    m_EvtHandler->AddPendingEvent(event);
   }
 }
 

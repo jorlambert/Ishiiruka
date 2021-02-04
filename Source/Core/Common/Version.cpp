@@ -8,7 +8,7 @@
 
 namespace Common
 {
-#define VERSION_STR "FPM v2.2 BETA"
+#define VERSION_STR "FPM v2.25 BETA"
 #ifdef _DEBUG
 #define BUILD_TYPE_STR "Debug "
 #elif defined DEBUGFAST

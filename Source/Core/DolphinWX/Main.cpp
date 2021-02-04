@@ -107,6 +107,7 @@ CFrame* main_frame = nullptr;
 
 #if defined(_WIN32) || defined(__APPLE__)
 bool DolphinApp::updateAvailable = false;
+std::string updateLink;
 #endif
 
 bool DolphinApp::Initialize(int& c, wxChar** v)
@@ -391,13 +392,13 @@ void DolphinApp::AfterInit()
 #endif
 
 #ifdef __APPLE__
-  if (File::Exists("./Dolphin.app/Contents/Resources/Updater-temp") && File::Exists("./Dolphin.app/Contents/Resources/Updater"))
+  if (File::Exists(File::GetBundleDirectory() + "Contents/Resources/Updater-temp") && File::Exists(File::GetBundleDirectory() + "Contents/Resources/Updater"))
   {
-    File::Delete("./Dolphin.app/Contents/Resources/Updater-temp");
+    File::Delete(File::GetBundleDirectory() + "Contents/Resources/Updater-temp");
   }
-  else if (File::Exists("./Dolphin.app/Contents/Resources/Updater-temp") && !File::Exists("./Dolphin.app/Contents/Resources/Updater"))
+  else if (File::Exists(File::GetBundleDirectory() + "Contents/Resources/Updater-temp") && !File::Exists(File::GetBundleDirectory() + "Contents/Resources/Updater"))
   {
-    File::Rename("./Dolphin.app/Contents/Resources/Updater-temp", "./Dolphin.app/Contents/Resources/Updater");
+    File::Rename(File::GetBundleDirectory() + "Contents/Resources/Updater-temp", File::GetBundleDirectory() + "Contents/Resources/Updater");
   }
 #endif
 
@@ -563,6 +564,7 @@ void DolphinApp::CheckUpdate()
     INFO_LOG(COMMON, "Update status: we are not up to date.");
     updateAvailable = true;
     std::string changelog = obj["changelog"].get<std::string>();
+    updateLink = obj["download-page-windows"].get<std::string>();
     int answer = wxMessageBox(_(
       "An update is available. Would you like to update? Changelog:\n\n" + changelog +
       "\n\nWANRING! IF YOU HAVE ANY CUSTOM CONTENT THIS MAY REPLACE IT!"
@@ -574,13 +576,12 @@ void DolphinApp::CheckUpdate()
 #ifdef _WIN32
       if (File::Exists("./Updater.exe"))
         File::Rename("./Updater.exe", "./Updater-temp.exe");
+#elif defined(__APPLE__)
+      if (File::Exists(File::GetBundleDirectory() + "Contents/Resources/Updater"))
+        File::Rename(File::GetBundleDirectory() + "Contents/Resources/Updater", File::GetBundleDirectory() + "Contents/Resources/Updater-temp");
 #endif
       DolphinApp::UpdateApp();
-#ifdef _WIN32
-      Exit();
-#elif defined(__APPLE__)
       main_frame->Close();
-#endif
     }
     else if (answer == wxNO && Config::Get(Config::MAIN_UPDATE_CHECK) != false)
     {
@@ -592,9 +593,8 @@ void DolphinApp::CheckUpdate()
 void DolphinApp::UpdateApp()
 {
 #ifdef _WIN32
-  std::string path = File::GetExeDirectory() + "/Updater-temp.exe";
-  std::string command = "start " + path + "\"";
-  WARN_LOG(COMMON, "Executing app update command: %s", command);
+  std::string path = "\"" + File::GetExeDirectory() + "\"";
+  std::string command = "start /d " + path + " Updater-temp.exe " + "\"" + updateLink + "\" " + path;
   RunSystemCommand(command);
 #elif defined(__APPLE__)
   chdir(File::GetBundleDirectory().c_str());
