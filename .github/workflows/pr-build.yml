@@ -253,7 +253,7 @@ jobs:
         run: |
           git clone https://github.com/Birdthulu/FPM-Updater
           cd FPM-Updater
-          cargo build --all --release && strip target/release/Updater && mv target/release/Updater target/release/Updater_darwin
+          cargo build --all --release && strip target/release/Updater
           cd "target/release/"
           mv "Updater" ${{ github.workspace }}/build/Binaries/Dolphin.app/Contents/Resources/
       - name: "Package"
