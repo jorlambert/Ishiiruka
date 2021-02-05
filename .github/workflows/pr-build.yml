@@ -94,16 +94,16 @@ jobs:
           rm -r Languages
           fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
           echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
-          wget "https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/vcruntime140_1.dll"
+          Invoke-WebRequest -Uri https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/vcruntime140_1.dll -UseBasicParsing -OutFile "vcruntime140_1.dll"
           mkdir Games
           cd Games
           fsutil file createnew "Place Brawl ISO here.txt" 0
           cd ..
           mkdir Launcher
           cd Launcher
-          wget "https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/Project+.Offline.Launcher.elf" -O "Project+ Offline Launcher.elf"
-          wget "https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/Project+.Netplay.Launcher.elf" -O "Project+ Netplay Launcher.elf"
-          wget "https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/icon.png"
+          Invoke-WebRequest -Uri https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/Project+.Offline.Launcher.elf -UseBasicParsing -OutFile "Project+ Offline Launcher.elf"
+          Invoke-WebRequest -Uri https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/Project+.Netplay.Launcher.elf -UseBasicParsing -OutFile "Project+ Netplay Launcher.elf"
+          Invoke-WebRequest -Uri https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/icon.png -UseBasicParsing -OutFile "icon.png"
       - name: "Package Artifact"
         working-directory: ${{ github.workspace }}
         run: |
