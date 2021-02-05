@@ -91,7 +91,7 @@ jobs:
           copy Changelog.txt .\Binary\x64\
           cd .\Binary\x64\
           del DSPTool.exe
-          rmdir Languages
+          rmdir "${{ github.workspace }}\Binary\x64\Languages" /s /q
           fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
           echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
           wget "https://github.com/Birdthulu/PPlusLauncher/releases/download/2.2/vcruntime140_1.dll"
