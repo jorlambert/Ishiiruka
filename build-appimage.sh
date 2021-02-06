@@ -60,5 +60,5 @@ UPDATE_INFORMATION="${ZSYNC_STRING}" \
 
 
 mv Faster_Project_Plus-$VERSION-x86_64.AppImage Faster_Project_Plus-x86-64.AppImage
-mv Faster_Project_Plus-$VERSION-x86_64.AppImage.zsync Faster_Project_Plus-x86-64.AppImage
+mv Faster_Project_Plus-$VERSION-x86_64.AppImage.zsync Faster_Project_Plus-x86-64.AppImage.zsync
 
