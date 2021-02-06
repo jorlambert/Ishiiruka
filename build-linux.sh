@@ -14,6 +14,7 @@ cmake ${CMAKE_FLAGS} ../
 cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/include/wx /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/ -r
 cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/wx/* /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/wx/
 make -j$(nproc)
+make install DESTDIR=./../AppDir;
 popd
 
 # Copy the Sys folder in
