@@ -805,7 +805,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD|OpenBSD")
   # Install the application icon and menu item
   install(FILES Data/ishiiruka.png
           DESTINATION ${CMAKE_INSTALL_PREFIX}/share/icons/hicolor/48x48/apps)
-  install(FILES Data/ishiiruka.desktop
+  install(FILES Data/faster-project-plus.desktop
           DESTINATION ${CMAKE_INSTALL_PREFIX}/share/applications)
   # Install manpages
   install(FILES Data/ishiiruka.6
