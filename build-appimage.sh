@@ -54,5 +54,11 @@ rm -f ${APPIMAGE_STRING}
 cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
 
 # Bake an AppImage with the update metadata
+export VERSION="2.25"
 UPDATE_INFORMATION="${ZSYNC_STRING}" \
 	./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
+
+
+mv Faster_Project_Plus-$VERSION-x86_64.AppImage Faster_Project_Plus-x86-64.AppImage
+mv Faster_Project_Plus-$VERSION-x86_64.AppImage.zsync Faster_Project_Plus-x86-64.AppImage.zsync
+
