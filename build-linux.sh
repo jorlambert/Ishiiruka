@@ -11,8 +11,8 @@ mkdir -p build
 pushd build
 cmake ${CMAKE_FLAGS} ../
 # --- move wx files into source
-cp Externals/wxWidgets3/include/wx Source/Core/ -r
-cp Externals/wxWidgets3/wx/* Source/Core/wx/ 
+cp ./Externals/wxWidgets3/include/wx ./Source/Core/ -r
+cp ./Externals/wxWidgets3/wx/* ./Source/Core/wx/ 
 # ---
 make -j$(nproc)
 make install DESTDIR=./AppDir;
