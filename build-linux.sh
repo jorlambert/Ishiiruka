@@ -10,9 +10,10 @@ BINARY_PATH="./build/Binaries/"
 mkdir -p build
 pushd build
 cmake ${CMAKE_FLAGS} ../
-#Copy wx folder to Source/Core/
-cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/include/wx /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/ -r
-cp /home/runner/work/Ishiiruka/Ishiiruka/Externals/wxWidgets3/wx/* /home/runner/work/Ishiiruka/Ishiiruka/build/Source/Core/wx/
+# --- move wx files into source
+cp Externals/wxWidgets3/include/wx Source/Core/ -r
+cp Externals/wxWidgets3/wx/* Source/Core/wx/ 
+# ---
 make -j$(nproc)
 make install DESTDIR=./AppDir;
 popd
