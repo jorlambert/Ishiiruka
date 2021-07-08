@@ -22,3 +22,4 @@ popd
 cp -r -n ${DATA_SYS_PATH} ${BINARY_PATH}
 
 touch ./build/Binaries/portable.txt
+touch ./AppDir/usr/local/bin/portable.txt;
